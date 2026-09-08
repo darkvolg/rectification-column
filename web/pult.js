@@ -521,6 +521,10 @@ function jrnAdd(row){
   return J;
 }
 
+/* Запись привязана к стенным часам, а не к моменту первой строки.
+   При интервале 30 минут строки ложатся на 12:00, 12:30, 13:00 — как в
+   бумажном журнале. Отсчёт «через 30 минут после предыдущей» давал
+   11:43, 12:13, 12:43: время уезжало от того, когда нажали кнопку. */
 function jrnTick(){
   const J = jrnLoad();
   if (!J.rows.length){ jrnMark(0); return; }   // погон не начат
@@ -528,7 +532,11 @@ function jrnTick(){
   if (!(m > 0)) return;                        // 0 — автозапись выключена
   const now = Date.now(), last = jrnLast();
   if (!last){ jrnMark(now); return; }
-  if (now - last < m * 60000) return;
+
+  const step = m * 60000;
+  // Граница текущего получаса (или другого интервала) по часам.
+  const slot = Math.floor(now / step);
+  if (slot <= Math.floor(last / step)) return;   // в этот слот уже писали
 
   const r = jrnRow();
   // Строка без единого числа — не запись, а мусор: связи ещё нет либо

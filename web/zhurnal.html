@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260908c">
+<link rel="stylesheet" href="pult.css?v=20260908d">
 </head>
 <body>
 
@@ -174,8 +174,8 @@
   на странице <a href="grafiki.html">Графики</a>.
 </footer>
 
-<script src="pult.js?v=20260908c"></script>
-<script src="xlsx.js?v=20260908c"></script>
+<script src="pult.js?v=20260908d"></script>
+<script src="xlsx.js?v=20260908d"></script>
 <script>
 "use strict";
 const {V} = PULT;
@@ -429,8 +429,12 @@ function autoInfo(){
   if (!(every > 0)){ el.textContent = 'автозапись выключена'; return; }
   const last = PULT.jrnInfo().last;
   if (!last){ el.textContent = 'автозапись включена'; return; }
-  el.textContent = 'последняя ' + hhmm(last) +
-                   ', следующая ≈ ' + hhmm(last + every * 60000);
+  // Строки ложатся на круглое время, поэтому следующую считаем от часов,
+  // а не от предыдущей записи.
+  const step = every * 60000;
+  const due = (Math.floor(last / step) + 1) * step;
+  el.textContent = 'последняя ' + hhmm(last) + ', следующая ' +
+                   (Date.now() >= due ? 'вот-вот' : hhmm(due));
 }
 setInterval(autoInfo, 20000);
 
