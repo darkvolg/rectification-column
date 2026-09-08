@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260908b">
+<link rel="stylesheet" href="pult.css?v=20260908c">
 </head>
 <body>
 
@@ -218,7 +218,7 @@
   <code>index.html?ip=192.168.0.55</code>
 </footer>
 
-<script src="pult.js?v=20260908b"></script>
+<script src="pult.js?v=20260908c"></script>
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
@@ -381,7 +381,7 @@ $('#ha_save').onclick = () => {
     haView(n
       ? 'Связь есть. Датчиков колонны в HA видно: ' + n + '.'
       : 'HA отвечает, но датчиков колонны не видно. Устройство добавлено в HA?');
-    PULT.toast(n ? 'HA на связи' : 'HA отвечает, датчиков нет');
+    PULT.toast(n ? 'HA на связи, датчиков ' + n : 'HA отвечает, но датчиков колонны не видно');
   }).catch(e => {
     haView('Не вышло: ' + e.message);
     PULT.toast('HA: ' + e.message);
