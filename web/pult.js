@@ -684,21 +684,47 @@ function haSlug(name){
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 }
 
+/* Имена вроде voltage, current, power есть у половины дома: у розетки,
+   у стиральной машины, у чего угодно. Поэтому сначала находим префикс
+   НАШЕГО устройства по именам, которых больше нет ни у кого
+   (t1_kub, otbor_rate, pressure_mmhg), а уже потом сопоставляем каналы —
+   строго внутри этого префикса. Иначе напряжение колонны приезжает
+   из розетки в коридоре: проверено, приезжало.
+   Префикс не зашит: имя устройства у каждого своё. */
+const HA_ANCHORS = ['t1_kub', 't2_carga', 't3_otbor', 'otbor_rate',
+                    'pressure_mmhg', 'power_water', 'trend_t2', 'delta_t'];
+
 async function haEntities(){
   const states = await haFetch('/api/states');
-  const want = {};
+
+  const want = {};   // хвост имени -> наш ключ канала
   Object.keys(CH).forEach(id => {
     if (id.indexOf('sensor/') !== 0) return;
     want[haSlug(id.slice(7))] = CH[id].k;
   });
-  const map = {};
-  states.forEach(st => {
-    const eid = st.entity_id || '';
-    if (eid.indexOf('sensor.') !== 0) return;
-    const tail = eid.slice(7);
-    Object.keys(want).forEach(slug => {
-      if (tail === slug || tail.endsWith('_' + slug)) map[want[slug]] = eid;
+
+  const sensors = states.filter(st => (st.entity_id || '').indexOf('sensor.') === 0);
+
+  const score = {};
+  sensors.forEach(st => {
+    const tail = st.entity_id.slice(7);
+    HA_ANCHORS.forEach(a => {
+      if (tail === a || tail.endsWith('_' + a)){
+        const pref = tail.slice(0, tail.length - a.length);
+        score[pref] = (score[pref] || 0) + 1;
+      }
     });
+  });
+  const prefixes = Object.keys(score).sort((a, b) => score[b] - score[a]);
+  if (!prefixes.length) return {};
+  const prefix = prefixes[0];
+
+  const map = {};
+  sensors.forEach(st => {
+    const tail = st.entity_id.slice(7);
+    if (tail.indexOf(prefix) !== 0) return;
+    const rest = tail.slice(prefix.length);
+    if (want[rest]) map[want[rest]] = st.entity_id;
   });
   return map;
 }
@@ -728,7 +754,6 @@ async function haPull(startTs, endTs, onStep){
       '&minimal_response&no_attributes');
 
     const row = {ts: b};
-    let any = false;
     (data || []).forEach(arr => {
       if (!arr || !arr.length) return;
       const eid = arr[0].entity_id;
@@ -736,10 +761,13 @@ async function haPull(startTs, endTs, onStep){
       if (!key) return;
       const last = arr[arr.length - 1];
       const v = parseFloat(last && last.state);
-      if (isFinite(v)){ row[key] = v; any = true; }
+      if (isFinite(v)) row[key] = v;
     });
-    // Пустую корзину не пишем: строка без чисел — мусор, а не запись.
-    if (any) rows.push(row);
+    // Строка журнала имеет смысл, только если известна хоть одна
+    // температура или напряжение. Одна скорость отбора, да ещё нулевая,
+    // — это простой, а не погон: такие строки не пишем.
+    const real = ['otbor', 'carga', 'voda', 'volt'].some(f => row[f] !== undefined);
+    if (real) rows.push(row);
     if (onStep) onStep(++n, total);
   }
   return jrnMergeRows(rows, 'ha');
