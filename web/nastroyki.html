@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260908h">
+<link rel="stylesheet" href="pult.css?v=20260908i">
 </head>
 <body>
 
@@ -186,9 +186,12 @@
       открыта, живёт в этом браузере на этом устройстве и нужна лишь затем,
       чтобы графики не начинались с нуля при переходе между страницами.
       Закрыл вкладку — дыра. Настоящий журнал ведёт сам контроллер:
-      кнопка <strong>«Журнал контроллера»</strong> на странице графиков или
-      напрямую <code>http://&lt;адрес&gt;/log.csv</code>. Он пишется всегда,
-      даже когда ноут закрыт.</span>
+      кнопка <strong>«Журнал контроллера»</strong> на странице графиков
+      скачает его целиком, а кнопка <strong>«Подтянуть»</strong> в журнале
+      закроет пропуски прямо в таблице. Плата пишет всегда, даже когда
+      ноут закрыт. Открывать <code>/log.csv</code> в браузере руками не
+      надо: плата отдаёт журнал страницами, и так придут только первые
+      сто с небольшим строк.</span>
     </div>
     <div class="kv"><span>Накоплено точек</span><b id="h_pts">—</b></div>
     <div class="kv"><span>Глубина</span><b id="h_hrs">—</b></div>
@@ -218,7 +221,7 @@
   <code>index.html?ip=192.168.0.55</code>
 </footer>
 
-<script src="pult.js?v=20260908h"></script>
+<script src="pult.js?v=20260908i"></script>
 <script>
 "use strict";
 const $ = s => document.querySelector(s);

@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260908h">
+<link rel="stylesheet" href="pult.css?v=20260908i">
 </head>
 <body>
 
@@ -65,7 +65,7 @@
   долгий архив пишет Home Assistant.
 </footer>
 
-<script src="pult.js?v=20260908h"></script>
+<script src="pult.js?v=20260908i"></script>
 <script>
 "use strict";
 const {slice, col, lineColor, V, CH} = PULT;
@@ -340,10 +340,33 @@ document.querySelectorAll('#preset button').forEach(b => b.onclick = () => {
 });
 
 /* Журнал контроллера. Он пишется независимо от браузера, поэтому это
-   основной источник: ссылка ведёт прямо на ESP32, файл отдаёт он сам. */
-document.getElementById('log').onclick = () => {
+   основной источник.
+   Скачиваем сами, а не открываем ссылку: плата отдаёт журнал страницами
+   (её веб-сервер собирает ответ в памяти целиком и больше 16 КБ за раз
+   не может). Прямая ссылка на /log.csv принесла бы первые 130 строк и
+   выглядела бы при этом целым файлом — молча обрезанный журнал хуже,
+   чем его отсутствие. */
+document.getElementById('log').onclick = async () => {
   if (!PULT.ip){ PULT.toast('Сначала задать адрес ESP32 в настройках'); return; }
-  window.open('http://' + PULT.ip + '/log.csv', '_blank', 'noopener');
+  const b = document.getElementById('log');
+  const was = b.textContent;
+  b.disabled = true;
+  try {
+    const got = await PULT.sdText(p => { b.textContent = p; });
+    if (!got.text.trim()){ PULT.toast('Журнал платы пуст'); return; }
+    const url = URL.createObjectURL(new Blob([got.text], {type:'text/csv;charset=utf-8'}));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = got.name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    PULT.toast('Скачано: ' + got.name + (got.card ? '' : ' (из памяти платы)'));
+  } catch(e){
+    PULT.toast('Плата: ' + e.message);
+  } finally {
+    b.disabled = false;
+    b.textContent = was;
+  }
 };
 function paintLogBtn(){
   const b = document.getElementById('log');

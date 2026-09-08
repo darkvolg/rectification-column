@@ -376,6 +376,13 @@ class LogHandler : public AsyncWebHandler {
     // ошибкой («contains multiple values») и режет ответ — а пульт могут
     // открыть и копией файла с компьютера, там это важно.
     r->addHeader("Cache-Control", "no-store");
+    // Без этой строки страница с другого адреса НЕ ВИДИТ наших заголовков:
+    // браузер отдаёт скрипту лишь горстку стандартных. Пульт из-за этого
+    // думал, что строк прислали ноль, и останавливал перекачку после
+    // первой страницы — журнал приходил обрезанным до 130 строк и выглядел
+    // при этом целым. Поймано 08.09.2026.
+    r->addHeader("Access-Control-Expose-Headers",
+                 "X-Rows-Total, X-Rows-Sent, X-File-Size");
   }
 
   // Журнал из кольца в памяти, страницами по строкам
@@ -402,8 +409,15 @@ class LogHandler : public AsyncWebHandler {
     common(resp);
     // По этим двум заголовкам клиент понимает, сколько ещё осталось,
     // и не гадает по размеру ответа.
-    resp->addHeader("X-Rows-Total", std::to_string(count).c_str());
-    resp->addHeader("X-Rows-Sent", std::to_string(sent).c_str());
+    // Буферы ОБЯЗАТЕЛЬНО локальные и живут до send: httpd_resp_set_hdr
+    // строки не копирует, а запоминает указатель. С std::to_string(...)
+    // .c_str() указывал на уже уничтоженный временный объект, и клиент
+    // получал мусор — «всего строк: 1» при четырёх в кольце.
+    char h_total[16], h_sent[16];
+    snprintf(h_total, sizeof(h_total), "%u", (unsigned) count);
+    snprintf(h_sent, sizeof(h_sent), "%ld", sent);
+    resp->addHeader("X-Rows-Total", h_total);
+    resp->addHeader("X-Rows-Sent", h_sent);
     req->send(resp);
   }
 
@@ -450,7 +464,10 @@ class LogHandler : public AsyncWebHandler {
 
     auto *resp = req->beginResponse(200, "text/csv; charset=utf-8", out);
     common(resp);
-    resp->addHeader("X-File-Size", std::to_string((long) st.st_size).c_str());
+    // Буфер локальный и живёт до send — см. пояснение в ring().
+    char h_size[24];
+    snprintf(h_size, sizeof(h_size), "%ld", (long) st.st_size);
+    resp->addHeader("X-File-Size", h_size);
     req->send(resp);
   }
 

@@ -744,6 +744,17 @@ async function sdFileText(name, onStep){
   return text;
 }
 
+/* Сколько строк данных в куске. Нужна как запасной счётчик: если плата
+   старой прошивки не разрешила читать свои заголовки (Access-Control-
+   Expose-Headers), браузер отдаёт по ним null, и по ним нельзя понять,
+   сколько прислали. Тогда считаем строки сами — иначе перекачка встанет
+   после первой страницы, а журнал будет выглядеть целым. */
+function sdCountRows(text){
+  let n = 0;
+  text.split('\n').forEach(l => { if (/^\d{2}\.\d{2}\.\d{4}/.test(l)) n++; });
+  return n;
+}
+
 /* Кольцо в памяти платы — когда карты нет. Страницами по строкам. */
 async function sdRingText(onStep){
   let from = 0, text = '', total = null;
@@ -751,8 +762,13 @@ async function sdRingText(onStep){
     const r = await sdGet('/log.csv?from=' + from + '&n=130');
     const part = await r.text();
     text += part;
-    const sent = parseInt(r.headers.get('X-Rows-Sent') || '0', 10);
-    if (total === null) total = parseInt(r.headers.get('X-Rows-Total') || '0', 10);
+
+    const head = parseInt(r.headers.get('X-Rows-Sent'), 10);
+    const sent = isFinite(head) ? head : sdCountRows(part);
+    if (total === null){
+      const t = parseInt(r.headers.get('X-Rows-Total'), 10);
+      total = isFinite(t) ? t : 0;
+    }
     from += sent;
     if (onStep && total) onStep('память платы ' + Math.round(from * 100 / total) + '%');
     if (!sent) break;
@@ -798,13 +814,25 @@ function jrnDownsample(rows, first, last, step){
   return out;
 }
 
-async function sdPull(startTs, endTs, onStep){
+/* Весь журнал платы одним куском: с карты, если она есть, иначе из
+   кольца в памяти. Постранично внутри — снаружи об этом знать не надо.
+   Нужна и для подтяжки в таблицу, и для кнопки «скачать журнал»:
+   раньше кнопка открывала /log.csv напрямую и после перехода на
+   постраничную выдачу молча приносила только первые 130 строк. */
+async function sdText(onStep){
   if (onStep) onStep('спрашиваю плату');
   const info = await sdInfo();
   const fromCard = !!(info && info.card && info.current);
   const text = fromCard
     ? await sdFileText(info.current, onStep)
     : await sdRingText(onStep);
+  return {text: text, card: fromCard, name: fromCard ? info.current : 'kolonna_memory.csv',
+          rows: info ? info.rows : 0};
+}
+
+async function sdPull(startTs, endTs, onStep){
+  const got = await sdText(onStep);
+  const text = got.text, fromCard = got.card;
 
   if (onStep) onStep('раскладываю');
   const every = jrnEvery();
@@ -1396,7 +1424,7 @@ window.PULT = {
   jrnLoad, jrnSave, jrnRow, jrnAdd, jrnMark, jrnInfo, jrnEvery,
   jrnMergeRows, jrnSrcName, jrnBucket, jrnHHMM, jrnFmtVal, jrnHasData, JREAL,
   haCfg, setHaCfg, haEntities, haPull, haConnect, haBucketize,
-  sdInfo, sdPull, sdParse, jrnDownsample,
+  sdInfo, sdPull, sdText, sdParse, jrnDownsample,
   soundOn, setSound, testSound, stopBuzz, muteHere, askNotify, notifyState,
   get ip(){ return ip; },
   get state(){ return state; },
