@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260907d">
+<link rel="stylesheet" href="pult.css?v=20260908a">
 </head>
 <body>
 
@@ -89,6 +89,44 @@
       <button class="btn bad" id="limreset">Вернуть заводские пороги</button>
       <button class="btn" id="palreset">Вернуть цвета темы</button>
     </div>
+  </div>
+
+  <div class="card">
+    <h3>Home Assistant — запасной журнал</h3>
+    <p>Журнал ведёт сама плата, но пока карта не подключена, строки пишутся
+    только в браузере — закрыл вкладку, и в журнале дыра. Home Assistant при
+    этом пишет те же датчики к себе сам. Отсюда историю можно подтянуть и
+    закрыть пропуск.</p>
+    <p><strong>Если Home Assistant у тебя нет — просто пропусти этот блок.</strong>
+    Всё остальное работает без него.</p>
+
+    <div class="fld">
+      <label for="ha_url">Адрес Home Assistant</label>
+      <input id="ha_url" type="text" inputmode="url" autocomplete="off"
+             spellcheck="false" placeholder="http://192.168.0.74:8123">
+    </div>
+    <div class="fld">
+      <label for="ha_token">Долгоживущий токен</label>
+      <input id="ha_token" type="password" autocomplete="off" spellcheck="false"
+             placeholder="создаётся в профиле пользователя HA, внизу страницы">
+    </div>
+    <div class="btnrow">
+      <button class="btn prim" id="ha_save">Сохранить и проверить</button>
+      <button class="btn" id="ha_clear">Забыть токен</button>
+    </div>
+    <p id="ha_state" class="hint"></p>
+
+    <div class="warn">
+      <strong>Токен открывает весь дом, а не только колонну.</strong>
+      Прав по отдельным устройствам у токенов HA нет: кто получил токен —
+      получил замки, камеры и всё остальное. Заводи под колонну
+      <strong>отдельного пользователя, не администратора</strong>, и токен
+      только его. Токен лежит в памяти этого браузера — на чужом компьютере
+      не сохраняй.
+    </div>
+    <p class="hint">Если HA отвечает «не отвечает (адрес, сеть или CORS)», добавь
+    адрес пульта в <code>http: cors_allowed_origins</code> в configuration.yaml
+    и перезапусти Home Assistant.</p>
   </div>
 
   <div class="card">
@@ -179,7 +217,7 @@
   <code>index.html?ip=192.168.0.55</code>
 </footer>
 
-<script src="pult.js?v=20260907d"></script>
+<script src="pult.js?v=20260908a"></script>
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
@@ -314,6 +352,48 @@ function ntfView(){
 }
 $('#ntf').onclick = () => PULT.askNotify().then(ntfView);
 ntfView();
+
+/* ---------- Home Assistant как запасной источник журнала ---------- */
+function haView(msg){
+  const c = PULT.haCfg();
+  $('#ha_url').value = c.url || '';
+  // Сам токен обратно не показываем: в поле только признак, что он есть.
+  $('#ha_token').value = '';
+  $('#ha_token').placeholder = c.token
+    ? 'токен сохранён — впиши новый, чтобы заменить'
+    : 'создаётся в профиле пользователя HA, внизу страницы';
+  if (msg !== undefined) $('#ha_state').textContent = msg;
+  else $('#ha_state').textContent = c.url && c.token
+    ? 'Адрес и токен сохранены. Нажми «Сохранить и проверить», чтобы убедиться в связи.'
+    : 'Не настроено.';
+}
+
+$('#ha_save').onclick = () => {
+  const url = $('#ha_url').value.trim();
+  const tok = $('#ha_token').value.trim() || PULT.haCfg().token || '';
+  if (!url){ PULT.toast('Впиши адрес Home Assistant'); return; }
+  if (!tok){ PULT.toast('Впиши токен'); return; }
+  PULT.setHaCfg(url, tok);
+  haView('Проверяю…');
+  PULT.haEntities().then(map => {
+    const n = Object.keys(map).length;
+    haView(n
+      ? 'Связь есть. Датчиков колонны в HA видно: ' + n + '.'
+      : 'HA отвечает, но датчиков колонны не видно. Устройство добавлено в HA?');
+    PULT.toast(n ? 'HA на связи' : 'HA отвечает, датчиков нет');
+  }).catch(e => {
+    haView('Не вышло: ' + e.message);
+    PULT.toast('HA: ' + e.message);
+  });
+};
+
+$('#ha_clear').onclick = () => {
+  PULT.setHaCfg('', '');
+  haView('Забыл. Токен из памяти браузера удалён.');
+  PULT.toast('Токен удалён');
+};
+
+haView();
 </script>
 </body>
 </html>

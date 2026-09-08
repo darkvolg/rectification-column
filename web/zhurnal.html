@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260907d">
+<link rel="stylesheet" href="pult.css?v=20260908a">
 </head>
 <body>
 
@@ -135,6 +135,7 @@
       мин (0 — не писать)
     </label>
     <span class="jhint" id="j_autoinfo"></span>
+    <button class="btn" id="j_pull" title="Дотянуть пропущенное из истории Home Assistant">Подтянуть</button>
     <span class="sp"></span>
     <button class="btn prim" id="j_xls">Скачать Excel</button>
     <button class="btn" id="j_csv">CSV</button>
@@ -173,8 +174,8 @@
   на странице <a href="grafiki.html">Графики</a>.
 </footer>
 
-<script src="pult.js?v=20260907d"></script>
-<script src="xlsx.js?v=20260907d"></script>
+<script src="pult.js?v=20260908a"></script>
+<script src="xlsx.js?v=20260908a"></script>
 <script>
 "use strict";
 const {V} = PULT;
@@ -321,7 +322,12 @@ function render(){
       : '<td style="width:' + c.w + '"><input data-i="' + i + '" data-k="' + c.k +
         '" value="' + (r[c.k] === undefined ? '' : r[c.k]) + '"></td>').join('');
     return '<tr data-ph="' + r.ph + '">' +
-      '<td class="num">' + (i + 1) + '</td>' +
+      '<td class="num">' + (i + 1) +
+        (r.src && r.src !== 'pult'
+          ? '<span class="src" title="Строка получена: ' + PULT.jrnSrcName(r.src) + '">' +
+            PULT.jrnSrcName(r.src) + '</span>'
+          : '') +
+      '</td>' +
       '<td class="tm"><input data-i="' + i + '" data-k="t" value="' + r.t + '"></td>' +
       cells +
       '<td style="width:78px"><input value="' + fmt(acc) + '" readonly tabindex="-1"></td>' +
@@ -365,6 +371,36 @@ function addRow(){
   if (last) last.querySelector('select').focus();
 }
 $('#j_add').onclick = () => addRow();
+
+/* Дотянуть пропущенное из Home Assistant. Нужно ровно тогда, когда
+   браузер был закрыт: плата данные отдавала, HA их писал, а в журнале
+   дыра. Пометки человека при этом не трогаются — сливаются только
+   измерения, см. jrnMergeRows в pult.js. */
+$('#j_pull').onclick = () => {
+  const c = PULT.haCfg();
+  if (!c.url || !c.token){
+    PULT.toast('Сначала укажи адрес и токен HA в Настройках');
+    return;
+  }
+  const now = Math.round(Date.now() / 1000);
+  const first = J.rows.reduce((m, r) => (r.ts && (!m || r.ts < m)) ? r.ts : m, 0);
+  const from = first || (now - 12 * 3600);
+
+  const btn = $('#j_pull');
+  btn.disabled = true;
+  const was = btn.textContent;
+  btn.textContent = 'Тяну…';
+
+  PULT.haPull(from, now, (n, total) => { btn.textContent = 'Тяну ' + n + '/' + total; })
+    .then(res => {
+      reload();
+      PULT.toast(res.added || res.filled
+        ? 'Из HA: новых строк ' + res.added + ', дополнено ' + res.filled
+        : 'В HA нет ничего, чего бы уже не было в журнале');
+    })
+    .catch(e => PULT.toast('HA: ' + e.message))
+    .then(() => { btn.disabled = false; btn.textContent = was; });
+};
 
 /* Строку мог дописать таймер из pult.js или соседняя вкладка —
    перечитываем журнал целиком, иначе наша копия затрёт чужую запись. */

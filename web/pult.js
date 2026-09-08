@@ -497,6 +497,8 @@ function jrnRow(){
   const d = new Date();
   const f = (v, n) => (v === undefined || !isFinite(v)) ? '' : v.toFixed(n);
   return {
+    ts: Math.round(d.getTime() / 1000),   // по ней строки из разных источников сходятся
+    src: 'pult',
     t: String(d.getHours()).padStart(2, '0') + ':' +
        String(d.getMinutes()).padStart(2, '0'),
     ph: '',
@@ -539,9 +541,208 @@ function jrnTick(){
   jrnAdd(r);
 }
 
+/* ============================================================
+   СЛИЯНИЕ ИСТОЧНИКОВ
+   Строка журнала может прийти из трёх мест: с карты самой платы,
+   из истории Home Assistant или от открытого пульта. Старшинство
+   именно в этом порядке — карта пишет мгновенные значения, HA отдаёт
+   пятиминутные средние, пульт держит только то, что застал.
+   Железное правило: измерения даёт источник, пометки человека
+   (фаза, объём отбора, примечание) не трогает никто. Иначе повторная
+   перекачка стирает то, что вписано руками.
+   ============================================================ */
+const JRANK  = {pult: 1, ha: 2, sd: 3};
+const JMEAS  = ['otbor', 'carga', 'voda', 'volt', 'rate'];   // меряет прибор
+const JHUMAN = ['ph', 'ml', 'note'];                          // пишет человек
+
+/* Число из внешнего источника округляем так же, как своё: иначе в одной
+   колонке рядом стоят 40 и 40.30 и таблица выглядит как набор опечаток. */
+function jrnFmtVal(key, v){
+  if (v === undefined || v === null || v === '') return '';
+  const n = parseFloat(v);
+  if (!isFinite(n)) return '';
+  let d = 2;
+  for (const id in CH) if (CH[id].k === key){ d = CH[id].d; break; }
+  return n.toFixed(d);
+}
+
+function jrnSrcName(src){
+  return src === 'sd' ? 'карта' : src === 'ha' ? 'HA' : 'пульт';
+}
+
+/* Строки сходятся не по секундам, а по корзине шириной в интервал журнала:
+   плата пишет в 20:00:07, HA отдаёт 20:00:00 — это одна и та же строка. */
+function jrnBucket(ts, everyMin){
+  const w = Math.max(60, Math.round((everyMin || 30) * 60));
+  return Math.floor(ts / w) * w;
+}
+
+function jrnHHMM(ts){
+  const d = new Date(ts * 1000);
+  return String(d.getHours()).padStart(2, '0') + ':' +
+         String(d.getMinutes()).padStart(2, '0');
+}
+
+/* rows: [{ts, otbor, carga, voda, volt, rate}], значения строками или числами.
+   Возвращает {added, filled} — сколько строк добавлено и сколько дополнено. */
+function jrnMergeRows(rows, src){
+  if (!Array.isArray(rows) || !rows.length) return {added: 0, filled: 0};
+  const rank = JRANK[src] || 1;
+  const J = jrnLoad();
+  const every = jrnEvery(J);
+
+  const byBucket = {};
+  J.rows.forEach(r => {
+    if (r.ts) byBucket[jrnBucket(r.ts, every)] = r;
+  });
+
+  let added = 0, filled = 0;
+  rows.forEach(inc => {
+    if (!inc || !inc.ts) return;
+    const b = jrnBucket(inc.ts, every);
+    const cur = byBucket[b];
+
+    if (!cur){
+      const row = {ts: inc.ts, src: src, t: jrnHHMM(inc.ts),
+                   ph: '', ml: '', note: ''};
+      JMEAS.forEach(f => { row[f] = jrnFmtVal(f, inc[f]); });
+      J.rows.push(row);
+      byBucket[b] = row;
+      added++;
+      return;
+    }
+
+    // Строка уже есть. Заполняем пустые поля всегда, занятые — только если
+    // источник старше того, что их заполнил.
+    const curRank = JRANK[cur.src] || 1;
+    let touched = false;
+    JMEAS.forEach(f => {
+      const v = inc[f];
+      if (v === undefined || v === null || v === '') return;
+      const empty = cur[f] === undefined || cur[f] === '';
+      if (empty || rank > curRank){ cur[f] = jrnFmtVal(f, v); touched = true; }
+    });
+    if (touched){
+      if (rank >= curRank) cur.src = src;
+      filled++;
+    }
+    // JHUMAN не трогаем никогда — это к вопросу о том, зачем здесь этот список.
+    void JHUMAN;
+  });
+
+  J.rows.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  jrnSave(J);
+  subs.forEach(f => f('jrn'));
+  return {added: added, filled: filled};
+}
+
 function jrnInfo(){
   const J = jrnLoad();
   return {rows: J.rows.length, every: jrnEvery(J), last: jrnLast()};
+}
+
+/* ============================================================
+   HOME ASSISTANT — запасной источник журнала
+   Карта платы главнее, но её может не быть: не куплена, не вставлена,
+   отвалилась. HA при этом пишет те же датчики к себе сам, без единой
+   строчки кода с нашей стороны — надо только уметь оттуда прочитать.
+   Адрес и токен живут в браузере, в Настройках.
+   ВНИМАНИЕ: токен HA даёт полный доступ ко всему дому. Заводить под
+   колонну отдельного пользователя, не администратора.
+   ============================================================ */
+const HA_KEY = 'kol_ha';
+
+function haCfg(){
+  try { return JSON.parse(localStorage.getItem(HA_KEY)) || {}; } catch(_){ return {}; }
+}
+function setHaCfg(url, token){
+  const c = {url: (url || '').trim().replace(/\/+$/, ''), token: (token || '').trim()};
+  try { localStorage.setItem(HA_KEY, JSON.stringify(c)); } catch(_){}
+  return c;
+}
+
+async function haFetch(path){
+  const c = haCfg();
+  if (!c.url)   throw new Error('не задан адрес Home Assistant');
+  if (!c.token) throw new Error('не задан токен');
+  let r;
+  try {
+    r = await fetch(c.url + path, {headers: {Authorization: 'Bearer ' + c.token}});
+  } catch(_){
+    // Сюда же приходит запрет CORS: браузер не говорит, что именно случилось.
+    throw new Error('HA не отвечает (адрес, сеть или CORS)');
+  }
+  if (r.status === 401) throw new Error('токен не принят');
+  if (!r.ok) throw new Error('HA ответил ' + r.status);
+  return r.json();
+}
+
+/* Имя сенсора в ESPHome «T3 Otbor» превращается в HA в
+   sensor.kolonna_t3_otbor. Не угадываем, а ищем среди реальных
+   сущностей: имя устройства у каждого своё. */
+function haSlug(name){
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+}
+
+async function haEntities(){
+  const states = await haFetch('/api/states');
+  const want = {};
+  Object.keys(CH).forEach(id => {
+    if (id.indexOf('sensor/') !== 0) return;
+    want[haSlug(id.slice(7))] = CH[id].k;
+  });
+  const map = {};
+  states.forEach(st => {
+    const eid = st.entity_id || '';
+    if (eid.indexOf('sensor.') !== 0) return;
+    const tail = eid.slice(7);
+    Object.keys(want).forEach(slug => {
+      if (tail === slug || tail.endsWith('_' + slug)) map[want[slug]] = eid;
+    });
+  });
+  return map;
+}
+
+/* Тянем историю по корзинам: для каждой строки журнала берём последнее
+   значение в окне перед её временем. Одним куском за весь погон вышло бы
+   несколько мегабайт — на телефоне это заметно. */
+async function haPull(startTs, endTs, onStep){
+  const map = await haEntities();
+  const keys = Object.keys(map);
+  if (!keys.length) throw new Error('в Home Assistant не видно датчиков колонны');
+
+  const ids = keys.map(k => map[k]).join(',');
+  const every = jrnEvery();
+  const step = Math.max(60, Math.round(every * 60));
+  const first = jrnBucket(startTs, every);
+  const total = Math.max(1, Math.floor((endTs - first) / step) + 1);
+
+  const rows = [];
+  let n = 0;
+  for (let b = first; b <= endTs; b += step){
+    const from = new Date((b - 180) * 1000).toISOString();
+    const to   = new Date((b + 30) * 1000).toISOString();
+    const data = await haFetch('/api/history/period/' + from +
+      '?end_time=' + encodeURIComponent(to) +
+      '&filter_entity_id=' + encodeURIComponent(ids) +
+      '&minimal_response&no_attributes');
+
+    const row = {ts: b};
+    let any = false;
+    (data || []).forEach(arr => {
+      if (!arr || !arr.length) return;
+      const eid = arr[0].entity_id;
+      const key = keys.find(k => map[k] === eid);
+      if (!key) return;
+      const last = arr[arr.length - 1];
+      const v = parseFloat(last && last.state);
+      if (isFinite(v)){ row[key] = v; any = true; }
+    });
+    // Пустую корзину не пишем: строка без чисел — мусор, а не запись.
+    if (any) rows.push(row);
+    if (onStep) onStep(++n, total);
+  }
+  return jrnMergeRows(rows, 'ha');
 }
 
 /* ============================================================
@@ -937,6 +1138,8 @@ window.PULT = {
   lineColor, setPal, resetPal, palUser, setNumber,
   ROLES, SEL, SLOT, setSelect,
   jrnLoad, jrnSave, jrnRow, jrnAdd, jrnMark, jrnInfo, jrnEvery,
+  jrnMergeRows, jrnSrcName, jrnBucket, jrnHHMM, jrnFmtVal,
+  haCfg, setHaCfg, haEntities, haPull,
   soundOn, setSound, testSound, stopBuzz, muteHere, askNotify, notifyState,
   get ip(){ return ip; },
   get state(){ return state; },
