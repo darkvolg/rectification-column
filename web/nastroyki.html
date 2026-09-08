@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260908a">
+<link rel="stylesheet" href="pult.css?v=20260908b">
 </head>
 <body>
 
@@ -124,9 +124,10 @@
       только его. Токен лежит в памяти этого браузера — на чужом компьютере
       не сохраняй.
     </div>
-    <p class="hint">Если HA отвечает «не отвечает (адрес, сеть или CORS)», добавь
-    адрес пульта в <code>http: cors_allowed_origins</code> в configuration.yaml
-    и перезапусти Home Assistant.</p>
+    <p class="hint">Читаем через WebSocket, поэтому настраивать
+    <code>cors_allowed_origins</code> в Home Assistant не нужно: на WebSocket
+    правило одного источника не распространяется. Адрес пиши тот же, по которому
+    сам заходишь в HA, вместе с портом.</p>
   </div>
 
   <div class="card">
@@ -217,7 +218,7 @@
   <code>index.html?ip=192.168.0.55</code>
 </footer>
 
-<script src="pult.js?v=20260908a"></script>
+<script src="pult.js?v=20260908b"></script>
 <script>
 "use strict";
 const $ = s => document.querySelector(s);

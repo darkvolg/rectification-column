@@ -661,42 +661,97 @@ function setHaCfg(url, token){
   return c;
 }
 
-async function haFetch(path){
+/* Почему WebSocket, а не обычный REST.
+   HA включает CORS только тем эндпоинтам, которые сами это разрешают:
+   /auth/token заголовок отдаёт, а /api/states нет — и никакая настройка
+   cors_allowed_origins этого не меняет. Проверено на живом сервере.
+   На WebSocket же правило одного источника не распространяется вовсе,
+   и там есть history/history_during_period: вся история одним запросом
+   вместо десятков. */
+function haWsUrl(){
   const c = haCfg();
   if (!c.url)   throw new Error('не задан адрес Home Assistant');
   if (!c.token) throw new Error('не задан токен');
-  let r;
-  try {
-    r = await fetch(c.url + path, {headers: {Authorization: 'Bearer ' + c.token}});
-  } catch(_){
-    // Сюда же приходит запрет CORS: браузер не говорит, что именно случилось.
-    throw new Error('HA не отвечает (адрес, сеть или CORS)');
-  }
-  if (r.status === 401) throw new Error('токен не принят');
-  if (!r.ok) throw new Error('HA ответил ' + r.status);
-  return r.json();
+  return c.url.replace(/^http/, 'ws') + '/api/websocket';
 }
 
-/* Имя сенсора в ESPHome «T3 Otbor» превращается в HA в
-   sensor.kolonna_t3_otbor. Не угадываем, а ищем среди реальных
-   сущностей: имя устройства у каждого своё. */
-function haSlug(name){
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+/* Одно соединение на операцию: открыли, представились, спросили, закрыли.
+   Держать его постоянно незачем — пульт живёт от платы, а не от HA. */
+function haConnect(){
+  return new Promise((resolve, reject) => {
+    let ws;
+    try { ws = new WebSocket(haWsUrl()); }
+    catch(e){ reject(new Error('плохой адрес Home Assistant')); return; }
+
+    const guard = setTimeout(() => {
+      try { ws.close(); } catch(_){}
+      reject(new Error('HA не отвечает'));
+    }, 20000);
+
+    let id = 0;
+    const waiting = {};
+
+    ws.onerror = () => {
+      clearTimeout(guard);
+      reject(new Error('HA не отвечает (адрес или сеть)'));
+    };
+    ws.onclose = () => {
+      clearTimeout(guard);
+      Object.keys(waiting).forEach(k => waiting[k].reject(new Error('HA закрыл соединение')));
+    };
+    ws.onmessage = ev => {
+      let m; try { m = JSON.parse(ev.data); } catch(_){ return; }
+
+      if (m.type === 'auth_required'){
+        ws.send(JSON.stringify({type: 'auth', access_token: haCfg().token}));
+        return;
+      }
+      if (m.type === 'auth_invalid'){
+        clearTimeout(guard);
+        try { ws.close(); } catch(_){}
+        reject(new Error('токен не принят'));
+        return;
+      }
+      if (m.type === 'auth_ok'){
+        clearTimeout(guard);
+        resolve({
+          ask(type, extra){
+            return new Promise((res, rej) => {
+              const mid = ++id;
+              waiting[mid] = {resolve: res, reject: rej};
+              ws.send(JSON.stringify(Object.assign({id: mid, type: type}, extra || {})));
+            });
+          },
+          close(){ try { ws.close(); } catch(_){} }
+        });
+        return;
+      }
+      if (m.type === 'result' && waiting[m.id]){
+        const w = waiting[m.id];
+        delete waiting[m.id];
+        if (m.success) w.resolve(m.result);
+        else w.reject(new Error((m.error && m.error.message) || 'HA отказал'));
+      }
+    };
+  });
 }
 
 /* Имена вроде voltage, current, power есть у половины дома: у розетки,
    у стиральной машины, у чего угодно. Поэтому сначала находим префикс
    НАШЕГО устройства по именам, которых больше нет ни у кого
-   (t1_kub, otbor_rate, pressure_mmhg), а уже потом сопоставляем каналы —
-   строго внутри этого префикса. Иначе напряжение колонны приезжает
-   из розетки в коридоре: проверено, приезжало.
+   (t1_kub, otbor_rate, pressure_mmhg), и только потом сопоставляем
+   каналы — строго внутри этого префикса. Иначе напряжение колонны
+   приезжает из розетки в коридоре: проверено, приезжало.
    Префикс не зашит: имя устройства у каждого своё. */
 const HA_ANCHORS = ['t1_kub', 't2_carga', 't3_otbor', 'otbor_rate',
                     'pressure_mmhg', 'power_water', 'trend_t2', 'delta_t'];
 
-async function haEntities(){
-  const states = await haFetch('/api/states');
+/* «T3 Otbor» из ESPHome превращается в HA в t3_otbor. */
+function haSlug(name){
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+}
 
+function haMapStates(states){
   const want = {};   // хвост имени -> наш ключ канала
   Object.keys(CH).forEach(id => {
     if (id.indexOf('sensor/') !== 0) return;
@@ -729,48 +784,68 @@ async function haEntities(){
   return map;
 }
 
-/* Тянем историю по корзинам: для каждой строки журнала берём последнее
-   значение в окне перед её временем. Одним куском за весь погон вышло бы
-   несколько мегабайт — на телефоне это заметно. */
-async function haPull(startTs, endTs, onStep){
-  const map = await haEntities();
-  const keys = Object.keys(map);
-  if (!keys.length) throw new Error('в Home Assistant не видно датчиков колонны');
+async function haEntities(){
+  const ha = await haConnect();
+  try {
+    return haMapStates(await ha.ask('get_states'));
+  } finally { ha.close(); }
+}
 
-  const ids = keys.map(k => map[k]).join(',');
-  const every = jrnEvery();
-  const step = Math.max(60, Math.round(every * 60));
-  const first = jrnBucket(startTs, every);
-  const total = Math.max(1, Math.floor((endTs - first) / step) + 1);
+/* История приходит массивами точек на сущность. Раскладываем их по
+   корзинам журнала: в строку идёт последнее значение, известное на её
+   момент, — так же, как человек списывает показания на круглый час. */
+function haBucketize(hist, map, first, last, step){
+  const keys = Object.keys(map);
+  const pos = {}, cur = {};
+  keys.forEach(k => { pos[k] = 0; });
 
   const rows = [];
-  let n = 0;
-  for (let b = first; b <= endTs; b += step){
-    const from = new Date((b - 180) * 1000).toISOString();
-    const to   = new Date((b + 30) * 1000).toISOString();
-    const data = await haFetch('/api/history/period/' + from +
-      '?end_time=' + encodeURIComponent(to) +
-      '&filter_entity_id=' + encodeURIComponent(ids) +
-      '&minimal_response&no_attributes');
+  for (let b = first; b <= last; b += step){
+    keys.forEach(k => {
+      const arr = hist[map[k]] || [];
+      let i = pos[k];
+      while (i < arr.length && (arr[i].lu || 0) <= b + 30){
+        const v = parseFloat(arr[i].s);
+        cur[k] = isFinite(v) ? v : undefined;
+        i++;
+      }
+      pos[k] = i;
+    });
 
     const row = {ts: b};
-    (data || []).forEach(arr => {
-      if (!arr || !arr.length) return;
-      const eid = arr[0].entity_id;
-      const key = keys.find(k => map[k] === eid);
-      if (!key) return;
-      const last = arr[arr.length - 1];
-      const v = parseFloat(last && last.state);
-      if (isFinite(v)) row[key] = v;
-    });
+    keys.forEach(k => { if (cur[k] !== undefined) row[k] = cur[k]; });
+
     // Строка журнала имеет смысл, только если известна хоть одна
     // температура или напряжение. Одна скорость отбора, да ещё нулевая,
     // — это простой, а не погон: такие строки не пишем.
-    const real = ['otbor', 'carga', 'voda', 'volt'].some(f => row[f] !== undefined);
-    if (real) rows.push(row);
-    if (onStep) onStep(++n, total);
+    if (['otbor', 'carga', 'voda', 'volt'].some(f => row[f] !== undefined)) rows.push(row);
   }
-  return jrnMergeRows(rows, 'ha');
+  return rows;
+}
+
+async function haPull(startTs, endTs, onStep){
+  const ha = await haConnect();
+  try {
+    if (onStep) onStep('ищу датчики');
+    const map = haMapStates(await ha.ask('get_states'));
+    const keys = Object.keys(map);
+    if (!keys.length) throw new Error('в Home Assistant не видно датчиков колонны');
+
+    if (onStep) onStep('тяну историю');
+    const hist = await ha.ask('history/history_during_period', {
+      start_time: new Date(startTs * 1000).toISOString(),
+      end_time:   new Date(endTs * 1000).toISOString(),
+      entity_ids: keys.map(k => map[k]),
+      minimal_response: true,
+      no_attributes: true
+    });
+
+    if (onStep) onStep('раскладываю');
+    const every = jrnEvery();
+    const step = Math.max(60, Math.round(every * 60));
+    const rows = haBucketize(hist || {}, map, jrnBucket(startTs, every), endTs, step);
+    return jrnMergeRows(rows, 'ha');
+  } finally { ha.close(); }
 }
 
 /* ============================================================
@@ -1167,7 +1242,7 @@ window.PULT = {
   ROLES, SEL, SLOT, setSelect,
   jrnLoad, jrnSave, jrnRow, jrnAdd, jrnMark, jrnInfo, jrnEvery,
   jrnMergeRows, jrnSrcName, jrnBucket, jrnHHMM, jrnFmtVal,
-  haCfg, setHaCfg, haEntities, haPull,
+  haCfg, setHaCfg, haEntities, haPull, haConnect, haBucketize,
   soundOn, setSound, testSound, stopBuzz, muteHere, askNotify, notifyState,
   get ip(){ return ip; },
   get state(){ return state; },

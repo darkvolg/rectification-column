@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260908a">
+<link rel="stylesheet" href="pult.css?v=20260908b">
 </head>
 <body>
 
@@ -174,8 +174,8 @@
   на странице <a href="grafiki.html">Графики</a>.
 </footer>
 
-<script src="pult.js?v=20260908a"></script>
-<script src="xlsx.js?v=20260908a"></script>
+<script src="pult.js?v=20260908b"></script>
+<script src="xlsx.js?v=20260908b"></script>
 <script>
 "use strict";
 const {V} = PULT;
@@ -391,7 +391,7 @@ $('#j_pull').onclick = () => {
   const was = btn.textContent;
   btn.textContent = 'Тяну…';
 
-  PULT.haPull(from, now, (n, total) => { btn.textContent = 'Тяну ' + n + '/' + total; })
+  PULT.haPull(from, now, phase => { btn.textContent = phase; })
     .then(res => {
       reload();
       PULT.toast(res.added || res.filled
