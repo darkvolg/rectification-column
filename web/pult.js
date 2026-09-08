@@ -572,7 +572,11 @@ function jrnTick(){
    (фаза, объём отбора, примечание) не трогает никто. Иначе повторная
    перекачка стирает то, что вписано руками.
    ============================================================ */
-const JRANK  = {pult: 1, ha: 2, sd: 3};
+// Старшинство источников. Плата старше HA при любом хранилище: у неё
+// мгновенные значения, у HA пятиминутные средние. Карта и кольцо в
+// памяти — одна и та же плата, поэтому ранг общий, а подпись разная:
+// человек должен видеть, переживёт ли эта строка перезагрузку.
+const JRANK  = {pult: 1, ha: 2, ring: 3, sd: 3};
 const JMEAS  = ['kub', 'otbor', 'carga', 'voda', 'volt', 'rate'];  // меряет прибор
 const JHUMAN = ['ph', 'ml', 'note'];                          // пишет человек
 
@@ -588,7 +592,12 @@ function jrnFmtVal(key, v){
 }
 
 function jrnSrcName(src){
-  return src === 'sd' ? 'карта' : src === 'ha' ? 'HA' : 'пульт';
+  return src === 'sd'   ? 'карта'
+       : src === 'ring' ? 'память платы'
+       // Не «HA»: латинские H и A в этом шрифте читаются как русское «НА».
+       : src === 'ha'   ? 'Home Assistant'
+       : src === 'pult' ? 'пульт'
+       : '';
 }
 
 /* Строки сходятся не по секундам, а по корзине шириной в интервал журнала:
@@ -792,7 +801,8 @@ function jrnDownsample(rows, first, last, step){
 async function sdPull(startTs, endTs, onStep){
   if (onStep) onStep('спрашиваю плату');
   const info = await sdInfo();
-  const text = (info && info.card && info.current)
+  const fromCard = !!(info && info.card && info.current);
+  const text = fromCard
     ? await sdFileText(info.current, onStep)
     : await sdRingText(onStep);
 
@@ -800,8 +810,10 @@ async function sdPull(startTs, endTs, onStep){
   const every = jrnEvery();
   const step = Math.max(60, Math.round(every * 60));
   const rows = jrnDownsample(sdParse(text), jrnBucket(startTs, every), endTs, step);
-  const res = jrnMergeRows(rows, 'sd');
-  res.card = !!(info && info.card);
+  // Карта и память платы помечаются по-разному: строка из кольца живёт
+  // до первой перезагрузки, и это надо видеть в таблице, а не гадать.
+  const res = jrnMergeRows(rows, fromCard ? 'sd' : 'ring');
+  res.card = fromCard;
   return res;
 }
 

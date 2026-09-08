@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260908g">
+<link rel="stylesheet" href="pult.css?v=20260908h">
 </head>
 <body>
 
@@ -175,8 +175,8 @@
   на странице <a href="grafiki.html">Графики</a>.
 </footer>
 
-<script src="pult.js?v=20260908g"></script>
-<script src="xlsx.js?v=20260908g"></script>
+<script src="pult.js?v=20260908h"></script>
+<script src="xlsx.js?v=20260908h"></script>
 <script>
 "use strict";
 const {V} = PULT;
@@ -324,9 +324,11 @@ function render(){
       : '<td style="width:' + c.w + '"><input data-i="' + i + '" data-k="' + c.k +
         '" value="' + (r[c.k] === undefined ? '' : r[c.k]) + '"></td>').join('');
     return '<tr data-ph="' + r.ph + '">' +
+      // Источник показываем у КАЖДОЙ строки, включая свои: иначе строка
+      // без метки читается как «неизвестно откуда».
       '<td class="num">' + (i + 1) +
-        (r.src && r.src !== 'pult'
-          ? '<span class="src" title="Строка получена: ' + PULT.jrnSrcName(r.src) + '">' +
+        (PULT.jrnSrcName(r.src)
+          ? '<span class="src" title="Откуда строка: ' + PULT.jrnSrcName(r.src) + '">' +
             PULT.jrnSrcName(r.src) + '</span>'
           : '') +
       '</td>' +

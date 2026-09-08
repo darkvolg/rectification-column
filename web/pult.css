@@ -703,6 +703,6 @@ table.slots tr.hot td{ color:var(--warn); font-weight:700 }
 
 /* Откуда пришла строка журнала: карта, HA или сам пульт. */
 .jtab .src{
-  display:block; margin-top:2px; font:500 10px/1 var(--sans);
-  color:var(--ink-3); white-space:nowrap;
+  display:block; margin-top:2px; font:500 9.5px/1.15 var(--sans);
+  color:var(--ink-3); max-width:64px;
 }
