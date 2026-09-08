@@ -502,6 +502,7 @@ function jrnRow(){
     t: String(d.getHours()).padStart(2, '0') + ':' +
        String(d.getMinutes()).padStart(2, '0'),
     ph: '',
+    kub:   f(V.kub, 2),
     otbor: f(V.otbor, 2),
     carga: f(V.carga, 2),
     voda:  f(V.voda, 2),
@@ -527,7 +528,7 @@ function jrnAdd(row){
    Тонкость, на которой я и споткнулся: строка "0" в JavaScript истинна,
    поэтому проверка «!r.rate» пропускала пустые строки, и журнал набивался
    ими каждые полчаса. Поймано на живом стенде 08.09.2026. */
-const JREAL = ['otbor', 'carga', 'voda', 'volt'];
+const JREAL = ['kub', 'otbor', 'carga', 'voda', 'volt'];
 
 function jrnHasData(r){
   return JREAL.some(f => r[f] !== undefined && r[f] !== null && r[f] !== '');
@@ -572,7 +573,7 @@ function jrnTick(){
    перекачка стирает то, что вписано руками.
    ============================================================ */
 const JRANK  = {pult: 1, ha: 2, sd: 3};
-const JMEAS  = ['otbor', 'carga', 'voda', 'volt', 'rate'];   // меряет прибор
+const JMEAS  = ['kub', 'otbor', 'carga', 'voda', 'volt', 'rate'];  // меряет прибор
 const JHUMAN = ['ph', 'ml', 'note'];                          // пишет человек
 
 /* Число из внешнего источника округляем так же, как своё: иначе в одной
@@ -689,7 +690,7 @@ function setHaCfg(url, token){
    Отдаётся кусками: у веб-сервера ESP-IDF нет потоковой выдачи, ответ
    собирается в памяти целиком, поэтому просим по 16 КБ за раз.
    ============================================================ */
-const SD_COL = {otbor: 3, carga: 2, voda: 13, volt: 10, rate: 16};
+const SD_COL = {kub: 1, otbor: 3, carga: 2, voda: 13, volt: 10, rate: 16};
 
 function sdUrl(path){
   // Адрес берём из живого подключения, а если его ещё нет — из памяти

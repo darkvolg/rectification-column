@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260908f">
+<link rel="stylesheet" href="pult.css?v=20260908g">
 </head>
 <body>
 
@@ -147,6 +147,7 @@
       <thead>
         <tr>
           <th>№</th><th>Время</th><th>Фаза</th>
+          <th>t° куба<br>T1, °C</th>
           <th>t° верх<br>отбора, °C</th><th>t° 2/3<br>кол., °C</th>
           <th>t° воды<br>вых., °C</th><th>Напр.<br>рег., В</th>
           <th>Отбор,<br>мл</th><th>Накоп.,<br>мл</th>
@@ -174,8 +175,8 @@
   на странице <a href="grafiki.html">Графики</a>.
 </footer>
 
-<script src="pult.js?v=20260908f"></script>
-<script src="xlsx.js?v=20260908f"></script>
+<script src="pult.js?v=20260908g"></script>
+<script src="xlsx.js?v=20260908g"></script>
 <script>
 "use strict";
 const {V} = PULT;
@@ -301,6 +302,7 @@ $('#j_grab').onclick = () => {
    ============================================================ */
 const CELLS = [
   {k:'ph',    type:'sel'},
+  {k:'kub',   w:'84px'},
   {k:'otbor', w:'84px'},
   {k:'carga', w:'84px'},
   {k:'voda',  w:'84px'},
@@ -528,9 +530,10 @@ function sheetRows(){
       {v:q[2], s:S.UNIT}];                                    // L единица
   }
 
-  const HEAD = ['№','Время','Фаза','t° верх отбора, °C','t° 2/3 кол., °C',
-                't° воды вых., °C','Напр. рег., В','Отбор, мл','Накоп., мл',
-                'Скорость, мл/ч','ΔT° от кипения','Примечание'];
+  const HEAD = ['№','Время','Фаза','t° куба T1, °C','t° верх отбора, °C',
+                't° 2/3 кол., °C','t° воды вых., °C','Напр. рег., В',
+                'Отбор, мл','Накоп., мл','Скорость, мл/ч','ΔT° от кипения',
+                'Примечание'];
   R[11] = [null].concat(HEAD.map(h => ({v:h, s:S.HEAD})));
 
   const ph = i => {
@@ -544,16 +547,17 @@ function sheetRows(){
       {v:i + 1, s:S.CELL},
       {v:r.t || '', s:S.CELL},
       {v:r.ph || '', s:ph(r.ph)},
+      {v:n('kub'),   s:S.TEMP},
       {v:n('otbor'), s:S.TEMP},
       {v:n('carga'), s:S.TEMP},
       {v:n('voda'),  s:S.TEMP},
       {v:n('volt'),  s:S.CELL},
       {v:n('ml'),    s:S.CELL2},
-      {v:'SUM($I$13:I' + xr + ')', t:'f', s:S.CELL2},
+      {v:'SUM($J$13:J' + xr + ')', t:'f', s:S.CELL2},
       {v:n('rate'),  s:S.CELL2},
-      // Колонка E тут двойного назначения: в шапке — точка кипения,
-      // в таблице — температура отбора. Ссылка $E$7 всегда на шапку.
-      {v:'IF(E' + xr + '="","",E' + xr + '-$E$7)', t:'f', s:S.DT},
+      // Температура отбора теперь в колонке F (куб занял E), а точка
+      // кипения по-прежнему в шапке, ячейка $E$7 — она в другой строке.
+      {v:'IF(F' + xr + '="","",F' + xr + '-$E$7)', t:'f', s:S.DT},
       {v:r.note || '', s:S.TEXT}
     ];
   });
@@ -562,7 +566,8 @@ function sheetRows(){
   if (J.rows.length){
     const last = 12 + J.rows.length;
     R[last + 1] = [null, null, null, {v:'ИТОГО отобрано:', s:S.LABEL}, null, null,
-                   null, null, {v:'SUM(I13:I' + last + ')', t:'f', s:S.NUM0},
+                   null, null, null,
+                   {v:'SUM(J13:J' + last + ')', t:'f', s:S.NUM0},
                    {v:'мл', s:S.UNIT}];
   }
   return R;
@@ -576,12 +581,12 @@ $('#j_xls').onclick = () => {
                p2(d.getMonth() + 1) + '-' + p2(d.getDate()) + '.xlsx';
   XLSX.save(name, [{
     name: 'Журнал',
-    cols: [2, 5, 7.5, 14, 13, 12, 12, 10, 9, 10, 11, 11, 34],
-    merges: ['B1:M1', 'B3:F3', 'H3:L3'].concat(
+    cols: [2, 5, 7.5, 14, 13, 13, 12, 12, 10, 9, 10, 11, 11, 34],
+    merges: ['B1:N1', 'B3:F3', 'H3:L3'].concat(
       // Подписи шапки: три колонки под каждую, иначе длинные обрезаются
       [4,5,6,7,8,9,10].reduce((a, r) => a.concat(['B'+r+':D'+r, 'H'+r+':J'+r]), [])),
     freeze: 'B13',
-    filter: J.rows.length ? 'B12:M' + (12 + J.rows.length) : null,
+    filter: J.rows.length ? 'B12:N' + (12 + J.rows.length) : null,
     heights: {0:24, 11:34},
     rows: rows
   }]);
@@ -623,16 +628,17 @@ $('#j_csv').onclick = () => {
   push('Доля тела от АС', as > 0 ? (body / as * 100).toFixed(1) : '', '%');
   L.push('');
 
-  L.push(['№','Время','Фаза','t° верх отбора, °C','t° 2/3 кол., °C',
-          't° воды вых., °C','Напр. рег., В','Отбор, мл','Накоп., мл',
-          'Скорость, мл/ч','ΔT° от кипения','Примечание'].map(q).join(';'));
+  L.push(['№','Время','Фаза','t° куба T1, °C','t° верх отбора, °C',
+          't° 2/3 кол., °C','t° воды вых., °C','Напр. рег., В','Отбор, мл',
+          'Накоп., мл','Скорость, мл/ч','ΔT° от кипения',
+          'Примечание'].map(q).join(';'));
 
   const tboil = tBoil(num(h.press));
   let acc = 0;
   J.rows.forEach((r, i) => {
     acc += num(r.ml) || 0;
     const d = num(r.otbor);
-    L.push([i + 1, r.t, r.ph, r.otbor, r.carga, r.voda, r.volt, r.ml,
+    L.push([i + 1, r.t, r.ph, r.kub, r.otbor, r.carga, r.voda, r.volt, r.ml,
             acc.toFixed(0), r.rate,
             isFinite(d) ? (d - tboil).toFixed(3) : '', r.note || '']
            .map(x => q(dec(x === undefined ? '' : x))).join(';'));
