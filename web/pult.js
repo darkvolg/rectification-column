@@ -521,6 +521,18 @@ function jrnAdd(row){
   return J;
 }
 
+/* Строка журнала имеет смысл, только если известна хотя бы одна из его
+   колонок: температура отбора, царги, воды или напряжение. Скорость
+   отбора одна не в счёт — на простое она честный ноль.
+   Тонкость, на которой я и споткнулся: строка "0" в JavaScript истинна,
+   поэтому проверка «!r.rate» пропускала пустые строки, и журнал набивался
+   ими каждые полчаса. Поймано на живом стенде 08.09.2026. */
+const JREAL = ['otbor', 'carga', 'voda', 'volt'];
+
+function jrnHasData(r){
+  return JREAL.some(f => r[f] !== undefined && r[f] !== null && r[f] !== '');
+}
+
 /* Запись привязана к стенным часам, а не к моменту первой строки.
    При интервале 30 минут строки ложатся на 12:00, 12:30, 13:00 — как в
    бумажном журнале. Отсчёт «через 30 минут после предыдущей» давал
@@ -539,10 +551,10 @@ function jrnTick(){
   if (slot <= Math.floor(last / step)) return;   // в этот слот уже писали
 
   const r = jrnRow();
-  // Строка без единого числа — не запись, а мусор: связи ещё нет либо
-  // прибор молчит. Время не отмечаем, попробуем через десять секунд,
-  // и запись случится в тот момент, когда данные появятся.
-  if (!r.otbor && !r.carga && !r.voda && !r.volt && !r.rate) return;
+  // Пустая строка — не запись, а мусор: связи ещё нет, прибор молчит или
+  // нужные датчики не подключены. Время не отмечаем, попробуем через
+  // десять секунд — запись случится тогда, когда данные появятся.
+  if (!jrnHasData(r)) return;
 
   // Метку ставим ДО записи: две открытые вкладки не задвоят строку.
   jrnMark(now);
@@ -771,7 +783,7 @@ function jrnDownsample(rows, first, last, step){
     if (!cur || cur.ts < b - step) continue;
     const r = {ts: b};
     Object.keys(SD_COL).forEach(k => { if (cur[k] !== undefined) r[k] = cur[k]; });
-    if (['otbor', 'carga', 'voda', 'volt'].some(f => r[f] !== undefined)) out.push(r);
+    if (jrnHasData(r)) out.push(r);
   }
   return out;
 }
@@ -946,10 +958,7 @@ function haBucketize(hist, map, first, last, step){
     const row = {ts: b};
     keys.forEach(k => { if (cur[k] !== undefined) row[k] = cur[k]; });
 
-    // Строка журнала имеет смысл, только если известна хоть одна
-    // температура или напряжение. Одна скорость отбора, да ещё нулевая,
-    // — это простой, а не погон: такие строки не пишем.
-    if (['otbor', 'carga', 'voda', 'volt'].some(f => row[f] !== undefined)) rows.push(row);
+    if (jrnHasData(row)) rows.push(row);   // см. jrnHasData: пустое не пишем
   }
   return rows;
 }
@@ -1372,7 +1381,7 @@ window.PULT = {
   lineColor, setPal, resetPal, palUser, setNumber,
   ROLES, SEL, SLOT, setSelect,
   jrnLoad, jrnSave, jrnRow, jrnAdd, jrnMark, jrnInfo, jrnEvery,
-  jrnMergeRows, jrnSrcName, jrnBucket, jrnHHMM, jrnFmtVal,
+  jrnMergeRows, jrnSrcName, jrnBucket, jrnHHMM, jrnFmtVal, jrnHasData, JREAL,
   haCfg, setHaCfg, haEntities, haPull, haConnect, haBucketize,
   sdInfo, sdPull, sdParse, jrnDownsample,
   soundOn, setSound, testSound, stopBuzz, muteHere, askNotify, notifyState,

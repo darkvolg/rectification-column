@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260908e">
+<link rel="stylesheet" href="pult.css?v=20260908f">
 </head>
 <body>
 
@@ -174,8 +174,8 @@
   на странице <a href="grafiki.html">Графики</a>.
 </footer>
 
-<script src="pult.js?v=20260908e"></script>
-<script src="xlsx.js?v=20260908e"></script>
+<script src="pult.js?v=20260908f"></script>
+<script src="xlsx.js?v=20260908f"></script>
 <script>
 "use strict";
 const {V} = PULT;
@@ -439,6 +439,14 @@ function autoInfo(){
     return;
   }
   if (!(every > 0)){ el.textContent = 'автозапись выключена'; return; }
+
+  // Честно говорим, почему строк нет: писать нечего, пока не подключены
+  // датчики тех колонок, из которых журнал и состоит.
+  if (!PULT.jrnHasData(PULT.jrnRow())){
+    el.textContent = 'ждёт данных: колонки журнала пустые — нет датчиков ' +
+                     'отбора, царги, воды и напряжения';
+    return;
+  }
   const last = PULT.jrnInfo().last;
   if (!last){ el.textContent = 'автозапись включена'; return; }
   // Строки ложатся на круглое время, поэтому следующую считаем от часов,
