@@ -98,10 +98,46 @@ esphome:
   # страницами — веб-сервер под IDF собирает ответ в памяти целиком.
   includes:
     - kolonna_log.h
+    - kolonna_slots.h
   on_boot:
     priority: -100
     then:
       - lambda: 'kolonna_log::setup(id(web_base));'
+      # Список слотов один на все лямбды, заполняется здесь: к этому
+      # моменту 1-Wire уже опрошен и адреса у датчиков настоящие.
+      - lambda: |-
+          // Без «&»: id(датчик) в лямбде и так даёт указатель, а вот
+          // id(глобальной) — саму переменную, поэтому ниже адрес берётся.
+          kolonna_slots::all = {id(slot1), id(slot2), id(slot3),
+                                id(slot4), id(slot5), id(slot6)};
+      # Сводим две вещи: адрес, по которому роль реально работает, и
+      # номер слота, который человек видит в списке.
+      - lambda: |-
+          // Именно select::Select, а не TemplateSelect: последний в
+          // ESPHome 2026.8 — шаблон с параметрами, его имя так не написать.
+          struct { esphome::select::Select *sel; uint64_t *addr; } R[] = {
+            {id(sel_kub),    &id(addr_kub)},
+            {id(sel_carga),  &id(addr_carga)},
+            {id(sel_otbor),  &id(addr_otbor)},
+            {id(sel_voda),   &id(addr_voda)},
+            {id(sel_vhod),   &id(addr_voda_in)},
+          };
+          for (auto &r : R) {
+            auto cur = r.sel->active_index();
+            if (*r.addr == 0) {
+              // Адреса ещё нет, а слот выбран — это или первый запуск с
+              // заводским «Слот 1», или переезд со старой прошивки, где
+              // роль хранила номер. Запоминаем адрес выбранного слота,
+              // чтобы настройка человека не потерялась.
+              if (cur.has_value() && cur.value() > 0)
+                *r.addr = kolonna_slots::addr_by_index(cur.value());
+              continue;
+            }
+            int n = kolonna_slots::slot_of(*r.addr);
+            if (n < 0) continue;   // датчик пропал — номер в списке не трогаем
+            if (!cur.has_value() || (int) cur.value() != n)
+              r.sel->make_call().set_index((size_t) n).perform();
+          }
 
 esp32:
   board: esp32dev
@@ -404,19 +440,10 @@ sensor:
     accuracy_decimals: 3
     update_interval: 10s
     lambda: |-
-      // active_index(): 0 = «нет», 1..6 = слоты. Индекс, а не строка,
-      // потому что у Select в ESPHome 2026.8 поля state больше нет.
-      auto sel = id(sel_kub).active_index();
-      if (!sel.has_value()) return NAN;
-      switch (sel.value()) {
-        case 1: return id(slot1).state;
-        case 2: return id(slot2).state;
-        case 3: return id(slot3).state;
-        case 4: return id(slot4).state;
-        case 5: return id(slot5).state;
-        case 6: return id(slot6).state;
-        default: return NAN;
-      }
+      // Роль привязана к АДРЕСУ датчика, а не к его месту на шине:
+      // зачем так и чем это грозит иначе — в kolonna_slots.h.
+      // Датчик пропал с шины — NAN, а не показания соседнего.
+      return kolonna_slots::by_addr(id(addr_kub));
 
   - platform: template
     name: "T2 Carga"
@@ -427,19 +454,10 @@ sensor:
     accuracy_decimals: 3
     update_interval: 10s
     lambda: |-
-      // active_index(): 0 = «нет», 1..6 = слоты. Индекс, а не строка,
-      // потому что у Select в ESPHome 2026.8 поля state больше нет.
-      auto sel = id(sel_carga).active_index();
-      if (!sel.has_value()) return NAN;
-      switch (sel.value()) {
-        case 1: return id(slot1).state;
-        case 2: return id(slot2).state;
-        case 3: return id(slot3).state;
-        case 4: return id(slot4).state;
-        case 5: return id(slot5).state;
-        case 6: return id(slot6).state;
-        default: return NAN;
-      }
+      // Роль привязана к АДРЕСУ датчика, а не к его месту на шине:
+      // зачем так и чем это грозит иначе — в kolonna_slots.h.
+      // Датчик пропал с шины — NAN, а не показания соседнего.
+      return kolonna_slots::by_addr(id(addr_carga));
 
   - platform: template
     name: "T3 Otbor"
@@ -450,19 +468,10 @@ sensor:
     accuracy_decimals: 3
     update_interval: 10s
     lambda: |-
-      // active_index(): 0 = «нет», 1..6 = слоты. Индекс, а не строка,
-      // потому что у Select в ESPHome 2026.8 поля state больше нет.
-      auto sel = id(sel_otbor).active_index();
-      if (!sel.has_value()) return NAN;
-      switch (sel.value()) {
-        case 1: return id(slot1).state;
-        case 2: return id(slot2).state;
-        case 3: return id(slot3).state;
-        case 4: return id(slot4).state;
-        case 5: return id(slot5).state;
-        case 6: return id(slot6).state;
-        default: return NAN;
-      }
+      // Роль привязана к АДРЕСУ датчика, а не к его месту на шине:
+      // зачем так и чем это грозит иначе — в kolonna_slots.h.
+      // Датчик пропал с шины — NAN, а не показания соседнего.
+      return kolonna_slots::by_addr(id(addr_otbor));
 
   - platform: template
     name: "T4 Voda"
@@ -473,19 +482,10 @@ sensor:
     accuracy_decimals: 1
     update_interval: 10s
     lambda: |-
-      // active_index(): 0 = «нет», 1..6 = слоты. Индекс, а не строка,
-      // потому что у Select в ESPHome 2026.8 поля state больше нет.
-      auto sel = id(sel_voda).active_index();
-      if (!sel.has_value()) return NAN;
-      switch (sel.value()) {
-        case 1: return id(slot1).state;
-        case 2: return id(slot2).state;
-        case 3: return id(slot3).state;
-        case 4: return id(slot4).state;
-        case 5: return id(slot5).state;
-        case 6: return id(slot6).state;
-        default: return NAN;
-      }
+      // Роль привязана к АДРЕСУ датчика, а не к его месту на шине:
+      // зачем так и чем это грозит иначе — в kolonna_slots.h.
+      // Датчик пропал с шины — NAN, а не показания соседнего.
+      return kolonna_slots::by_addr(id(addr_voda));
 
   - platform: template
     name: "T5 Voda Vhod"
@@ -496,19 +496,10 @@ sensor:
     accuracy_decimals: 1
     update_interval: 10s
     lambda: |-
-      // active_index(): 0 = «нет», 1..6 = слоты. Индекс, а не строка,
-      // потому что у Select в ESPHome 2026.8 поля state больше нет.
-      auto sel = id(sel_vhod).active_index();
-      if (!sel.has_value()) return NAN;
-      switch (sel.value()) {
-        case 1: return id(slot1).state;
-        case 2: return id(slot2).state;
-        case 3: return id(slot3).state;
-        case 4: return id(slot4).state;
-        case 5: return id(slot5).state;
-        case 6: return id(slot6).state;
-        default: return NAN;
-      }
+      // Роль привязана к АДРЕСУ датчика, а не к его месту на шине:
+      // зачем так и чем это грозит иначе — в kolonna_slots.h.
+      // Датчик пропал с шины — NAN, а не показания соседнего.
+      return kolonna_slots::by_addr(id(addr_voda_in));
 
   # ---------- Проток охлаждающей воды: YF-S201C ----------
   # Турбинка с датчиком Холла. Ставится на ХОЛОДНЫЙ ВХОД, до дефлегматора.
@@ -786,6 +777,49 @@ sensor:
 #  НАЗНАЧЕНИЕ ДАТЧИКОВ — из веб-интерфейса, без перепрошивки
 # ============================================================
 # Выбор сохраняется в NVS и переживает перезагрузку и обесточивание.
+# ============================================================
+#  КУДА ПРИВЯЗАНА КАЖДАЯ РОЛЬ
+# ============================================================
+# Роль хранит адрес датчика (см. kolonna_slots.h). Здесь это видно
+# человеку: на каком слоте её датчик сейчас — и жив ли он вообще.
+# «ПРОПАЛ» значит, что датчик был назначен, а на шине его нет:
+# обрыв, отвалившаяся клемма, замена. Показания роли при этом пустые.
+text_sensor:
+  - platform: template
+    name: "BIND T1 Kub"
+    id: bind_kub
+    entity_category: diagnostic
+    update_interval: 30s
+    lambda: 'return kolonna_slots::status(id(addr_kub));'
+
+  - platform: template
+    name: "BIND T2 Carga"
+    id: bind_carga
+    entity_category: diagnostic
+    update_interval: 30s
+    lambda: 'return kolonna_slots::status(id(addr_carga));'
+
+  - platform: template
+    name: "BIND T3 Otbor"
+    id: bind_otbor
+    entity_category: diagnostic
+    update_interval: 30s
+    lambda: 'return kolonna_slots::status(id(addr_otbor));'
+
+  - platform: template
+    name: "BIND T4 Voda"
+    id: bind_voda
+    entity_category: diagnostic
+    update_interval: 30s
+    lambda: 'return kolonna_slots::status(id(addr_voda));'
+
+  - platform: template
+    name: "BIND T5 Voda Vhod"
+    id: bind_voda_in
+    entity_category: diagnostic
+    update_interval: 30s
+    lambda: 'return kolonna_slots::status(id(addr_voda_in));'
+
 select:
   - platform: template
     name: "SLOT T1 Kub"
@@ -795,6 +829,16 @@ select:
     entity_category: config
     options: ["нет", "Слот 1", "Слот 2", "Слот 3", "Слот 4", "Слот 5", "Слот 6"]
     initial_option: "Слот 1"
+    on_value:
+      # Выбрали слот — сразу запоминаем адрес стоящего в нём датчика.
+      # Дальше роль живёт по адресу, номер слота остаётся только
+      # способом показать человеку, где этот датчик сейчас.
+      - lambda: |-
+          // i — индекс выбранного пункта, его даёт сам обработчик:
+          // 0 = «нет», 1..6 = слоты. Своей переменной i заводить нельзя,
+          // она перекроет эту и компилятор откажется собирать.
+          if (kolonna_slots::all.empty()) return;   // ещё не загрузились
+          id(addr_kub) = kolonna_slots::addr_by_index(i);
 
   - platform: template
     name: "SLOT T2 Carga"
@@ -804,6 +848,16 @@ select:
     entity_category: config
     options: ["нет", "Слот 1", "Слот 2", "Слот 3", "Слот 4", "Слот 5", "Слот 6"]
     initial_option: "нет"
+    on_value:
+      # Выбрали слот — сразу запоминаем адрес стоящего в нём датчика.
+      # Дальше роль живёт по адресу, номер слота остаётся только
+      # способом показать человеку, где этот датчик сейчас.
+      - lambda: |-
+          // i — индекс выбранного пункта, его даёт сам обработчик:
+          // 0 = «нет», 1..6 = слоты. Своей переменной i заводить нельзя,
+          // она перекроет эту и компилятор откажется собирать.
+          if (kolonna_slots::all.empty()) return;   // ещё не загрузились
+          id(addr_carga) = kolonna_slots::addr_by_index(i);
 
   - platform: template
     name: "SLOT T3 Otbor"
@@ -813,6 +867,16 @@ select:
     entity_category: config
     options: ["нет", "Слот 1", "Слот 2", "Слот 3", "Слот 4", "Слот 5", "Слот 6"]
     initial_option: "нет"
+    on_value:
+      # Выбрали слот — сразу запоминаем адрес стоящего в нём датчика.
+      # Дальше роль живёт по адресу, номер слота остаётся только
+      # способом показать человеку, где этот датчик сейчас.
+      - lambda: |-
+          // i — индекс выбранного пункта, его даёт сам обработчик:
+          // 0 = «нет», 1..6 = слоты. Своей переменной i заводить нельзя,
+          // она перекроет эту и компилятор откажется собирать.
+          if (kolonna_slots::all.empty()) return;   // ещё не загрузились
+          id(addr_otbor) = kolonna_slots::addr_by_index(i);
 
   - platform: template
     name: "SLOT T4 Voda"
@@ -822,6 +886,16 @@ select:
     entity_category: config
     options: ["нет", "Слот 1", "Слот 2", "Слот 3", "Слот 4", "Слот 5", "Слот 6"]
     initial_option: "нет"
+    on_value:
+      # Выбрали слот — сразу запоминаем адрес стоящего в нём датчика.
+      # Дальше роль живёт по адресу, номер слота остаётся только
+      # способом показать человеку, где этот датчик сейчас.
+      - lambda: |-
+          // i — индекс выбранного пункта, его даёт сам обработчик:
+          // 0 = «нет», 1..6 = слоты. Своей переменной i заводить нельзя,
+          // она перекроет эту и компилятор откажется собирать.
+          if (kolonna_slots::all.empty()) return;   // ещё не загрузились
+          id(addr_voda) = kolonna_slots::addr_by_index(i);
 
   - platform: template
     name: "SLOT T5 Voda Vhod"
@@ -831,6 +905,16 @@ select:
     entity_category: config
     options: ["нет", "Слот 1", "Слот 2", "Слот 3", "Слот 4", "Слот 5", "Слот 6"]
     initial_option: "нет"
+    on_value:
+      # Выбрали слот — сразу запоминаем адрес стоящего в нём датчика.
+      # Дальше роль живёт по адресу, номер слота остаётся только
+      # способом показать человеку, где этот датчик сейчас.
+      - lambda: |-
+          // i — индекс выбранного пункта, его даёт сам обработчик:
+          // 0 = «нет», 1..6 = слоты. Своей переменной i заводить нельзя,
+          // она перекроет эту и компилятор откажется собирать.
+          if (kolonna_slots::all.empty()) return;   // ещё не загрузились
+          id(addr_voda_in) = kolonna_slots::addr_by_index(i);
 
 number:
   - platform: template
@@ -1002,17 +1086,17 @@ binary_sensor:
       // «датчик сюда ещё не поставлен». Иначе на пустом стенде авария
       // висела бы всегда и тянула за собой сирену, а постоянно орущая
       // сирена — это сирена, которую перестают слушать.
-      auto broken = [](int idx, float v) {
-        return idx > 0 && isnan(v);
+      // «Назначена» теперь значит «за ролью закреплён адрес датчика»,
+      // а не «в списке выбран слот». Разница видна ровно в том случае,
+      // ради которого всё и делалось: датчик сняли с шины — адрес
+      // остался, данных нет, это и есть обрыв.
+      auto broken = [](uint64_t addr, float v) {
+        return addr != 0 && isnan(v);
       };
-      auto i1 = id(sel_kub).active_index();
-      auto i2 = id(sel_carga).active_index();
-      auto i3 = id(sel_otbor).active_index();
-      auto i4 = id(sel_voda).active_index();
-      return broken(i1.value_or(0), id(t_kub).state)
-          || broken(i2.value_or(0), id(t_carga).state)
-          || broken(i3.value_or(0), id(t_otbor).state)
-          || broken(i4.value_or(0), id(t_voda).state);
+      return broken(id(addr_kub),   id(t_kub).state)
+          || broken(id(addr_carga), id(t_carga).state)
+          || broken(id(addr_otbor), id(t_otbor).state)
+          || broken(id(addr_voda),  id(t_voda).state);
     filters:
       # Первые секунды после включения роли ещё пустые: назначение слотов
       # поднимается из NVS, датчики не опрошены. Без задержки плата на
@@ -1050,6 +1134,31 @@ switch:
 # не видно вообще.
 
 globals:
+  # Адрес датчика, назначенного на роль. Ноль — роль не назначена.
+  # Живёт в NVS платы, поэтому переживает перезагрузку и перепрошивку.
+  # Именно адрес, а не номер слота: слоты нумеруются по возрастанию
+  # адресов, и новый датчик на шине сдвигает нумерацию.
+  - id: addr_kub
+    type: uint64_t
+    restore_value: true
+    initial_value: '0'
+  - id: addr_carga
+    type: uint64_t
+    restore_value: true
+    initial_value: '0'
+  - id: addr_otbor
+    type: uint64_t
+    restore_value: true
+    initial_value: '0'
+  - id: addr_voda
+    type: uint64_t
+    restore_value: true
+    initial_value: '0'
+  - id: addr_voda_in
+    type: uint64_t
+    restore_value: true
+    initial_value: '0'
+
   - id: t_prev
     type: float
     restore_value: false

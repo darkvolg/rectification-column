@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260908i">
+<link rel="stylesheet" href="pult.css?v=20260908j">
 </head>
 <body>
 
@@ -53,9 +53,16 @@
   <div class="card">
     <h3>Какой датчик где стоит</h3>
     <p>Прошивка не знает заранее, какой датчик куда вкручен. Она видит только
-    то, что нашла на шине — <strong>слоты</strong>. Роль каждому слоту
-    назначается здесь и хранится в самом контроллере, поэтому переживает
-    перезагрузку и одинакова на всех устройствах.</p>
+    то, что нашла на шине — <strong>слоты</strong>. Роль назначается здесь и
+    хранится в самом контроллере, поэтому переживает перезагрузку и одинакова
+    на всех устройствах.</p>
+    <p>Запоминается при этом <strong>адрес датчика</strong>, а не номер слота.
+    Слоты нумеруются по возрастанию адресов, и новый датчик на шине сдвигает
+    нумерацию — роль же остаётся на своём железе. Под каждой ролью написано,
+    на каком слоте её датчик сейчас и какой у него адрес. Надпись
+    <strong>ПРОПАЛ</strong> значит, что датчик был назначен, а на шине его
+    нет: обрыв или отвалившаяся клемма. Показания роли в этом случае пустые —
+    чужие показания вместо своих были бы опаснее.</p>
     <p><strong>Как определить, где какой:</strong> зажми датчик в кулаке и
     смотри таблицу слотов — который поехал вверх, тот и в руке. Выбери его
     в нужной строке.</p>
@@ -69,9 +76,9 @@
 
     <p class="jhint">Роль «нет» — датчик не подключён. Тогда плашка на пульте
     пустая, а аварии по ней молчат: лучше честное «нет данных», чем чужое
-    показание. Порядок слотов считается по адресам датчиков, поэтому после
-    замены датчика роли могут сдвинуться — просто назначь заново, перепрошивка
-    не нужна.</p>
+    показание. Номера слотов после добавления датчика сдвигаются, а роли — нет:
+    они держатся за адрес. Заменил сам датчик на новый — назначь роль заново,
+    у нового железа адрес другой.</p>
 
     <h3 style="margin-top:28px">Пороги и уставки</h3>
     <p>Пороги показа, цвет линии, уставка контроллера, объём куба и температура
@@ -221,7 +228,7 @@
   <code>index.html?ip=192.168.0.55</code>
 </footer>
 
-<script src="pult.js?v=20260908i"></script>
+<script src="pult.js?v=20260908j"></script>
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
@@ -302,7 +309,8 @@ function drawRoles(){
   const box = $('#roles');
   if (!box.dataset.built){
     box.innerHTML = PULT.ROLES.map(r =>
-      '<div class="rolerow"><label>' + r.t + '</label>' +
+      '<div class="rolerow"><label>' + r.t +
+        '<span class="bind" data-bind="' + r.sel + '"></span></label>' +
       '<select data-sel="' + r.sel + '"></select>' +
       '<span class="now" data-now="' + r.sel + '"></span></div>').join('');
     box.dataset.built = '1';
@@ -323,6 +331,15 @@ function drawRoles(){
     const n = parseInt((st.state || '').replace(/\D/g, ''), 10);
     const v = PULT.SLOT[n];
     now.textContent = (v === null || v === undefined) ? '' : v.toFixed(2) + ' °C';
+
+    // К какому железу привязана роль. Номер слота — это лишь место на
+    // шине, оно уезжает при добавлении датчика; адрес не уезжает.
+    const b = box.querySelector('[data-bind="' + r.sel + '"]');
+    const txt = PULT.BIND[r.bind];
+    if (b){
+      b.textContent = txt || '';
+      b.classList.toggle('lost', !!txt && txt.indexOf('ПРОПАЛ') === 0);
+    }
   });
 }
 

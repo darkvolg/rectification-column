@@ -81,13 +81,14 @@ const CLR = {
    Роль живёт в контроллере (select с restore_value), поэтому переживает
    перезагрузку и одинакова для всех, кто откроет пульт. */
 const ROLES = [
-  {sel:'SLOT T1 Kub',       t:'Куб · T1'},
-  {sel:'SLOT T2 Carga',     t:'Царга 2/3 · T2'},
-  {sel:'SLOT T3 Otbor',     t:'Отбор · T3'},
-  {sel:'SLOT T4 Voda',      t:'Вода выход · T4'},
-  {sel:'SLOT T5 Voda Vhod', t:'Вода вход · T5'}
+  {sel:'SLOT T1 Kub',       t:'Куб · T1',         bind:'BIND T1 Kub'},
+  {sel:'SLOT T2 Carga',     t:'Царга 2/3 · T2',   bind:'BIND T2 Carga'},
+  {sel:'SLOT T3 Otbor',     t:'Отбор · T3',       bind:'BIND T3 Otbor'},
+  {sel:'SLOT T4 Voda',      t:'Вода выход · T4',  bind:'BIND T4 Voda'},
+  {sel:'SLOT T5 Voda Vhod', t:'Вода вход · T5',   bind:'BIND T5 Voda Vhod'}
 ];
 const SEL = {};    // 'SLOT T1 Kub' -> {state, options}
+const BIND = {};   // 'BIND T1 Kub' -> «слот 2 · 0x3b…» либо «ПРОПАЛ 0x…»
 const SLOT = {};   // 1..6 -> градусы, чтобы видеть, какой датчик греется
 
 const NUM = {
@@ -345,6 +346,13 @@ function connect(addr){
     if (d.id.indexOf('select/') === 0){
       const nm = d.id.slice(7);
       SEL[nm] = {state: d.state, options: d.option || (SEL[nm] || {}).options};
+      subs.forEach(f => f('role'));
+      return;
+    }
+    // Куда привязана роль: плата отвечает адресом, а не номером слота,
+    // и это единственный честный ответ на вопрос «а тот ли это датчик».
+    if (d.id.indexOf('text_sensor/BIND ') === 0){
+      BIND[d.id.slice(12)] = d.value === undefined ? d.state : d.value;
       subs.forEach(f => f('role'));
       return;
     }
@@ -1420,7 +1428,7 @@ window.PULT = {
   push, slice, severity, col, saveHist, clearHist, histInfo, kubAbv,
   lim, setLim, resetLim, limUser, thrKind, editor, armEditors, NUMOF, toHexColor,
   lineColor, setPal, resetPal, palUser, setNumber,
-  ROLES, SEL, SLOT, setSelect,
+  ROLES, SEL, SLOT, BIND, setSelect,
   jrnLoad, jrnSave, jrnRow, jrnAdd, jrnMark, jrnInfo, jrnEvery,
   jrnMergeRows, jrnSrcName, jrnBucket, jrnHHMM, jrnFmtVal, jrnHasData, JREAL,
   haCfg, setHaCfg, haEntities, haPull, haConnect, haBucketize,
