@@ -10,14 +10,19 @@
 #   Менять уставку перепрошивкой больше не нужно.
 #
 # ЖУРНАЛ ПОГОНА — внутри контроллера, файл kolonna_log.h.
-#   Пишется раз в 20 с, глубина 11 часов, скачивается по http://<ip>/log.csv
-#   готовым CSV для Excel. Работает при закрытом браузере и без сервера.
+#   Пишется раз в 30 с. Основное — карта, в памяти кольцо на 10 часов.
+#   Работает при закрытом браузере и без всякого сервера.
+#   Отдаётся страницами (у веб-сервера ESP-IDF нет потоковой выдачи):
+#     /log.csv?from=<строка>&n=<сколько>   журнал из памяти
+#     /logs.json                           что лежит на карте
+#     /logs/<имя>?off=<байт>&len=<байт>    файл погона кусками
+#     /logs                                тот же список глазами
 #   Основное хранилище — microSD (CS 26, SCK 14, MOSI 13, MISO 27).
 #   Все четыре линии — в ЛЕВОМ ряду платы, поэтому модуль ставится под
 #   ESP32 и провода падают вниз без обходов. CS перенесён с GPIO5 на
 #   GPIO26: GPIO5 в правом ряду (тянуть вокруг платы) и он strapping.
-#   Без карты работает кольцо в памяти на 11 часов, но оно стирается
-#   перезагрузкой. Список погонов на карте: http://<ip>/logs
+#   Без карты кольцо в памяти живёт 10 часов и стирается перезагрузкой.
+#   Пульт забирает журнал сам: кнопка «Подтянуть» на странице журнала.
 #
 # ПЕРЕД ПЕРВОЙ ЗАЛИВКОЙ:
 #   1. Вписать WiFi в secrets.yaml
@@ -88,17 +93,15 @@ substitutions:
 esphome:
   name: ${device_name}
   friendly_name: ${friendly_name}
-  # ЖУРНАЛ ВРЕМЕННО ОТКЛЮЧЁН.
-  # Написан под Arduino AsyncWebServer и SD.h, а ESPHome 2026.8 собирает
-  # ESP32 через ESP-IDF: там свой веб-сервер без chunked-ответов,
-  # и Arduino-библиотек нет в путях компилятора.
-  # Переписывается на esp_http_server + esp_vfs_fat — тогда вернётся.
-  # includes:
-  #   - kolonna_log.h
-  # on_boot:
-  #   priority: -100
-  #   then:
-  #     - lambda: 'kolonna_log::setup(id(web_base));'
+  # Журнал погона внутри контроллера. Переписан под ESP-IDF 08.09.2026:
+  # карта поднимается через esp_vfs_fat_sdspi_mount, файлы отдаются
+  # страницами — веб-сервер под IDF собирает ответ в памяти целиком.
+  includes:
+    - kolonna_log.h
+  on_boot:
+    priority: -100
+    then:
+      - lambda: 'kolonna_log::setup(id(web_base));'
 
 esp32:
   board: esp32dev
@@ -141,8 +144,8 @@ captive_portal:
 #   2. http://kolonna.local/events — поток данных для своей страницы (../web/index.html)
 # Базовый веб-сервер объявлен отдельно, чтобы получить id: к нему
 # цепляется обработчик /log.csv из kolonna_log.h
-# web_server_base:
-#   id: web_base
+web_server_base:
+  id: web_base
 
 web_server:
   port: 80
@@ -597,24 +600,24 @@ sensor:
   # ---------- Журнал ----------
   # Строк на карте. Ноль при живом Log Rows означает, что карты нет
   # или её выдернули: журнал есть только в памяти и умрёт с перезагрузкой.
-#   - platform: template
-#     name: "Log Rows SD"
-#     id: log_rows_sd
-#     unit_of_measurement: "зап."
-#     accuracy_decimals: 0
-#     update_interval: 30s
-#     entity_category: diagnostic
-#     lambda: 'return (float) kolonna_log::rows_sd();'
+  - platform: template
+    name: "Log Rows SD"
+    id: log_rows_sd
+    unit_of_measurement: "зап."
+    accuracy_decimals: 0
+    update_interval: 30s
+    entity_category: diagnostic
+    lambda: 'return (float) kolonna_log::rows_sd();'
 
   # Видно со страницы и из Home Assistant: пишется ли вообще.
-#   - platform: template
-#     name: "Log Rows"
-#     id: log_rows
-#     unit_of_measurement: "зап."
-#     accuracy_decimals: 0
-#     update_interval: 30s
-#     entity_category: diagnostic
-#     lambda: 'return (float) kolonna_log::rows();'
+  - platform: template
+    name: "Log Rows"
+    id: log_rows
+    unit_of_measurement: "зап."
+    accuracy_decimals: 0
+    update_interval: 30s
+    entity_category: diagnostic
+    lambda: 'return (float) kolonna_log::rows();'
 
   # ---------- Атмосферное давление ----------
   # Т кипения плывёт ~0.037 °C на 1 мм рт.ст. Без этого смена погоды
@@ -972,12 +975,12 @@ binary_sensor:
 
   # Карта журнала. Не авария: без карты прибор работает, но архив
   # переживёт только до перезагрузки — про это надо знать заранее.
-#   - platform: template
-#     name: "SD Card"
-#     id: sd_card
-#     device_class: problem
-#     entity_category: diagnostic
-#     lambda: 'return !kolonna_log::card();'
+  - platform: template
+    name: "SD Card"
+    id: sd_card
+    device_class: problem
+    entity_category: diagnostic
+    lambda: 'return !kolonna_log::card();'
 
   # Обрыв датчика
   - platform: template
@@ -1048,44 +1051,48 @@ globals:
 
 interval:
   # ---------- ЖУРНАЛ ПОГОНА ----------
-  # Шаг 20 секунд: при глубине 2000 записей это 11 часов — погон с запасом.
+  # Шаг 30 секунд: 1200 записей в памяти — это 10 часов, погон почти
+  # целиком; на карте глубина не ограничена ничем.
+  # Пишем плотно, а не раз в полчаса: шаг журнала — дело пульта, он
+  # прореживает сам. Из плотного лога строится любой шаг, из редкого
+  # плотный уже не восстановить.
   # Значения собираются здесь, потому что только тут известны id датчиков.
-#   - interval: 20s
-#     then:
-#       - lambda: |-
-#           float v[17] = {
-#             id(t_kub).state,          // 0  куб
-#             id(t_carga).state,        // 1  температура 2/3
-#             id(t_otbor).state,        // 2  температура отбора
-#             id(delta_t).state,        // 3  ΔT
-#             id(t_carga_trend).state,  // 4  скорость роста 2/3
-#             id(kub_abv).state,        // 5  спирт в кубе
-#             id(power_calc).state,     // 6  мощность по току
-#             id(power_water).state,    // 7  мощность по воде
-#             id(pzem_current).state,   // 8  ток
-#             id(pzem_voltage).state,   // 9  напряжение
-#             id(water_flow).state,     // 10 проток
-#             id(water_total).state,    // 11 расход воды
-#             id(t_voda).state,         // 12 вода выход
-#             id(t_voda_in).state,      // 13 вода вход
-#             id(atm_mmhg).state,       // 14 давление
-#             id(otbor_rate).state,     // 15 скорость отбора
-#             id(otbor_volume).state    // 16 отобрано
-#           };
-#           uint16_t al = 0;
-#           if (id(alm_flow).state)    al |= 1;
-#           if (id(alm_cooling).state) al |= 2;
-#           if (id(alm_kub).state)     al |= 4;
-#           if (id(alm_sensor).state)  al |= 8;
-#           if (id(warn_power).state)  al |= 16;
-#           if (id(warn_front).state)  al |= 32;
+  - interval: 30s
+    then:
+      - lambda: |-
+          float v[17] = {
+            id(t_kub).state,          // 0  куб
+            id(t_carga).state,        // 1  температура 2/3
+            id(t_otbor).state,        // 2  температура отбора
+            id(delta_t).state,        // 3  ΔT
+            id(t_carga_trend).state,  // 4  скорость роста 2/3
+            id(kub_abv).state,        // 5  спирт в кубе
+            id(power_calc).state,     // 6  мощность по току
+            id(power_water).state,    // 7  мощность по воде
+            id(pzem_current).state,   // 8  ток
+            id(pzem_voltage).state,   // 9  напряжение
+            id(water_flow).state,     // 10 проток
+            id(water_total).state,    // 11 расход воды
+            id(t_voda).state,         // 12 вода выход
+            id(t_voda_in).state,      // 13 вода вход
+            id(atm_mmhg).state,       // 14 давление
+            id(otbor_rate).state,     // 15 скорость отбора
+            id(otbor_volume).state    // 16 отобрано
+          };
+          uint16_t al = 0;
+          if (id(alm_flow).state)    al |= 1;
+          if (id(alm_cooling).state) al |= 2;
+          if (id(alm_kub).state)     al |= 4;
+          if (id(alm_sensor).state)  al |= 8;
+          if (id(warn_power).state)  al |= 16;
+          if (id(warn_front).state)  al |= 32;
 
-#           uint32_t ts = 0;
-#           auto t = id(ha_time).now();
-#           if (!t.is_valid()) t = id(sntp_time).now();
-#           if (t.is_valid()) ts = t.timestamp;
+          uint32_t ts = 0;
+          auto t = id(ha_time).now();
+          if (!t.is_valid()) t = id(sntp_time).now();
+          if (t.is_valid()) ts = t.timestamp;
 
-#           kolonna_log::push(ts, v, al);
+          kolonna_log::push(ts, v, al);
 
   - interval: 300s
     then:
@@ -1118,12 +1125,12 @@ button:
 
   # Очистка журнала. Жать перед новым погоном, иначе в файле окажутся
   # хвосты прошлого — а их потом примут за начало этого.
-#   - platform: template
-#     name: "Reset Log"
-#     id: btn_reset_log
-#     entity_category: config
-#     on_press:
-#       - lambda: 'kolonna_log::clear();'
+  - platform: template
+    name: "Reset Log"
+    id: btn_reset_log
+    entity_category: config
+    on_press:
+      - lambda: 'kolonna_log::clear();'
 
   # Жать перед началом голов, а потом ещё раз перед телом
   - platform: template

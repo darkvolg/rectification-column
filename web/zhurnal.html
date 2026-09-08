@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260908d">
+<link rel="stylesheet" href="pult.css?v=20260908e">
 </head>
 <body>
 
@@ -174,8 +174,8 @@
   на странице <a href="grafiki.html">Графики</a>.
 </footer>
 
-<script src="pult.js?v=20260908d"></script>
-<script src="xlsx.js?v=20260908d"></script>
+<script src="pult.js?v=20260908e"></script>
+<script src="xlsx.js?v=20260908e"></script>
 <script>
 "use strict";
 const {V} = PULT;
@@ -376,30 +376,42 @@ $('#j_add').onclick = () => addRow();
    браузер был закрыт: плата данные отдавала, HA их писал, а в журнале
    дыра. Пометки человека при этом не трогаются — сливаются только
    измерения, см. jrnMergeRows в pult.js. */
-$('#j_pull').onclick = () => {
-  const c = PULT.haCfg();
-  if (!c.url || !c.token){
-    PULT.toast('Сначала укажи адрес и токен HA в Настройках');
-    return;
-  }
+$('#j_pull').onclick = async () => {
   const now = Math.round(Date.now() / 1000);
   const first = J.rows.reduce((m, r) => (r.ts && (!m || r.ts < m)) ? r.ts : m, 0);
   const from = first || (now - 12 * 3600);
 
   const btn = $('#j_pull');
-  btn.disabled = true;
   const was = btn.textContent;
-  btn.textContent = 'Тяну…';
+  btn.disabled = true;
 
-  PULT.haPull(from, now, phase => { btn.textContent = phase; })
-    .then(res => {
-      reload();
-      PULT.toast(res.added || res.filled
-        ? 'Из HA: новых строк ' + res.added + ', дополнено ' + res.filled
-        : 'В HA нет ничего, чего бы уже не было в журнале');
-    })
-    .catch(e => PULT.toast('HA: ' + e.message))
-    .then(() => { btn.disabled = false; btn.textContent = was; });
+  const said = [];
+
+  // 1. Плата — старший источник: мгновенные значения, а не средние.
+  try {
+    const r = await PULT.sdPull(from, now, p => { btn.textContent = p; });
+    said.push('плата: +' + r.added + (r.filled ? ', допол. ' + r.filled : '') +
+              (r.card ? '' : ' (карты нет, память)'));
+  } catch(e){
+    said.push('плата: ' + e.message);
+  }
+
+  // 2. Home Assistant — если настроен. Дырки, которых нет на плате,
+  //    закрываются отсюда.
+  const c = PULT.haCfg();
+  if (c.url && c.token){
+    try {
+      const r = await PULT.haPull(from, now, p => { btn.textContent = 'HA: ' + p; });
+      said.push('HA: +' + r.added + (r.filled ? ', допол. ' + r.filled : ''));
+    } catch(e){
+      said.push('HA: ' + e.message);
+    }
+  }
+
+  reload();
+  btn.disabled = false;
+  btn.textContent = was;
+  PULT.toast(said.join(' · '));
 };
 
 /* Строку мог дописать таймер из pult.js или соседняя вкладка —

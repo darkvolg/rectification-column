@@ -669,6 +669,129 @@ function setHaCfg(url, token){
   return c;
 }
 
+/* ============================================================
+   ЖУРНАЛ С САМОЙ ПЛАТЫ — старший источник
+   Плата включена весь погон по определению и пишет раз в 30 секунд:
+   на карту, а без карты — в кольцо в памяти на десять часов. Отсюда
+   берутся мгновенные значения, а не пятиминутные средние, как из HA.
+   Отдаётся кусками: у веб-сервера ESP-IDF нет потоковой выдачи, ответ
+   собирается в памяти целиком, поэтому просим по 16 КБ за раз.
+   ============================================================ */
+const SD_COL = {otbor: 3, carga: 2, voda: 13, volt: 10, rate: 16};
+
+function sdUrl(path){
+  // Адрес берём из живого подключения, а если его ещё нет — из памяти
+  // браузера: журнал можно тянуть и со страницы, открытой файлом,
+  // не дожидаясь потока состояний.
+  let addr = ip;
+  if (!addr){ try { addr = localStorage.getItem('kol_ip') || ''; } catch(_){} }
+  if (!addr) throw new Error('не задан адрес контроллера');
+  return 'http://' + addr + path;
+}
+
+async function sdGet(path){
+  let r;
+  try { r = await fetch(sdUrl(path)); }
+  catch(_){ throw new Error('контроллер не отвечает'); }
+  if (r.status === 404) throw new Error('на плате нет журнала (старая прошивка?)');
+  if (!r.ok) throw new Error('плата ответила ' + r.status);
+  return r;
+}
+
+async function sdInfo(){
+  const r = await sdGet('/logs.json');
+  return r.json();
+}
+
+/* Файл текущего погона с карты. Тянем целиком: 15 часов по 30 секунд —
+   около 270 КБ, это два десятка кусков по локальной сети. */
+async function sdFileText(name, onStep){
+  let off = 0, size = null, text = '';
+  for (let guard = 0; guard < 400; guard++){
+    const r = await sdGet('/logs/' + encodeURIComponent(name) + '?off=' + off + '&len=16384');
+    const part = await r.text();
+    if (size === null){
+      const h = r.headers.get('X-File-Size');
+      size = h ? parseInt(h, 10) : null;
+    }
+    text += part;
+    off += part.length;
+    if (onStep && size) onStep('карта ' + Math.round(off * 100 / size) + '%');
+    if (!part.length || (size !== null && off >= size)) break;
+  }
+  return text;
+}
+
+/* Кольцо в памяти платы — когда карты нет. Страницами по строкам. */
+async function sdRingText(onStep){
+  let from = 0, text = '', total = null;
+  for (let guard = 0; guard < 400; guard++){
+    const r = await sdGet('/log.csv?from=' + from + '&n=130');
+    const part = await r.text();
+    text += part;
+    const sent = parseInt(r.headers.get('X-Rows-Sent') || '0', 10);
+    if (total === null) total = parseInt(r.headers.get('X-Rows-Total') || '0', 10);
+    from += sent;
+    if (onStep && total) onStep('память платы ' + Math.round(from * 100 / total) + '%');
+    if (!sent) break;
+  }
+  return text;
+}
+
+/* CSV с платы: точка с запятой, запятая как разделитель дробной части
+   (иначе русский Excel читает числа как текст), дата ДД.ММ.ГГГГ ЧЧ:ММ:СС. */
+function sdParse(text){
+  const out = [];
+  text.split('\n').forEach(raw => {
+    const line = raw.replace(/\r$/, '');
+    if (!line || line.indexOf(';') < 0) return;
+    const c = line.split(';');
+    const m = /^(\d{2})\.(\d{2})\.(\d{4}) (\d{2}):(\d{2}):(\d{2})$/.exec(c[0].replace(/^﻿/, ''));
+    if (!m) return;                      // шапка или строка без времени
+    const d = new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5], +m[6]);
+    const row = {ts: Math.round(d.getTime() / 1000)};
+    Object.keys(SD_COL).forEach(k => {
+      const v = parseFloat((c[SD_COL[k]] || '').replace(',', '.'));
+      if (isFinite(v)) row[k] = v;
+    });
+    out.push(row);
+  });
+  return out;
+}
+
+/* Плотный лог прореживаем под шаг журнала: в строку идёт последнее
+   значение, известное на её момент. Устаревшее не тянем — если плата
+   молчала дольше интервала, строки просто не будет. */
+function jrnDownsample(rows, first, last, step){
+  rows.sort((a, b) => a.ts - b.ts);
+  const out = [];
+  let i = 0, cur = null;
+  for (let b = first; b <= last; b += step){
+    while (i < rows.length && rows[i].ts <= b + 30){ cur = rows[i]; i++; }
+    if (!cur || cur.ts < b - step) continue;
+    const r = {ts: b};
+    Object.keys(SD_COL).forEach(k => { if (cur[k] !== undefined) r[k] = cur[k]; });
+    if (['otbor', 'carga', 'voda', 'volt'].some(f => r[f] !== undefined)) out.push(r);
+  }
+  return out;
+}
+
+async function sdPull(startTs, endTs, onStep){
+  if (onStep) onStep('спрашиваю плату');
+  const info = await sdInfo();
+  const text = (info && info.card && info.current)
+    ? await sdFileText(info.current, onStep)
+    : await sdRingText(onStep);
+
+  if (onStep) onStep('раскладываю');
+  const every = jrnEvery();
+  const step = Math.max(60, Math.round(every * 60));
+  const rows = jrnDownsample(sdParse(text), jrnBucket(startTs, every), endTs, step);
+  const res = jrnMergeRows(rows, 'sd');
+  res.card = !!(info && info.card);
+  return res;
+}
+
 /* Почему WebSocket, а не обычный REST.
    HA включает CORS только тем эндпоинтам, которые сами это разрешают:
    /auth/token заголовок отдаёт, а /api/states нет — и никакая настройка
@@ -1251,6 +1374,7 @@ window.PULT = {
   jrnLoad, jrnSave, jrnRow, jrnAdd, jrnMark, jrnInfo, jrnEvery,
   jrnMergeRows, jrnSrcName, jrnBucket, jrnHHMM, jrnFmtVal,
   haCfg, setHaCfg, haEntities, haPull, haConnect, haBucketize,
+  sdInfo, sdPull, sdParse, jrnDownsample,
   soundOn, setSound, testSound, stopBuzz, muteHere, askNotify, notifyState,
   get ip(){ return ip; },
   get state(){ return state; },
