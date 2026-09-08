@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 470" width="520" height="470">
+<!-- Мнемосхема колонны для Home Assistant, компоновка как на щите АСУ ТП.
+     Аппарат слева одной вертикалью, показания справа — каждое напротив
+     своей точки. Длинных выносок через всю схему нет: глаз идёт сверху
+     вниз по колонне и читает числа на той же высоте.
+
+     Подписи и рамки нарисованы ЗДЕСЬ, Home Assistant кладёт поверх только
+     числа: текст элемента не масштабируется вместе с картинкой и в узкой
+     колонке вылезал бы за рамку.
+
+     Аварии живут отдельными карточками НАД схемой — здесь им тесно,
+     а обрезанный текст аварии хуже, чем никакого. -->
+<defs>
+  <linearGradient id="cu" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0"    stop-color="#8A4A1C"/>
+    <stop offset="0.16" stop-color="#D08C55"/>
+    <stop offset="0.42" stop-color="#C97B3C"/>
+    <stop offset="0.78" stop-color="#8A4A1C"/>
+    <stop offset="1"    stop-color="#6B3612"/>
+  </linearGradient>
+  <radialGradient id="heat" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0"   stop-color="#FF7A2F" stop-opacity="0.66"/>
+    <stop offset="0.6" stop-color="#E0521A" stop-opacity="0.18"/>
+    <stop offset="1"   stop-color="#E0521A" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+
+<style>
+  .cap  { font: 600 9.5px "Segoe UI", system-ui, sans-serif; fill: #8E9BA7; letter-spacing: .4px }
+  .lbl  { font: 500 9.5px "Segoe UI", system-ui, sans-serif; fill: #7F8B96; letter-spacing: .4px }
+  .lblm { font: 500 10px "Segoe UI", system-ui, sans-serif; fill: #FFF; opacity: .82; letter-spacing: .7px }
+  .box  { fill: #141A20; stroke: #2A3742; stroke-width: 1.1 }
+  .sep  { stroke: #2A3742; stroke-width: 1 }
+  .pipe { fill: none; stroke: #C97B3C; stroke-width: 2.6; stroke-linecap: round }
+  .win  { fill: none; stroke: #4E86A8; stroke-width: 2.6; stroke-linecap: round; stroke-dasharray: 7 5 }
+  .pt   { fill: #10161B; stroke: #9AA7B3; stroke-width: 1.6 }
+  .pack { stroke: #7A4A22; stroke-width: 1.1; opacity: .5 }
+  .tie  { stroke: #55636F; stroke-width: 1; opacity: .4 }
+</style>
+
+<!-- ===================== АППАРАТ ===================== -->
+
+<!-- куб -->
+<ellipse cx="135" cy="380" rx="82" ry="30" fill="url(#heat)"/>
+<path fill="url(#cu)" d="M70 322 L70 388 Q70 406 88 406 L182 406 Q200 406 200 388 L200 322 Z"/>
+<ellipse cx="135" cy="322" rx="65" ry="12" fill="url(#cu)"/>
+<path fill="url(#cu)" d="M111 320 L115 300 L155 300 L159 320 Z"/>
+<path fill="none" stroke="#FFB067" stroke-width="2.4" stroke-linecap="round"
+      d="M97 380 q9.5 -12 19 0 q9.5 12 19 0 q9.5 -12 19 0 q9.5 12 19 0"/>
+<text class="lblm" x="135" y="350" text-anchor="middle">КУБ</text>
+<text class="lblm" x="135" y="400" text-anchor="middle">ТЭН 3 кВт</text>
+
+<!-- царга с насадкой -->
+<rect x="115" y="96" width="40" height="204" fill="url(#cu)"/>
+<g class="pack">
+  <line x1="119" y1="124" x2="151" y2="138"/><line x1="151" y1="124" x2="119" y2="138"/>
+  <line x1="119" y1="164" x2="151" y2="178"/><line x1="151" y1="164" x2="119" y2="178"/>
+  <line x1="119" y1="204" x2="151" y2="218"/><line x1="151" y1="204" x2="119" y2="218"/>
+  <line x1="119" y1="244" x2="151" y2="258"/><line x1="151" y1="244" x2="119" y2="258"/>
+  <line x1="119" y1="278" x2="151" y2="292"/><line x1="151" y1="278" x2="119" y2="292"/>
+</g>
+
+<!-- дефлегматор -->
+<rect x="105" y="40" width="60" height="56" rx="3" fill="url(#cu)"/>
+<g class="pack">
+  <line x1="111" y1="50" x2="159" y2="50"/><line x1="111" y1="62" x2="159" y2="62"/>
+  <line x1="111" y1="74" x2="159" y2="74"/><line x1="111" y1="86" x2="159" y2="86"/>
+</g>
+<text class="lblm" x="135" y="31" text-anchor="middle">ДЕФЛЕГМАТОР</text>
+
+<!-- вода: горячая уходит сверху, холодная приходит снизу -->
+<line class="win" x1="165" y1="52" x2="212" y2="52"/>
+<path fill="#4E86A8" d="M204 47 l8 5 l-8 5 Z"/>
+<line class="win" x1="212" y1="82" x2="165" y2="82"/>
+<path fill="#4E86A8" d="M181 77 l-8 5 l8 5 Z"/>
+<circle cx="194" cy="82" r="8.5" fill="none" stroke="#4E86A8" stroke-width="1.7"/>
+
+<!-- узел отбора: кран и трубка в приёмную ёмкость -->
+<line class="pipe" x1="155" y1="140" x2="176" y2="140"/>
+<polygon points="176,132 176,148 187,140" fill="#C97B3C"/>
+<polygon points="198,132 198,148 187,140" fill="#C97B3C"/>
+<line class="pipe" x1="187" y1="140" x2="187" y2="129"/>
+<line class="pipe" x1="181" y1="126" x2="193" y2="126"/>
+<text class="lbl" x="187" y="118" text-anchor="middle">КРАН</text>
+<line class="pipe" x1="198" y1="140" x2="207" y2="140"/>
+<line class="pipe" x1="207" y1="140" x2="207" y2="252"/>
+<circle cx="207" cy="154" r="3.2" fill="#C97B3C"/>
+
+<!-- точки измерения -->
+<circle class="pt" cx="155" cy="140" r="4.6"/>
+<circle class="pt" cx="115" cy="212" r="4.6"/>
+<circle class="pt" cx="78" cy="360" r="4.6"/>
+
+<!-- короткие связки к своей строке показаний -->
+<g class="tie">
+  <line x1="214" y1="67"  x2="225" y2="52"/>
+  <line x1="160" y1="140" x2="225" y2="124"/>
+  <line x1="120" y1="212" x2="225" y2="196"/>
+  <line x1="211" y1="252" x2="225" y2="268"/>
+  <line x1="83"  y1="360" x2="225" y2="340"/>
+  <line x1="150" y1="392" x2="225" y2="412"/>
+</g>
+
+<!-- ===================== ПОКАЗАНИЯ ===================== -->
+<!-- Шесть строк по ходу колонны сверху вниз. Числа кладёт Home Assistant. -->
+
+<rect class="box" x="225" y="26" width="280" height="52" rx="8"/>
+<line class="sep" x1="365" y1="32" x2="365" y2="72"/>
+<text class="cap" x="237" y="42">ВОДА ВЫХОД · T4</text>
+<text class="cap" x="377" y="42">ПРОТОК</text>
+
+<rect class="box" x="225" y="98" width="280" height="52" rx="8"/>
+<line class="sep" x1="365" y1="104" x2="365" y2="144"/>
+<text class="cap" x="237" y="114">ОТБОР · T3</text>
+<text class="cap" x="377" y="114">ΔT ОТБОР − 2/3</text>
+
+<rect class="box" x="225" y="170" width="280" height="52" rx="8"/>
+<line class="sep" x1="365" y1="176" x2="365" y2="216"/>
+<text class="cap" x="237" y="186">ЦАРГА 2/3 · T2</text>
+<text class="cap" x="377" y="186">РОСТ 2/3</text>
+
+<rect class="box" x="225" y="242" width="280" height="52" rx="8"/>
+<line class="sep" x1="365" y1="248" x2="365" y2="288"/>
+<text class="cap" x="237" y="258">ОТОБРАНО</text>
+<text class="cap" x="377" y="258">СКОРОСТЬ</text>
+
+<rect class="box" x="225" y="314" width="280" height="52" rx="8"/>
+<line class="sep" x1="365" y1="320" x2="365" y2="360"/>
+<text class="cap" x="237" y="330">КУБ · T1</text>
+<text class="cap" x="377" y="330">СПИРТ В КУБЕ</text>
+
+<rect class="box" x="225" y="386" width="280" height="52" rx="8"/>
+<line class="sep" x1="365" y1="392" x2="365" y2="432"/>
+<text class="cap" x="237" y="402">ТЭН · МОЩНОСТЬ</text>
+<text class="cap" x="377" y="402">ПО ВОДЕ</text>
+</svg>

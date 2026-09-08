@@ -1,0 +1,276 @@
+# Дашборд «Колонна» для Home Assistant — этап P0
+#
+# Построен по ISA-101 (High Performance HMI), как промышленные SCADA:
+#   · цвет только на отклонении, в норме экран нейтральный
+#   · карточки аварий ПОЯВЛЯЮТСЯ только когда есть что показать
+#   · тренд виден всегда, а не по клику
+#   · никаких радужных циферблатов: gauge с цветной шкалой раскрашивает
+#     экран постоянно и обесценивает красный, поэтому их здесь нет
+#
+# Ставится: панель → три точки → Изменить панель → три точки → Редактор YAML
+
+views:
+  - title: Колонна
+    path: kolonna
+    icon: mdi:flask-outline
+    cards:
+
+      # ================================================================
+      #  ОТКЛОНЕНИЯ — в норме этих карточек на экране НЕТ
+      # ================================================================
+
+      # Первой стоит авария по протоку: она срабатывает на минуты раньше
+      # температурной, потому что турбинка встаёт мгновенно, а вода
+      # в рубашке ещё какое-то время остаётся холодной.
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: binary_sensor.kolonna_alarm_no_flow
+            state: "on"
+        card:
+          type: markdown
+          content: |
+            # ▲ ВОДА ВСТАЛА
+            Протока нет, а куб горячий. Через несколько минут пары спирта
+            пойдут в комнату.
+            **Гасить ТЭН, потом искать причину.**
+
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: binary_sensor.kolonna_alarm_cooling
+            state: "on"
+        card:
+          type: markdown
+          content: |
+            # ▲ НЕТ ОХЛАЖДЕНИЯ
+            Вода на выходе выше 55 °C. Пары спирта пойдут в комнату.
+            Проверить проток немедленно.
+
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: binary_sensor.kolonna_alarm_sensor_fault
+            state: "on"
+        card:
+          type: markdown
+          content: |
+            # ▲ ОБРЫВ ДАТЧИКА
+            Один из DS18B20 не отвечает. Показания недостоверны.
+
+      # Появляется только когда сирена уже орёт. Гасит звук,
+      # но карточка аварии остаётся на экране, пока причина не ушла.
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: switch.kolonna_siren
+            state: "on"
+        card:
+          type: entities
+          entities:
+            - entity: button.kolonna_ack_siren
+              name: Заглушить сирену
+
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: binary_sensor.kolonna_alarm_kub_hot
+            state: "on"
+        card:
+          type: markdown
+          content: |
+            # ▲ КУБ 98.5 °C
+            Тело закончилось. Закрыть отбор, выключить ТЭН.
+
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: binary_sensor.kolonna_warn_power
+            state: "on"
+        card:
+          type: markdown
+          content: |
+            ## ◆ МОЩНОСТЬ У ПОРОГА ЗАХЛЁБА
+            Выше 1300 Вт. Расчётный порог для Ø33 РПН — около 1370 Вт.
+
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: binary_sensor.kolonna_warn_front
+            state: "on"
+        card:
+          type: markdown
+          content: |
+            ## ● ФРОНТ ТРОНУЛСЯ
+            Тренд на 2/3 царги пошёл вверх. Тело на подходе —
+            смотреть ΔT и готовиться срезать скорость.
+
+      # ================================================================
+      #  ЗНАЧЕНИЯ — без цвета, цвет резервирован под отклонения
+      # ================================================================
+
+      - type: entities
+        title: Процесс
+        state_color: false
+        entities:
+          # Две мощности рядом намеренно: посчитаны разными способами
+          # и из разных датчиков. Сошлись — обеим можно верить.
+          - entity: sensor.kolonna_power
+            name: Мощность, по току
+          - entity: sensor.kolonna_power_water
+            name: Мощность, по воде
+          - type: divider
+          - entity: sensor.kolonna_t1_kub
+            name: T1 Куб
+          - entity: sensor.kolonna_t2_carga
+            name: T2 Температура 2/3
+          - entity: sensor.kolonna_t3_otbor
+            name: T3 Температура отбора
+          - type: divider
+          - entity: sensor.kolonna_delta_t
+            name: ΔT отбор − 2/3
+          - entity: sensor.kolonna_trend_t2
+            name: Скорость роста 2/3
+          # Расчёт по температуре кипения, а не измерение.
+          # Прямо говорит, сколько ещё гнать.
+          - entity: sensor.kolonna_kub_abv
+            name: Спирт в кубе, % об.
+
+      - type: entities
+        title: Охлаждение
+        state_color: false
+        entities:
+          - entity: sensor.kolonna_water_flow
+            name: Проток
+          - entity: sensor.kolonna_t5_voda_vhod
+            name: T5 Вход
+          - entity: sensor.kolonna_t4_voda
+            name: T4 Выход
+          - type: divider
+          - entity: sensor.kolonna_water_total
+            name: Расход за партию
+          - entity: button.kolonna_reset_water
+            name: Обнулить расход
+
+      # ================================================================
+      #  ТРЕНДЫ — всегда на виду
+      # ================================================================
+
+      - type: history-graph
+        title: Температуры — приход фронта
+        hours_to_show: 12
+        refresh_interval: 10
+        entities:
+          - entity: sensor.kolonna_t2_carga
+            name: 2/3
+          - entity: sensor.kolonna_t3_otbor
+            name: Отбор
+
+      # Масштаб на порядок мельче — поэтому отдельный график.
+      # Именно здесь видно то, что в ручном журнале раз в полчаса не увидеть.
+      - type: history-graph
+        title: Ранние признаки фронта
+        hours_to_show: 12
+        refresh_interval: 10
+        entities:
+          - entity: sensor.kolonna_delta_t
+            name: ΔT отбор − 2/3
+          - entity: sensor.kolonna_trend_t2
+            name: Скорость роста 2/3, °C/мин
+
+      - type: history-graph
+        title: Куб — ход партии
+        hours_to_show: 12
+        entities:
+          - entity: sensor.kolonna_t1_kub
+            name: Куб
+
+      # Провал протока виден здесь раньше, чем подъём температуры выхода.
+      - type: history-graph
+        title: Охлаждение
+        hours_to_show: 12
+        refresh_interval: 10
+        entities:
+          - entity: sensor.kolonna_water_flow
+            name: Проток, л/мин
+          - entity: sensor.kolonna_t4_voda
+            name: Выход, °C
+          - entity: sensor.kolonna_t5_voda_vhod
+            name: Вход, °C
+
+      # Две линии мощности должны идти рядом. Разъехались в процессе —
+      # либо изменился расход воды, либо что-то с током.
+      - type: history-graph
+        title: Мощность — две независимые оценки
+        hours_to_show: 12
+        entities:
+          - entity: sensor.kolonna_power
+            name: По току, Вт
+          - entity: sensor.kolonna_power_water
+            name: По воде, Вт
+
+      # ================================================================
+      #  ДИАГНОСТИКА
+      # ================================================================
+
+      # Модуль 2. Пока счётчик капель не собран, карточка покажет
+      # «недоступно» — так и должно быть.
+      - type: entities
+        title: Отбор (модуль 2)
+        entities:
+          - entity: sensor.kolonna_drops_per_min
+            name: Капель в минуту
+          - entity: sensor.kolonna_otbor_rate
+            name: Скорость отбора
+          - entity: sensor.kolonna_otbor_volume
+            name: Отобрано
+          - entity: button.kolonna_reset_otbor
+            name: Сброс счётчика
+
+      - type: entities
+        title: Электрика и атмосфера
+        entities:
+          - entity: sensor.kolonna_current
+            name: Ток ТЭНа
+          - entity: sensor.kolonna_voltage
+            name: Напряжение сети
+          # Сырое поле PZEM. При резаной синусоиде оно завышено —
+          # держим рядом с расчётным, чтобы видеть, насколько.
+          - entity: sensor.kolonna_power_raw
+            name: PZEM, сырое
+          - entity: sensor.kolonna_energy
+            name: Энергия за партию
+          - type: divider
+          - entity: sensor.kolonna_pressure_mmhg
+            name: Давление, мм рт.ст.
+          - entity: sensor.kolonna_t_boil_correction
+            name: Поправка Т кипения
+
+      # Уставки аварий. Лежат в NVS контроллера: правятся отсюда,
+      # с пульта или со страницы самого ESP32 — источник один и тот же.
+      - type: entities
+        title: Уставки аварий
+        entities:
+          - entity: number.kolonna_set_voda_max
+            name: Вода на выходе, авария
+          - entity: number.kolonna_set_flow_min
+            name: Проток, авария ниже
+          - entity: number.kolonna_set_kub_arm
+            name: Куб горячий (взвод)
+          - type: divider
+          - entity: number.kolonna_set_kub_max
+            name: Куб, конец тела
+          - entity: number.kolonna_set_pwr_warn
+            name: Мощность, порог захлёба
+          - entity: number.kolonna_set_trend_warn
+            name: Скорость роста 2/3, внимание
+
+      - type: entities
+        title: Контроллер
+        entities:
+          - entity: sensor.kolonna_wifi_signal
+            name: WiFi
+          - entity: sensor.kolonna_uptime
+            name: Uptime
+          - entity: button.kolonna_restart
+            name: Перезагрузка

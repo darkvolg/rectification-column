@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Расчёты — Колонна</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="in">
+    <a class="logo" href="index.html">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M9 2h6M10 2v7l-4.6 9.2A2.5 2.5 0 0 0 7.6 22h8.8a2.5 2.5 0 0 0 2.2-3.8L14 9V2"/>
+        <path d="M7.4 15h9.2"/>
+      </svg>
+      <span class="t"><b>Документация</b><i>проект «Водочка»</i></span>
+    </a>
+    <nav aria-label="Разделы"><ul>
+      <li><a href="index.html">Обзор</a></li>
+      <li><a href="plan.html">Модули</a></li>
+      <li><a href="sborka.html">Сборка</a></li>
+      <li><a href="pogon.html">Погон</a></li>
+      <li><a href="calc.html">Расчёты</a></li>
+      <li><a href="../index.html">← Пульт</a></li>
+    </ul></nav>
+    <button class="iconbtn" id="themeBtn" aria-label="Оформление"></button>
+  </div>
+</header>
+
+<div class="wrap with-toc">
+<div class="col">
+
+  <p class="eyebrow">Считает сразу, ничего нажимать не надо</p>
+  <h1>Расчёты</h1>
+  <p class="lede">
+    Все формулы проекта в одном месте, с подставленными значениями твоей колонны.
+    Меняй числа — результат пересчитывается на лету.
+  </p>
+
+  <h2 id="moshnost">Две мощности</h2>
+  <p>Вольтметр на колонне показывает 90 В при реальных примерно 120 — это не-TrueRMS
+  мультиметр на рубленой синусоиде. Поэтому мощность не измеряется, а вычисляется,
+  причём двумя независимыми способами.</p>
+
+  <div class="calc">
+    <div class="hd">
+      <h3>По току: P = I² · R</h3>
+      <p>ТЭН — чисто активная нагрузка, поэтому формула верна при любой форме тока.
+      Ток PZEM снимает трансформатором честно.</p>
+    </div>
+    <div class="body">
+      <div class="f"><label for="p_i">Ток, А</label>
+        <input id="p_i" type="number" inputmode="decimal" step="0.01" value="7.47"></div>
+      <div class="f"><label for="p_r">Сопротивление ТЭНа, Ом</label>
+        <input id="p_r" type="number" inputmode="decimal" step="0.01" value="16.13"></div>
+    </div>
+    <div class="out">
+      <div class="res"><div class="k">Мощность по току</div>
+        <div class="v" id="p_out">—<small>Вт</small></div>
+        <div class="n">Она же идёт в конфиг как <code>Power</code></div></div>
+      <div class="res"><div class="k">Действующее напряжение</div>
+        <div class="v" id="p_u">—<small>В</small></div>
+        <div class="n">U = I · R. Вот что показал бы честный прибор</div></div>
+    </div>
+  </div>
+
+  <div class="calc">
+    <div class="hd">
+      <h3>По воде: P = Q · ΔT · 69.77</h3>
+      <p>Почти всё тепло ТЭНа уносит охлаждающая вода. Коэффициент 69.77 —
+      это 4186 Дж/(кг·К), делённые на 60 секунд.</p>
+    </div>
+    <div class="body">
+      <div class="f"><label for="w_q">Проток, л/мин</label>
+        <input id="w_q" type="number" inputmode="decimal" step="0.05" value="1.5"></div>
+      <div class="f"><label for="w_out">Вода на выходе, °C</label>
+        <input id="w_out" type="number" inputmode="decimal" step="0.1" value="22.6"></div>
+      <div class="f"><label for="w_in">Вода на входе, °C</label>
+        <input id="w_in" type="number" inputmode="decimal" step="0.1" value="14"></div>
+    </div>
+    <div class="out">
+      <div class="res"><div class="k">Мощность по воде</div>
+        <div class="v" id="w_p">—<small>Вт</small></div>
+        <div class="n">ΔT = <span id="w_dt">—</span> °C</div></div>
+      <div class="res" id="w_box"><div class="k">Сходимость с током</div>
+        <div class="v" id="w_diff">—<small>%</small></div>
+        <div class="n" id="w_verdict">—</div></div>
+    </div>
+  </div>
+
+  <div class="note acc">
+    <div class="h"><span class="sym" aria-hidden="true">●</span>Зачем считать дважды</div>
+    <p style="margin-bottom:0">Общих деталей у двух цепочек нет ни одной: разные датчики,
+    разная физика, разные калибровочные константы. Поэтому совпадение — не совпадение,
+    а доказательство. Расхождение больше 15 % означает, что врёт либо
+    <code>ten_resistance</code>, либо <code>pulses_per_liter</code>.
+    Тепловая цифра честно ниже электрической на 5–10 %: часть тепла уходит
+    через изоляцию колонны.</p>
+  </div>
+
+  <h2 id="flegma">Пар и флегмовое число</h2>
+
+  <div class="calc">
+    <div class="hd">
+      <h3>Сколько пара и какое R</h3>
+      <p>На испарение спирта 96 % уходит примерно 198 Вт на литр пара в час.
+      Флегмовое число — во сколько раз больше возвращается в колонну, чем уходит в отбор.</p>
+    </div>
+    <div class="body">
+      <div class="f"><label for="f_p">Мощность, Вт</label>
+        <input id="f_p" type="number" inputmode="decimal" step="10" value="900"></div>
+      <div class="f"><label for="f_otbor">Скорость отбора, мл/ч</label>
+        <input id="f_otbor" type="number" inputmode="decimal" step="10" value="120"></div>
+    </div>
+    <div class="out">
+      <div class="res"><div class="k">Пара в колонне</div>
+        <div class="v" id="f_par">—<small>л/ч</small></div>
+        <div class="n">P ÷ 198</div></div>
+      <div class="res" id="f_box"><div class="k">Флегмовое число R</div>
+        <div class="v" id="f_r">—</div>
+        <div class="n" id="f_note">—</div></div>
+    </div>
+  </div>
+
+  <div class="note warn">
+    <div class="h"><span class="sym" aria-hidden="true">◆</span>Выше R ≈ 20 чистота не растёт</div>
+    <p style="margin-bottom:0">Она упирается в число теоретических тарелок, а их
+    у двухметровой РПН около 24. Именно поэтому головы по 78 мл/ч (R = 58) были чистой
+    потерей времени: колонна уже давно выдавала всё, на что способна,
+    а отбор искусственно душили втрое.</p>
+  </div>
+
+  <h2 id="zahleb">Захлёб</h2>
+
+  <div class="calc">
+    <div class="hd">
+      <h3>Далеко ли до предела</h3>
+      <p>Для РПН порог примерно 1.6 Вт на квадратный миллиметр сечения царги.
+      Рабочая точка держится на 65–70 %.</p>
+    </div>
+    <div class="body">
+      <div class="f"><label for="z_d">Внутренний диаметр, мм</label>
+        <input id="z_d" type="number" inputmode="decimal" step="0.5" value="33"></div>
+      <div class="f"><label for="z_p">Текущая мощность, Вт</label>
+        <input id="z_p" type="number" inputmode="decimal" step="10" value="900"></div>
+      <div class="f"><label for="z_k">Порог, Вт/мм²</label>
+        <input id="z_k" type="number" inputmode="decimal" step="0.05" value="1.6"></div>
+    </div>
+    <div class="out">
+      <div class="res"><div class="k">Сечение</div>
+        <div class="v" id="z_s">—<small>мм²</small></div></div>
+      <div class="res"><div class="k">Порог захлёба</div>
+        <div class="v" id="z_lim">—<small>Вт</small></div></div>
+      <div class="res" id="z_box"><div class="k">Загрузка</div>
+        <div class="v" id="z_pct">—<small>%</small></div>
+        <div class="n" id="z_note">—</div></div>
+    </div>
+  </div>
+
+  <h2 id="golovy">Головы</h2>
+
+  <div class="calc">
+    <div class="hd">
+      <h3>Сколько брать и сколько это часов</h3>
+      <p>Норма голов — 5–6 % от абсолютного спирта в кубе. Объём считается в готовом
+      продукте 96 %, поэтому доля делится на 0.96.</p>
+    </div>
+    <div class="body">
+      <div class="f"><label for="g_as">Абсолютного спирта в кубе, л</label>
+        <input id="g_as" type="number" inputmode="decimal" step="0.1" value="6.6"></div>
+      <div class="f"><label for="g_dol">Доля голов, %</label>
+        <input id="g_dol" type="number" inputmode="decimal" step="0.5" value="6"></div>
+      <div class="f"><label for="g_sk">Скорость отбора, мл/ч</label>
+        <input id="g_sk" type="number" inputmode="decimal" step="5" value="120"></div>
+    </div>
+    <div class="out">
+      <div class="res"><div class="k">Объём голов</div>
+        <div class="v" id="g_ml">—<small>мл</small></div></div>
+      <div class="res"><div class="k">Времени уйдёт</div>
+        <div class="v" id="g_ch">—<small>ч</small></div>
+        <div class="n" id="g_note">—</div></div>
+      <div class="res"><div class="k">Контроль стаканом</div>
+        <div class="v" id="g_stak">—<small>мл</small></div>
+        <div class="n">за 5 минут — так проще всего выставить кран</div></div>
+    </div>
+  </div>
+
+  <h2 id="pwm">ШИМ клапана отбора</h2>
+
+  <div class="calc">
+    <div class="hd">
+      <h3>Скважность и время открытия</h3>
+      <p>Игольчатый кран настраивается один раз и задаёт максимум. Клапан режет его
+      до нужной доли. Настраивать кран надо <strong>под тело</strong>, иначе на теле
+      упрёшься в потолок.</p>
+    </div>
+    <div class="body">
+      <div class="f"><label for="v_kran">Кран открыт на, мл/ч</label>
+        <input id="v_kran" type="number" inputmode="decimal" step="50" value="1500"></div>
+      <div class="f"><label for="v_need">Нужный отбор, мл/ч</label>
+        <input id="v_need" type="number" inputmode="decimal" step="10" value="120"></div>
+      <div class="f"><label for="v_per">Период ШИМ, с</label>
+        <input id="v_per" type="number" inputmode="decimal" step="1" value="10"></div>
+    </div>
+    <div class="out">
+      <div class="res"><div class="k">Скважность</div>
+        <div class="v" id="v_duty">—<small>%</small></div></div>
+      <div class="res" id="v_box"><div class="k">Открыт</div>
+        <div class="v" id="v_ton">—<small>с</small></div>
+        <div class="n" id="v_note">—</div></div>
+      <div class="res"><div class="k">Закрыт</div>
+        <div class="v" id="v_toff">—<small>с</small></div>
+        <div class="n">из каждого периода</div></div>
+    </div>
+  </div>
+
+  <div class="note warn">
+    <div class="h"><span class="sym" aria-hidden="true">◆</span>Границы периода</div>
+    <p style="margin-bottom:0">Соленоид срабатывает 20–50 мс, поэтому
+    <strong>Ton меньше 0.3 с уже недостоверен</strong>. Сверху ограничение другое:
+    при слишком длинном периоде колонна успевает просесть по флегме между импульсами.
+    Отсюда рабочие 10 секунд.</p>
+  </div>
+
+</div>
+
+<aside class="toc">
+  <b>На странице</b>
+  <a href="#moshnost">Две мощности</a>
+  <a href="#flegma">Пар и флегма</a>
+  <a href="#zahleb">Захлёб</a>
+  <a href="#golovy">Головы</a>
+  <a href="#pwm">ШИМ клапана</a>
+</aside>
+</div>
+
+<footer class="site"><div class="in">
+  Опорные точки: ТЭН 3 кВт / R ≈ 16.13 Ом · царга Ø33 внутр · РПН 2 м ≈ 24 тарелки ·
+  рабочая мощность ~900 Вт · захлёб ~1370 Вт.
+</div></footer>
+
+<script src="site.js"></script>
+<script>
+const el = id => document.getElementById(id);
+function put(id, v, d, unit){
+  el(id).innerHTML = fmt(v, d) + (unit ? '<small>' + unit + '</small>' : '');
+}
+function mark(boxId, cls){
+  const b = el(boxId);
+  b.classList.remove('ok','warn','bad');
+  if (cls) b.classList.add(cls);
+}
+
+/* ---------- Мощность ---------- */
+let P_I2R = NaN;
+bindCalc(['p_i','p_r'], function(){
+  const i = num('p_i'), r = num('p_r');
+  P_I2R = i * i * r;
+  put('p_out', P_I2R, 0, 'Вт');
+  put('p_u', i * r, 1, 'В');
+  if (typeof recalcWater === 'function') recalcWater();
+});
+
+function recalcWater(){
+  const q = num('w_q'), dt = num('w_out') - num('w_in');
+  const p = q * dt * 69.77;
+  el('w_dt').textContent = fmt(dt, 1);
+  put('w_p', p > 0 ? p : 0, 0, 'Вт');
+  if (!isFinite(P_I2R) || P_I2R <= 0 || !isFinite(p) || p <= 0){
+    el('w_diff').innerHTML = '—'; el('w_verdict').textContent = 'нужны обе цифры';
+    mark('w_box', ''); return;
+  }
+  const diff = 100 * (p - P_I2R) / P_I2R;
+  el('w_diff').innerHTML = (diff > 0 ? '+' : '') + fmt(diff, 1) + '<small>%</small>';
+  const a = Math.abs(diff);
+  if (a <= 15){ mark('w_box','ok');  el('w_verdict').textContent = 'сошлись — верны обе'; }
+  else if (a <= 25){ mark('w_box','warn'); el('w_verdict').textContent = 'на границе, перепроверить калибровки'; }
+  else { mark('w_box','bad'); el('w_verdict').textContent = 'врёт ten_resistance или pulses_per_liter'; }
+}
+bindCalc(['w_q','w_out','w_in'], recalcWater);
+
+/* ---------- Флегмовое число ---------- */
+bindCalc(['f_p','f_otbor'], function(){
+  const par = num('f_p') / 198;
+  const otbor = num('f_otbor') / 1000;
+  put('f_par', par, 2, 'л/ч');
+  if (!(otbor > 0) || !(par > otbor)){
+    el('f_r').textContent = '—'; el('f_note').textContent = 'отбор больше, чем пара — так не бывает';
+    mark('f_box','bad'); return;
+  }
+  const r = (par - otbor) / otbor;
+  el('f_r').textContent = fmt(r, 1);
+  if (r < 3){ mark('f_box','bad'); el('f_note').textContent = 'слишком мало — чистота упадёт'; }
+  else if (r <= 20){ mark('f_box','ok'); el('f_note').textContent = 'рабочая зона'; }
+  else { mark('f_box','warn'); el('f_note').textContent = 'выше 20 чистота уже не растёт — время в пустую'; }
+});
+
+/* ---------- Захлёб ---------- */
+bindCalc(['z_d','z_p','z_k'], function(){
+  const d = num('z_d'), s = Math.PI * d * d / 4;
+  const lim = s * num('z_k'), pct = 100 * num('z_p') / lim;
+  put('z_s', s, 0, 'мм²');
+  put('z_lim', lim, 0, 'Вт');
+  put('z_pct', pct, 0, '%');
+  if (pct < 50){ mark('z_box',''); el('z_note').textContent = 'запас большой, колонна недогружена'; }
+  else if (pct <= 70){ mark('z_box','ok'); el('z_note').textContent = 'оптимум'; }
+  else if (pct <= 85){ mark('z_box','warn'); el('z_note').textContent = 'близко к пределу'; }
+  else { mark('z_box','bad'); el('z_note').textContent = 'захлебнётся'; }
+});
+
+/* ---------- Головы ---------- */
+bindCalc(['g_as','g_dol','g_sk'], function(){
+  const ml = num('g_as') * (num('g_dol') / 100) / 0.96 * 1000;
+  const sk = num('g_sk'), h = ml / sk;
+  put('g_ml', ml, 0, 'мл');
+  put('g_ch', h, 1, 'ч');
+  put('g_stak', sk / 12, 1, 'мл');
+  el('g_note').textContent = h > 5
+    ? 'долго — проверь, не задушен ли кран'
+    : 'норма';
+});
+
+/* ---------- ШИМ клапана ---------- */
+bindCalc(['v_kran','v_need','v_per'], function(){
+  const kran = num('v_kran'), need = num('v_need'), per = num('v_per');
+  const duty = need / kran;
+  put('v_duty', duty * 100, 1, '%');
+  const ton = duty * per;
+  put('v_ton', ton, 2, 'с');
+  put('v_toff', per - ton, 2, 'с');
+  if (!(duty > 0) || duty > 1){
+    mark('v_box','bad'); el('v_note').textContent = 'кран открыт меньше, чем нужен отбор';
+  } else if (ton < 0.3){
+    mark('v_box','bad'); el('v_note').textContent = 'меньше 0.3 с — соленоид не успеет';
+  } else if (duty > 0.9){
+    mark('v_box','warn'); el('v_note').textContent = 'клапан почти всегда открыт, запаса нет';
+  } else {
+    mark('v_box','ok'); el('v_note').textContent = 'рабочий режим';
+  }
+});
+
+</script>
+</body>
+</html>

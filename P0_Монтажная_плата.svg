@@ -1,0 +1,385 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 900" width="1000" height="900">
+<!-- Монтажная плата P0 — перфоплата ≈100×70 мм, корпус IP54 120×80×50.
+
+     ОРИЕНТАЦИЯ ОДИН В ОДИН С ФОТО ПЛАТЫ: разъём USB СЛЕВА.
+       верхний ряд: VIN GND D13 D12 D14 D27 D26 D25 D33 D32 D35 D34 VN VP EN
+       нижний  ряд: 3V3 GND D15 D2 D4 RX2 TX2 D5 D18 D19 D21 RX0 TX0 D22 D23
+     RX2 = GPIO16, TX2 = GPIO17, VN = GPIO39, VP = GPIO36.
+
+     Отсюда вся раскладка, и она не выбрана «как красивее»:
+       • Периферия колонны (D4, RX2, TX2, D19, D21, D22, D23) и 3V3 сидят
+         в НИЖНЕМ ряду -> клеммники стоят ВНИЗУ, шина +5В по нижнему краю.
+       • Карта (D13, D14, D27, D26) сидит в ВЕРХНЕМ ряду -> модуль microSD
+         стоит НАД платой, четыре провода идут прямо вверх.
+       • VIN тоже в верхнем ряду, у самого USB -> +5В поднимается к нему
+         одной жилой по левому краю.
+       • CS карты перенесён с GPIO5 на GPIO26: GPIO5 в нижнем ряду, тянуть
+         его к карте пришлось бы вокруг платы. И GPIO5 — strapping-вывод.
+
+     Голых шин две: +5В по нижнему краю, GND над клеммниками, прямо под
+     нижними выводами делителей. Остальное — изолированный МГТФ.
+     Точка = пайка. Перекрестье без точки = провод поверх провода. -->
+<style>
+  text{ font-family:"Segoe UI",Arial,sans-serif; fill:#1a1a1a }
+  .title{ font-size:19px; font-weight:700 }
+  .sub{ font-size:11.5px; fill:#555 }
+  .h{ font-size:13px; font-weight:700 }
+  .lbl{ font-size:10.5px }
+  .pn{ font-size:8.5px; fill:#9fb4a6 }
+  .pnu{ font-size:8.5px; font-weight:700; fill:#ffffff }
+  .val{ font-size:10.5px; font-weight:700 }
+  .note{ font-size:12px }
+  .rail{ font-size:12px; font-weight:700 }
+  .tb{ font-size:10px; fill:#fff; font-weight:700 }
+  .tp{ font-size:8.5px; fill:#eaf5ea }
+  .wtag{ font-size:8.5px; fill:#fff; font-weight:600 }
+</style>
+<defs>
+  <pattern id="holes" width="22" height="22" patternUnits="userSpaceOnUse">
+    <circle cx="11" cy="11" r="1.5" fill="#cfcfcf"/>
+  </pattern>
+</defs>
+
+<text x="500" y="24" text-anchor="middle" class="title">Монтажная плата P0 — перфоплата ≈100×70 мм, корпус IP54 120×80×50</text>
+<text x="500" y="42" text-anchor="middle" class="sub">Плата лежит как на фото: USB слева. Периферия и 3V3 — в нижнем ряду, поэтому клеммники внизу. Карта — в верхнем ряду, поэтому модуль сверху.</text>
+
+<!-- ПЛАТА -->
+<rect x="40" y="56" width="920" height="590" rx="10" fill="#fdfcf7" stroke="#2b2b2b" stroke-width="2"/>
+<rect x="56" y="70" width="888" height="562" fill="url(#holes)"/>
+<circle cx="930" cy="80" r="6" fill="none" stroke="#888" stroke-width="1.5"/>
+<circle cx="930" cy="622" r="6" fill="none" stroke="#888" stroke-width="1.5"/>
+
+<!-- ===================== microSD (над платой: её выводы в верхнем ряду) ===================== -->
+<line x1="283" y1="210" x2="283" y2="185" stroke="#a0308c" stroke-width="2.2"/>
+<line x1="351" y1="210" x2="351" y2="185" stroke="#a0308c" stroke-width="2.2"/>
+<line x1="385" y1="210" x2="385" y2="185" stroke="#a0308c" stroke-width="2.2"/>
+<line x1="419" y1="210" x2="419" y2="185" stroke="#a0308c" stroke-width="2.2"/>
+<rect x="255" y="92" width="210" height="93" rx="2" fill="#2f5d2f" stroke="#1a3a1a" stroke-width="1.3"/>
+<rect x="280" y="179" width="6" height="6" fill="#d8b23a"/>
+<rect x="348" y="179" width="6" height="6" fill="#d8b23a"/>
+<rect x="382" y="179" width="6" height="6" fill="#d8b23a"/>
+<rect x="416" y="179" width="6" height="6" fill="#d8b23a"/>
+<rect x="268" y="100" width="112" height="70" rx="2" fill="#232323" stroke="#000"/>
+<rect x="275" y="107" width="98" height="10" fill="#3a3a3a"/>
+<rect x="425" y="105" width="20" height="20" fill="#8a8d90" stroke="#555" stroke-width="0.8"/>
+<text x="283" y="175" text-anchor="middle" class="pn" style="fill:#cfe0cf">MOSI</text>
+<text x="351" y="175" text-anchor="middle" class="pn" style="fill:#cfe0cf">SCK</text>
+<text x="385" y="175" text-anchor="middle" class="pn" style="fill:#cfe0cf">MISO</text>
+<text x="419" y="175" text-anchor="middle" class="pn" style="fill:#cfe0cf">CS</text>
+<text x="430" y="160" text-anchor="middle" class="h" style="fill:#dcecdc">microSD</text>
+<text x="490" y="110" class="sub">Карта — на ВЕРХНЕМ ряду: D13, D14, D27, D26.</text>
+<text x="490" y="126" class="sub">Четыре провода идут прямо вверх, без обходов.</text>
+<text x="490" y="148" class="sub">CS перенесён с GPIO5 на GPIO26: GPIO5 в нижнем ряду,</text>
+<text x="490" y="164" class="sub">тянуть его пришлось бы вокруг платы. И GPIO5 — strapping.</text>
+
+<!-- ===================== ESP32 ===================== -->
+<rect x="200" y="210" width="510" height="180" rx="4" fill="#1f4d2e" stroke="#0f2a19" stroke-width="2"/>
+<rect x="158" y="282" width="42" height="34" rx="2" fill="#8a8d90" stroke="#555" stroke-width="1.3"/>
+<rect x="163" y="287" width="32" height="8" fill="#2a2a2a"/>
+<text x="179" y="333" text-anchor="middle" class="lbl">USB</text>
+<text x="179" y="346" text-anchor="middle" class="sub">окно в стенке</text>
+<rect x="430" y="252" width="200" height="92" rx="4" fill="#b8bcc0" stroke="#6b6f73" stroke-width="1.5"/>
+<text x="530" y="303" text-anchor="middle" class="lbl" style="fill:#3a3d40" font-weight="700">ESP32-WROOM-32</text>
+<polyline points="622,258 628,263 618,268 628,273 618,278" fill="none" stroke="#6b6f73" stroke-width="1.3"/>
+<circle cx="240" cy="252" r="6" fill="#2a2a2a" stroke="#666"/><text x="240" y="243" text-anchor="middle" class="lbl" style="fill:#cfd6dc">EN</text>
+<circle cx="240" cy="348" r="6" fill="#2a2a2a" stroke="#666"/><text x="240" y="364" text-anchor="middle" class="lbl" style="fill:#cfd6dc">BOOT</text>
+
+<!-- верхний ряд: VIN GND D13 D12 D14 D27 D26 D25 D33 D32 D35 D34 VN VP EN -->
+<g>
+  <circle cx="215" cy="210" r="4.2" fill="#c0392b"/><text x="215" y="228" text-anchor="middle" class="pnu">VIN</text>
+  <circle cx="249" cy="210" r="3.4" fill="#d8b23a"/><text x="249" y="228" text-anchor="middle" class="pn">GND</text>
+  <circle cx="283" cy="210" r="4.2" fill="#a0308c"/><text x="283" y="228" text-anchor="middle" class="pnu">D13</text>
+  <circle cx="317" cy="210" r="3.4" fill="#d8b23a"/><text x="317" y="228" text-anchor="middle" class="pn">D12</text>
+  <circle cx="351" cy="210" r="4.2" fill="#a0308c"/><text x="351" y="228" text-anchor="middle" class="pnu">D14</text>
+  <circle cx="385" cy="210" r="4.2" fill="#a0308c"/><text x="385" y="228" text-anchor="middle" class="pnu">D27</text>
+  <circle cx="419" cy="210" r="4.2" fill="#a0308c"/><text x="419" y="228" text-anchor="middle" class="pnu">D26</text>
+  <circle cx="453" cy="210" r="3.4" fill="#d8b23a"/><text x="453" y="228" text-anchor="middle" class="pn">D25</text>
+  <circle cx="487" cy="210" r="3.4" fill="#d8b23a"/><text x="487" y="228" text-anchor="middle" class="pn">D33</text>
+  <circle cx="521" cy="210" r="3.4" fill="#d8b23a"/><text x="521" y="228" text-anchor="middle" class="pn">D32</text>
+  <circle cx="555" cy="210" r="3.4" fill="#d8b23a"/><text x="555" y="228" text-anchor="middle" class="pn">D35</text>
+  <circle cx="589" cy="210" r="3.4" fill="#d8b23a"/><text x="589" y="228" text-anchor="middle" class="pn">D34</text>
+  <circle cx="623" cy="210" r="3.4" fill="#d8b23a"/><text x="623" y="228" text-anchor="middle" class="pn">VN</text>
+  <circle cx="657" cy="210" r="3.4" fill="#d8b23a"/><text x="657" y="228" text-anchor="middle" class="pn">VP</text>
+  <circle cx="691" cy="210" r="3.4" fill="#d8b23a"/><text x="691" y="228" text-anchor="middle" class="pn">EN</text>
+</g>
+<!-- нижний ряд: 3V3 GND D15 D2 D4 RX2 TX2 D5 D18 D19 D21 RX0 TX0 D22 D23 -->
+<g>
+  <circle cx="215" cy="390" r="4.2" fill="#2166ac"/><text x="215" y="376" text-anchor="middle" class="pnu">3V3</text>
+  <circle cx="249" cy="390" r="4.2" fill="#111"/><text x="249" y="376" text-anchor="middle" class="pnu">GND</text>
+  <circle cx="283" cy="390" r="3.4" fill="#d8b23a"/><text x="283" y="376" text-anchor="middle" class="pn">D15</text>
+  <circle cx="317" cy="390" r="3.4" fill="#d8b23a"/><text x="317" y="376" text-anchor="middle" class="pn">D2</text>
+  <circle cx="351" cy="390" r="4.2" fill="#8b5a2b"/><text x="351" y="376" text-anchor="middle" class="pnu">D4</text>
+  <circle cx="385" cy="390" r="4.2" fill="#0e7c86"/><text x="385" y="376" text-anchor="middle" class="pnu">RX2</text>
+  <circle cx="419" cy="390" r="4.2" fill="#0e7c86"/><text x="419" y="376" text-anchor="middle" class="pnu">TX2</text>
+  <circle cx="453" cy="390" r="3.4" fill="#d8b23a"/><text x="453" y="376" text-anchor="middle" class="pn">D5</text>
+  <circle cx="487" cy="390" r="3.4" fill="#d8b23a"/><text x="487" y="376" text-anchor="middle" class="pn">D18</text>
+  <circle cx="521" cy="390" r="4.2" fill="#1a7a3a"/><text x="521" y="376" text-anchor="middle" class="pnu">D19</text>
+  <circle cx="555" cy="390" r="4.2" fill="#7b3fa0"/><text x="555" y="376" text-anchor="middle" class="pnu">D21</text>
+  <circle cx="589" cy="390" r="3.4" fill="#d8b23a"/><text x="589" y="376" text-anchor="middle" class="pn">RX0</text>
+  <circle cx="623" cy="390" r="3.4" fill="#d8b23a"/><text x="623" y="376" text-anchor="middle" class="pn">TX0</text>
+  <circle cx="657" cy="390" r="4.2" fill="#7b3fa0"/><text x="657" y="376" text-anchor="middle" class="pnu">D22</text>
+  <circle cx="691" cy="390" r="4.2" fill="#d17d1a"/><text x="691" y="376" text-anchor="middle" class="pnu">D23</text>
+</g>
+<text x="600" y="245" text-anchor="middle" class="sub" style="fill:#8fa89a">верхний ряд — питание и карта</text>
+<text x="600" y="358" text-anchor="middle" class="sub" style="fill:#8fa89a">нижний ряд — вся периферия колонны</text>
+
+<!-- ===================== BMP280 справа, у выводов D21/D22 ===================== -->
+<line x1="555" y1="390" x2="555" y2="400" stroke="#7b3fa0" stroke-width="2.2"/>
+<line x1="555" y1="400" x2="726" y2="400" stroke="#7b3fa0" stroke-width="2.2"/>
+<line x1="726" y1="400" x2="726" y2="288" stroke="#7b3fa0" stroke-width="2.2"/>
+<line x1="726" y1="288" x2="750" y2="288" stroke="#7b3fa0" stroke-width="2.2"/>
+<line x1="657" y1="390" x2="657" y2="408" stroke="#7b3fa0" stroke-width="2.2"/>
+<line x1="657" y1="408" x2="738" y2="408" stroke="#7b3fa0" stroke-width="2.2"/>
+<line x1="738" y1="408" x2="738" y2="308" stroke="#7b3fa0" stroke-width="2.2"/>
+<line x1="738" y1="308" x2="750" y2="308" stroke="#7b3fa0" stroke-width="2.2"/>
+<rect x="750" y="255" width="130" height="85" rx="2" fill="#3b2f6b" stroke="#22193f" stroke-width="1.3"/>
+<rect x="815" y="278" width="20" height="20" fill="#8a8d90" stroke="#555" stroke-width="0.8"/>
+<rect x="750" y="284" width="6" height="4" fill="#d8b23a"/>
+<rect x="750" y="292" width="6" height="4" fill="#d8b23a"/>
+<rect x="750" y="304" width="6" height="4" fill="#d8b23a"/>
+<rect x="750" y="312" width="6" height="4" fill="#d8b23a"/>
+<text x="815" y="332" text-anchor="middle" class="h" style="fill:#e6e2f2">BMP280</text>
+<text x="815" y="356" text-anchor="middle" class="sub">I2C · SDA D21, SCL D22</text>
+
+<!-- ===================== ШИНА GND ===================== -->
+<line x1="100" y1="420" x2="905" y2="420" stroke="#111111" stroke-width="3.4"/>
+<text x="92" y="424" text-anchor="end" class="rail">GND</text>
+<line x1="249" y1="390" x2="249" y2="420" stroke="#111" stroke-width="2.2"/><circle cx="249" cy="420" r="3.4" fill="#111"/>
+<!-- GND вверх к карте и вправо к BMP280 -->
+<line x1="115" y1="420" x2="115" y2="150" stroke="#111" stroke-width="2.2"/>
+<line x1="115" y1="150" x2="255" y2="150" stroke="#111" stroke-width="2.2"/>
+<circle cx="115" cy="420" r="3.4" fill="#111"/>
+<line x1="905" y1="420" x2="928" y2="420" stroke="#111" stroke-width="3.4"/>
+<line x1="928" y1="420" x2="928" y2="320" stroke="#111" stroke-width="2.2"/>
+<line x1="928" y1="320" x2="880" y2="320" stroke="#111" stroke-width="2.2"/>
+
+<!-- ===================== ДЕЛИТЕЛИ, Q1 ===================== -->
+<!-- 1-Wire: DATA снизу вверх на D4, R1 подтяжка на линию 3.3В -->
+<line x1="301" y1="530" x2="301" y2="470" stroke="#8b5a2b" stroke-width="2.2"/>
+<line x1="301" y1="470" x2="351" y2="470" stroke="#8b5a2b" stroke-width="2.2"/>
+<line x1="351" y1="470" x2="351" y2="390" stroke="#8b5a2b" stroke-width="2.2"/>
+<circle cx="301" cy="505" r="3" fill="#8b5a2b"/>
+<line x1="301" y1="505" x2="278" y2="505" stroke="#8b5a2b" stroke-width="2.2"/>
+<rect x="273" y="485" width="10" height="20" rx="5" fill="#e3c896" stroke="#8a6d3a"/>
+<rect x="274.5" y="488" width="7" height="2" fill="#e0c020"/>
+<rect x="274.5" y="492" width="7" height="2" fill="#7b3fa0"/>
+<rect x="274.5" y="496" width="7" height="2" fill="#c0392b"/>
+<rect x="274.5" y="500" width="7" height="2" fill="#c9a227"/>
+<line x1="278" y1="485" x2="278" y2="472" stroke="#2166ac" stroke-width="2.2"/>
+<circle cx="278" cy="472" r="3.4" fill="#2166ac"/>
+<text x="226" y="500" text-anchor="end" class="val">R1 4.7к</text>
+
+<!-- PZEM: делитель на RX -->
+<line x1="460" y1="530" x2="460" y2="510" stroke="#0e7c86" stroke-width="2.2"/>
+<rect x="455" y="490" width="10" height="20" rx="5" fill="#e3c896" stroke="#8a6d3a"/>
+<rect x="456.5" y="493" width="7" height="2" fill="#7b4a1e"/>
+<rect x="456.5" y="497" width="7" height="2" fill="#1a1a1a"/>
+<rect x="456.5" y="501" width="7" height="2" fill="#c0392b"/>
+<rect x="456.5" y="505" width="7" height="2" fill="#c9a227"/>
+<text x="472" y="508" class="val">R4 1к</text>
+<line x1="460" y1="490" x2="460" y2="480" stroke="#0e7c86" stroke-width="2.2"/>
+<circle cx="460" cy="480" r="3" fill="#0e7c86"/>
+<line x1="460" y1="480" x2="385" y2="480" stroke="#0e7c86" stroke-width="2.2"/>
+<line x1="385" y1="480" x2="385" y2="390" stroke="#0e7c86" stroke-width="2.2"/>
+<rect x="455" y="460" width="10" height="20" rx="5" fill="#e3c896" stroke="#8a6d3a"/>
+<rect x="456.5" y="463" width="7" height="2" fill="#c0392b"/>
+<rect x="456.5" y="467" width="7" height="2" fill="#1a1a1a"/>
+<rect x="456.5" y="471" width="7" height="2" fill="#c0392b"/>
+<rect x="456.5" y="475" width="7" height="2" fill="#c9a227"/>
+<text x="472" y="470" class="val">R5 2к</text>
+<line x1="460" y1="460" x2="460" y2="420" stroke="#111" stroke-width="2.2"/>
+<!-- TX напрямую -->
+<line x1="500" y1="530" x2="500" y2="450" stroke="#0e7c86" stroke-width="2.2"/>
+<line x1="500" y1="450" x2="419" y2="450" stroke="#0e7c86" stroke-width="2.2"/>
+<line x1="419" y1="450" x2="419" y2="390" stroke="#0e7c86" stroke-width="2.2"/>
+
+<!-- Проток: делитель -->
+<line x1="665" y1="530" x2="665" y2="510" stroke="#1a7a3a" stroke-width="2.2"/>
+<rect x="660" y="490" width="10" height="20" rx="5" fill="#e3c896" stroke="#8a6d3a"/>
+<rect x="661.5" y="493" width="7" height="2" fill="#7b4a1e"/>
+<rect x="661.5" y="497" width="7" height="2" fill="#1a1a1a"/>
+<rect x="661.5" y="501" width="7" height="2" fill="#d9782d"/>
+<rect x="661.5" y="505" width="7" height="2" fill="#c9a227"/>
+<text x="677" y="508" class="val">R2 10к</text>
+<line x1="665" y1="490" x2="665" y2="480" stroke="#1a7a3a" stroke-width="2.2"/>
+<circle cx="665" cy="480" r="3" fill="#1a7a3a"/>
+<line x1="665" y1="480" x2="521" y2="480" stroke="#1a7a3a" stroke-width="2.2"/>
+<line x1="521" y1="480" x2="521" y2="390" stroke="#1a7a3a" stroke-width="2.2"/>
+<rect x="660" y="460" width="10" height="20" rx="5" fill="#e3c896" stroke="#8a6d3a"/>
+<rect x="661.5" y="463" width="7" height="2" fill="#c0392b"/>
+<rect x="661.5" y="467" width="7" height="2" fill="#1a1a1a"/>
+<rect x="661.5" y="471" width="7" height="2" fill="#d9782d"/>
+<rect x="661.5" y="475" width="7" height="2" fill="#c9a227"/>
+<text x="677" y="470" class="val">R3 20к</text>
+<line x1="665" y1="460" x2="665" y2="420" stroke="#111" stroke-width="2.2"/>
+
+<!-- Q1 IRLZ44N: корпус ножками вверх, к клеммнику сирены -->
+<rect x="805" y="508" width="30" height="9" rx="1.5" fill="#c9c9c9" stroke="#888"/>
+<circle cx="820" cy="512.5" r="2.2" fill="#8a8a8a"/>
+<rect x="790" y="480" width="60" height="28" rx="3" fill="#161616" stroke="#000"/>
+<text x="820" y="498" text-anchor="middle" class="wtag">IRLZ44N</text>
+<line x1="798" y1="470" x2="798" y2="480" stroke="#999" stroke-width="2.5"/>
+<line x1="820" y1="470" x2="820" y2="480" stroke="#999" stroke-width="2.5"/>
+<line x1="842" y1="470" x2="842" y2="480" stroke="#999" stroke-width="2.5"/>
+<text x="790" y="466" class="lbl">G</text>
+<text x="826" y="452" class="lbl">D</text>
+<text x="850" y="466" class="lbl">S</text>
+<!-- D в обход корпуса справа, вниз на клеммник -->
+<line x1="820" y1="470" x2="820" y2="456" stroke="#111" stroke-width="2.2"/>
+<line x1="820" y1="456" x2="868" y2="456" stroke="#111" stroke-width="2.2"/>
+<line x1="868" y1="456" x2="868" y2="546" stroke="#111" stroke-width="2.2"/>
+<line x1="868" y1="546" x2="830" y2="546" stroke="#111" stroke-width="2.2"/>
+<line x1="830" y1="546" x2="830" y2="530" stroke="#111" stroke-width="2.2"/>
+<!-- S на GND -->
+<line x1="842" y1="470" x2="842" y2="420" stroke="#111" stroke-width="2.2"/>
+<!-- G через R6 к D23 -->
+<line x1="798" y1="470" x2="798" y2="462" stroke="#d17d1a" stroke-width="2.2"/>
+<line x1="798" y1="462" x2="775" y2="462" stroke="#d17d1a" stroke-width="2.2"/>
+<rect x="750" y="457" width="25" height="10" rx="5" fill="#e3c896" stroke="#8a6d3a"/>
+<rect x="754" y="458.5" width="2" height="7" fill="#7b4a1e"/>
+<rect x="758" y="458.5" width="2" height="7" fill="#1a1a1a"/>
+<rect x="762" y="458.5" width="2" height="7" fill="#7b4a1e"/>
+<rect x="766" y="458.5" width="2" height="7" fill="#c9a227"/>
+<text x="770" y="484" text-anchor="middle" class="val">R6 100Ом</text>
+<line x1="750" y1="462" x2="691" y2="462" stroke="#d17d1a" stroke-width="2.2"/>
+<line x1="691" y1="462" x2="691" y2="390" stroke="#d17d1a" stroke-width="2.2"/>
+<circle cx="722" cy="462" r="3" fill="#d17d1a"/>
+<line x1="722" y1="462" x2="722" y2="450" stroke="#d17d1a" stroke-width="2.2"/>
+<rect x="717" y="430" width="10" height="20" rx="5" fill="#e3c896" stroke="#8a6d3a"/>
+<rect x="718.5" y="433" width="7" height="2" fill="#7b4a1e"/>
+<rect x="718.5" y="437" width="7" height="2" fill="#1a1a1a"/>
+<rect x="718.5" y="441" width="7" height="2" fill="#d9782d"/>
+<rect x="718.5" y="445" width="7" height="2" fill="#c9a227"/>
+<text x="712" y="428" text-anchor="end" class="val">R7 10к</text>
+<line x1="722" y1="430" x2="722" y2="420" stroke="#111" stroke-width="2.2"/>
+
+<!-- ===================== ЛИНИЯ +3.3В ===================== -->
+<line x1="95" y1="472" x2="890" y2="472" stroke="#2166ac" stroke-width="2.6"/>
+<line x1="215" y1="390" x2="215" y2="472" stroke="#2166ac" stroke-width="2.6"/>
+<circle cx="215" cy="472" r="3.4" fill="#2166ac"/>
+<line x1="256" y1="530" x2="256" y2="472" stroke="#2166ac" stroke-width="2.2"/><circle cx="256" cy="472" r="3.4" fill="#2166ac"/>
+<text x="88" y="466" class="sub" style="fill:#2166ac">+3.3В с вывода 3V3</text>
+<!-- вверх к карте -->
+<line x1="95" y1="472" x2="95" y2="130" stroke="#2166ac" stroke-width="2.2"/>
+<line x1="95" y1="130" x2="255" y2="130" stroke="#2166ac" stroke-width="2.2"/>
+<!-- вправо к BMP280 -->
+<line x1="890" y1="472" x2="890" y2="300" stroke="#2166ac" stroke-width="2.2"/>
+<line x1="890" y1="300" x2="880" y2="300" stroke="#2166ac" stroke-width="2.2"/>
+
+<!-- ===================== КЛЕММНИКИ (внизу, в порядке выводов нижнего ряда) ===================== -->
+<g>
+  <rect x="100" y="530" width="105" height="50" rx="3" fill="#3d8b40" stroke="#1f4d22" stroke-width="1.5"/>
+  <rect x="103" y="532" width="99" height="6" fill="#5aab5e"/>
+  <line x1="152" y1="530" x2="152" y2="580" stroke="#1f4d22" stroke-width="1.2"/>
+  <circle cx="125" cy="548" r="6.5" fill="#c9c9c9" stroke="#555"/><line x1="120" y1="548" x2="130" y2="548" stroke="#555" stroke-width="1.6"/>
+  <circle cx="180" cy="548" r="6.5" fill="#c9c9c9" stroke="#555"/><line x1="175" y1="548" x2="185" y2="548" stroke="#555" stroke-width="1.6"/>
+  <text x="125" y="564" text-anchor="middle" class="tp">+5В</text>
+  <text x="180" y="564" text-anchor="middle" class="tp">GND</text>
+  <text x="152" y="576" text-anchor="middle" class="tb">ПИТАНИЕ 5В</text>
+</g>
+<g>
+  <rect x="235" y="530" width="140" height="50" rx="3" fill="#3d8b40" stroke="#1f4d22" stroke-width="1.5"/>
+  <rect x="238" y="532" width="134" height="6" fill="#5aab5e"/>
+  <line x1="278" y1="530" x2="278" y2="580" stroke="#1f4d22" stroke-width="1.2"/>
+  <line x1="324" y1="530" x2="324" y2="580" stroke="#1f4d22" stroke-width="1.2"/>
+  <circle cx="256" cy="548" r="6.5" fill="#c9c9c9" stroke="#555"/><line x1="251" y1="548" x2="261" y2="548" stroke="#555" stroke-width="1.6"/>
+  <circle cx="301" cy="548" r="6.5" fill="#c9c9c9" stroke="#555"/><line x1="296" y1="548" x2="306" y2="548" stroke="#555" stroke-width="1.6"/>
+  <circle cx="346" cy="548" r="6.5" fill="#c9c9c9" stroke="#555"/><line x1="341" y1="548" x2="351" y2="548" stroke="#555" stroke-width="1.6"/>
+  <text x="256" y="564" text-anchor="middle" class="tp">3.3В</text>
+  <text x="301" y="564" text-anchor="middle" class="tp">DATA</text>
+  <text x="346" y="564" text-anchor="middle" class="tp">GND</text>
+  <text x="301" y="576" text-anchor="middle" class="tb">DS18B20 ×5</text>
+</g>
+<g>
+  <rect x="395" y="530" width="180" height="50" rx="3" fill="#3d8b40" stroke="#1f4d22" stroke-width="1.5"/>
+  <rect x="398" y="532" width="174" height="6" fill="#5aab5e"/>
+  <line x1="440" y1="530" x2="440" y2="580" stroke="#1f4d22" stroke-width="1.2"/>
+  <line x1="480" y1="530" x2="480" y2="580" stroke="#1f4d22" stroke-width="1.2"/>
+  <line x1="520" y1="530" x2="520" y2="580" stroke="#1f4d22" stroke-width="1.2"/>
+  <circle cx="420" cy="548" r="6.5" fill="#c9c9c9" stroke="#555"/><line x1="415" y1="548" x2="425" y2="548" stroke="#555" stroke-width="1.6"/>
+  <circle cx="460" cy="548" r="6.5" fill="#c9c9c9" stroke="#555"/><line x1="455" y1="548" x2="465" y2="548" stroke="#555" stroke-width="1.6"/>
+  <circle cx="500" cy="548" r="6.5" fill="#c9c9c9" stroke="#555"/><line x1="495" y1="548" x2="505" y2="548" stroke="#555" stroke-width="1.6"/>
+  <circle cx="540" cy="548" r="6.5" fill="#c9c9c9" stroke="#555"/><line x1="535" y1="548" x2="545" y2="548" stroke="#555" stroke-width="1.6"/>
+  <text x="420" y="564" text-anchor="middle" class="tp">5В</text>
+  <text x="460" y="564" text-anchor="middle" class="tp">от TX</text>
+  <text x="500" y="564" text-anchor="middle" class="tp">на RX</text>
+  <text x="540" y="564" text-anchor="middle" class="tp">GND</text>
+  <text x="485" y="576" text-anchor="middle" class="tb">PZEM-004T · TTL</text>
+</g>
+<g>
+  <rect x="600" y="530" width="130" height="50" rx="3" fill="#3d8b40" stroke="#1f4d22" stroke-width="1.5"/>
+  <rect x="603" y="532" width="124" height="6" fill="#5aab5e"/>
+  <line x1="645" y1="530" x2="645" y2="580" stroke="#1f4d22" stroke-width="1.2"/>
+  <line x1="685" y1="530" x2="685" y2="580" stroke="#1f4d22" stroke-width="1.2"/>
+  <circle cx="625" cy="548" r="6.5" fill="#c9c9c9" stroke="#555"/><line x1="620" y1="548" x2="630" y2="548" stroke="#555" stroke-width="1.6"/>
+  <circle cx="665" cy="548" r="6.5" fill="#c9c9c9" stroke="#555"/><line x1="660" y1="548" x2="670" y2="548" stroke="#555" stroke-width="1.6"/>
+  <circle cx="705" cy="548" r="6.5" fill="#c9c9c9" stroke="#555"/><line x1="700" y1="548" x2="710" y2="548" stroke="#555" stroke-width="1.6"/>
+  <text x="625" y="564" text-anchor="middle" class="tp">5В</text>
+  <text x="665" y="564" text-anchor="middle" class="tp">SIG</text>
+  <text x="705" y="564" text-anchor="middle" class="tp">GND</text>
+  <text x="665" y="576" text-anchor="middle" class="tb">YF-S201C</text>
+</g>
+<g>
+  <rect x="755" y="530" width="100" height="50" rx="3" fill="#3d8b40" stroke="#1f4d22" stroke-width="1.5"/>
+  <rect x="758" y="532" width="94" height="6" fill="#5aab5e"/>
+  <line x1="805" y1="530" x2="805" y2="580" stroke="#1f4d22" stroke-width="1.2"/>
+  <circle cx="780" cy="548" r="6.5" fill="#c9c9c9" stroke="#555"/><line x1="775" y1="548" x2="785" y2="548" stroke="#555" stroke-width="1.6"/>
+  <circle cx="830" cy="548" r="6.5" fill="#c9c9c9" stroke="#555"/><line x1="825" y1="548" x2="835" y2="548" stroke="#555" stroke-width="1.6"/>
+  <text x="780" y="564" text-anchor="middle" class="tp">+U</text>
+  <text x="830" y="564" text-anchor="middle" class="tp">сток</text>
+  <text x="805" y="576" text-anchor="middle" class="tb">СИРЕНА</text>
+</g>
+
+<!-- падения клеммников на GND -->
+<line x1="180" y1="530" x2="180" y2="420" stroke="#111" stroke-width="2.2"/><circle cx="180" cy="420" r="3.4" fill="#111"/>
+<line x1="346" y1="530" x2="346" y2="420" stroke="#111" stroke-width="2.2"/><circle cx="346" cy="420" r="3.4" fill="#111"/>
+<line x1="540" y1="530" x2="540" y2="420" stroke="#111" stroke-width="2.2"/><circle cx="540" cy="420" r="3.4" fill="#111"/>
+<line x1="705" y1="530" x2="705" y2="420" stroke="#111" stroke-width="2.2"/><circle cx="705" cy="420" r="3.4" fill="#111"/>
+<circle cx="460" cy="420" r="3.4" fill="#111"/>
+<circle cx="665" cy="420" r="3.4" fill="#111"/>
+<circle cx="722" cy="420" r="3.4" fill="#111"/>
+<circle cx="842" cy="420" r="3.4" fill="#111"/>
+
+<!-- ===================== ШИНА +5В (по нижнему краю) ===================== -->
+<line x1="75" y1="596" x2="890" y2="596" stroke="#c0392b" stroke-width="3.4"/>
+<text x="67" y="600" text-anchor="end" class="rail" style="fill:#c0392b">+5В</text>
+<line x1="125" y1="580" x2="125" y2="596" stroke="#c0392b" stroke-width="2.2"/><circle cx="125" cy="596" r="3.4" fill="#c0392b"/>
+<line x1="420" y1="580" x2="420" y2="596" stroke="#c0392b" stroke-width="2.2"/><circle cx="420" cy="596" r="3.4" fill="#c0392b"/>
+<line x1="625" y1="580" x2="625" y2="596" stroke="#c0392b" stroke-width="2.2"/><circle cx="625" cy="596" r="3.4" fill="#c0392b"/>
+<line x1="780" y1="580" x2="780" y2="596" stroke="#c0392b" stroke-width="2.2"/><circle cx="780" cy="596" r="3.4" fill="#c0392b"/>
+<!-- одна жила вверх, на VIN (он в верхнем ряду, у USB) -->
+<line x1="75" y1="596" x2="75" y2="190" stroke="#c0392b" stroke-width="2.2"/>
+<line x1="75" y1="190" x2="215" y2="190" stroke="#c0392b" stroke-width="2.2"/>
+<line x1="215" y1="190" x2="215" y2="210" stroke="#c0392b" stroke-width="2.2"/>
+<circle cx="75" cy="596" r="3.4" fill="#c0392b"/>
+<text x="82" y="240" class="sub" style="fill:#c0392b">+5В на VIN</text>
+
+<!-- ===================== ЛЕГЕНДА ===================== -->
+<g>
+  <rect x="56" y="660" width="888" height="86" fill="#f7f5ee" stroke="#999"/>
+  <text x="70" y="678" class="h">Провода</text>
+  <line x1="140" y1="674" x2="170" y2="674" stroke="#c0392b" stroke-width="3"/><text x="176" y="678" class="lbl">+5В</text>
+  <line x1="215" y1="674" x2="245" y2="674" stroke="#2166ac" stroke-width="3"/><text x="251" y="678" class="lbl">+3.3В</text>
+  <line x1="300" y1="674" x2="330" y2="674" stroke="#111" stroke-width="3"/><text x="336" y="678" class="lbl">GND</text>
+  <line x1="380" y1="674" x2="410" y2="674" stroke="#8b5a2b" stroke-width="3"/><text x="416" y="678" class="lbl">1-Wire</text>
+  <line x1="470" y1="674" x2="500" y2="674" stroke="#1a7a3a" stroke-width="3"/><text x="506" y="678" class="lbl">проток</text>
+  <line x1="565" y1="674" x2="595" y2="674" stroke="#0e7c86" stroke-width="3"/><text x="601" y="678" class="lbl">UART PZEM</text>
+  <line x1="690" y1="674" x2="720" y2="674" stroke="#7b3fa0" stroke-width="3"/><text x="726" y="678" class="lbl">I2C</text>
+  <line x1="765" y1="674" x2="795" y2="674" stroke="#a0308c" stroke-width="3"/><text x="801" y="678" class="lbl">SPI</text>
+  <line x1="840" y1="674" x2="870" y2="674" stroke="#d17d1a" stroke-width="3"/><text x="876" y="678" class="lbl">затвор Q1</text>
+  <text x="70" y="702" class="note"><tspan font-weight="700">Раскладка идёт от твоей платы, а не наоборот.</tspan> Периферия и 3V3 сидят в нижнем ряду — поэтому клеммники внизу, в том же</text>
+  <text x="70" y="718" class="note">порядке: питание (3V3), DS18B20 (D4), PZEM (RX2/TX2), проток (D19), BMP280 (D21/D22), сирена (D23). Карта в верхнем ряду — поэтому сверху.</text>
+  <text x="70" y="736" class="note">Голых шин две: +5В по нижнему краю, GND над клеммниками. Остальное — изолированный МГТФ. <tspan font-weight="700">Точка = пайка.</tspan></text>
+</g>
+
+<!-- ===================== ПОРЯДОК ПАЙКИ ===================== -->
+<g>
+  <rect x="56" y="754" width="888" height="98" fill="#fff" stroke="#999"/>
+  <text x="70" y="774" class="h">Порядок пайки</text>
+  <text x="70" y="792" class="note">1. Две голые шины: +5В по нижнему краю, GND над клеммниками → 2. Клеммники → 3. Резисторы и Q1, каждый рядом со своим клеммником</text>
+  <text x="70" y="808" class="note">→ 4. Гнездовые колодки под ESP32, БЕЗ вставленной платы → 5. microSD сверху и BMP280 справа → 6. Перемычки МГТФ → 7. ESP32 последним.</text>
+  <text x="70" y="828" class="note"><tspan font-weight="700">Перед первым включением:</tspan> прозвонить +5В — GND на короткое замыкание, пока плата не вставлена и USB не подключён.</text>
+  <text x="70" y="844" class="note">Проверить делители: подать 5 В на вход, на выводах под D19 и RX2 должно быть 3.3 В, а не 5 В — иначе выгорит вход платы.</text>
+</g>
+
+</svg>

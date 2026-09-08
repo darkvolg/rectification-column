@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Обзор — документация колонны</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="in">
+    <a class="logo" href="index.html">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M9 2h6M10 2v7l-4.6 9.2A2.5 2.5 0 0 0 7.6 22h8.8a2.5 2.5 0 0 0 2.2-3.8L14 9V2"/>
+        <path d="M7.4 15h9.2"/>
+      </svg>
+      <span class="t"><b>Документация</b><i>проект «Водочка»</i></span>
+    </a>
+    <nav aria-label="Разделы"><ul>
+      <li><a href="index.html">Обзор</a></li>
+      <li><a href="plan.html">Модули</a></li>
+      <li><a href="sborka.html">Сборка</a></li>
+      <li><a href="pogon.html">Погон</a></li>
+      <li><a href="calc.html">Расчёты</a></li>
+      <li><a href="../index.html">← Пульт</a></li>
+    </ul></nav>
+    <button class="iconbtn" id="themeBtn" aria-label="Оформление"></button>
+  </div>
+</header>
+
+<div class="wrap">
+<div class="col">
+
+  <p class="eyebrow">Медная царга Ø33 · РПН 2 м · ТЭН 3 кВт</p>
+  <h1>Документация проекта</h1>
+  <p class="lede">
+    Схемы, сборка, расчёты и порядок работы. Живые показания колонны —
+    это <a href="../index.html">отдельная часть</a>, здесь только справочник.
+  </p>
+
+  <h2 id="seychas">Где я сейчас</h2>
+
+  <div class="cards">
+    <div class="stat ok">
+      <div class="k">Модуль 0 — тест на альдегиды</div>
+      <div class="v">куплен</div>
+      <div class="n">307 ₽. Отвечает на единственный денежный вопрос проекта.</div>
+    </div>
+    <div class="stat warn">
+      <div class="k">Модуль 1 — наблюдатель</div>
+      <div class="v">в закупке</div>
+      <div class="n">Часть деталей едет, часть ещё не заказана.</div>
+    </div>
+    <div class="stat">
+      <div class="k">Модули 2–6</div>
+      <div class="v">по настроению</div>
+      <div class="n">Управление, реле, клапан. Ничего не горит.</div>
+    </div>
+  </div>
+
+  <h3>Что уже едет</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Позиция</th><th>Зачем</th><th class="num">₽</th><th>Когда</th></tr></thead>
+      <tbody>
+        <tr><td>Тест на альдегиды, 30 мл</td><td>Где кончаются головы</td><td class="num">307</td><td data-when="2026-09-04"></td></tr>
+        <tr><td>Зуммер SFM-27</td><td>Сирена, 90 дБ</td><td class="num">130</td><td data-when="2026-09-03"></td></tr>
+        <tr><td>IRFZ44N ×2</td><td class="muted">Куплен по ошибке, см. ниже</td><td class="num">138</td><td data-when="2026-09-03"></td></tr>
+        <tr><td>IRLZ44N ×3</td><td>Ключ сирены и клапана</td><td class="num">239</td><td data-when="2026-09-08"></td></tr>
+        <tr><td>PZEM-004T 3.0, 100 А</td><td>Реальная мощность ТЭНа</td><td class="num">681</td><td data-when="2026-09-12" data-until="2026-09-23"></td></tr>
+      </tbody>
+      <tfoot><tr><td colspan="2">Оплачено</td><td class="num">1495</td><td></td></tr></tfoot>
+    </table>
+  </div>
+
+  <h3>Что осталось добрать</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Позиция</th><th>Поисковая строка</th><th class="num">₽</th></tr></thead>
+      <tbody>
+        <tr><td>ESP32</td><td><code>ESP32 DevKit v1 30 pin CH340</code> — строго 30-пиновый</td><td class="num">500</td></tr>
+        <tr><td>Пятый DS18B20</td><td><code>DS18B20 герметичный датчик 1м</code> — на вход воды</td><td class="num">150</td></tr>
+        <tr><td>Резисторы</td><td>4.7к · 100 · 10к · 20к · 1к · 2к, по десятку</td><td class="num">150</td></tr>
+        <tr><td>Питание</td><td><code>блок питания 12V 1A</code> + <code>модуль LM2596</code></td><td class="num">450</td></tr>
+        <tr><td>Корпус</td><td><code>корпус IP54 120x80x50</code>, клеммники, провод</td><td class="num">400</td></tr>
+      </tbody>
+      <tfoot><tr><td colspan="2">Итого</td><td class="num">1650</td></tr></tfoot>
+    </table>
+  </div>
+
+  <div class="note warn">
+    <div class="h"><span class="sym" aria-hidden="true">◆</span>Ошибка в заказе: IRFZ44N вместо IRLZ44N</div>
+    <p>Буква <strong>L</strong> означает logic level — порог затвора 1–2 В. У обычного
+    IRFZ порог доходит до 4 В, а ESP32 даёт 3.3 В.</p>
+    <p style="margin-bottom:0">Для зуммера на 20–30 мА IRFZ, скорее всего, откроется:
+    ток мизерный. Но у части экземпляров порог ровно 4.0 В, и такой не заработает.
+    Правильные IRLZ44N уже докуплены. IRFZ не выбрасывать — пойдут в силовые модули,
+    где затвор питается от 12 В.</p>
+  </div>
+
+  <h2 id="dalshe">Что делать дальше</h2>
+
+  <div class="progress"><span class="txt">0 из 3</span><span class="track"><span class="fill"></span></span></div>
+  <ul class="check" id="ck-next">
+    <li><label><input type="checkbox">
+      <span class="b"><b>Приоткрыть игольчатый кран на головах</b>
+      <span>С 78 до 120 мл/ч. Мерный стакан и секундомер, десять минут.
+      Это все деньги проекта — 3500 ₽ с партии, без единой детали.</span></span></label></li>
+    <li><label><input type="checkbox">
+      <span class="b"><b>Докупить мелочь под тест</b>
+      <span>Дистиллированная вода, шприц 5 мл, 12 одинаковых пробирок или рюмок. ~250 ₽.</span></span></label></li>
+    <li><label><input type="checkbox">
+      <span class="b"><b>Отогнать партию с пробами</b>
+      <span>Процесс не менять. Проба каждые 30 минут на головах, ряд подписанных
+      пробирок. Смотреть, на каком часу цвет перестал меняться.</span></span></label></li>
+  </ul>
+  <div class="btnrow"><button class="btn" data-reset="ck-next">Снять галочки</button></div>
+
+  <h2 id="cifry">Ключевые цифры</h2>
+  <div class="cards">
+    <div class="stat ok">
+      <div class="k">Цикл после правки голов</div>
+      <div class="v">10 <small>ч</small></div>
+      <div class="n">Было 15. Головы 3.3 часа вместо 8.5.</div>
+    </div>
+    <div class="stat">
+      <div class="k">Выход с партии</div>
+      <div class="v">14.5 <small>л</small></div>
+      <div class="n">Водка 38 % из 22 л спирта-сырца 30 %.</div>
+    </div>
+    <div class="stat">
+      <div class="k">Рабочая мощность</div>
+      <div class="v">~900 <small>Вт</small></div>
+      <div class="n">66 % от расчётного захлёба 1370 Вт. Не поднимать.</div>
+    </div>
+  </div>
+
+  <h2 id="glavnoe">Главное, что стоит помнить</h2>
+
+  <div class="note acc">
+    <div class="h"><span class="sym" aria-hidden="true">●</span>Деньги лежат не в электронике</div>
+    <p>Вся экономия проекта — это головы, которые отбирались 8.5 часа вместо 3.3.
+    Пять часов и 0.6 литра, около 3500 ₽ с партии.</p>
+    <p>Чтобы её забрать, автоматика не нужна. Достаточно приоткрыть игольчатый кран
+    с 78 до 120 мл/ч. Флегмовое число останется 37, а чистота перестаёт расти уже
+    после 20 — качество не пострадает.</p>
+    <p style="margin-bottom:0">Модули решают другое: удобство, надёжность и возможность
+    отойти от колонны. Это нормальные причины, просто не денежные.</p>
+  </div>
+
+  <div class="note danger">
+    <div class="h"><span class="sym" aria-hidden="true">▲</span>Головы температурой не определяются</div>
+    <p style="margin-bottom:0">Ацетальдегид в головах — миллиграммы на литр, на температуру
+    кипения он не влияет вообще. Царга во время голов стоит на месте: кипит тот же спирт,
+    просто грязный. Поэтому серийные контроллеры берут головы по таймеру, а не по датчику.
+    Термометр работает только на хвостах, где состав меняется на проценты.</p>
+  </div>
+
+  <h2 id="karta">Разделы</h2>
+  <div class="cards">
+    <a class="stat" href="plan.html" style="text-decoration:none; color:inherit">
+      <div class="k">Модули</div>
+      <div class="v" style="font-size:19px">Лестница 0–6</div>
+      <div class="n">Что даёт каждый модуль, сколько стоит и почему именно в таком порядке.</div>
+    </a>
+    <a class="stat" href="sborka.html" style="text-decoration:none; color:inherit">
+      <div class="k">Сборка</div>
+      <div class="v" style="font-size:19px">Схемы и порядок</div>
+      <div class="n">Распиновка, делители, врезка PZEM, калибровки, чек-лист на 17 шагов.</div>
+    </a>
+    <a class="stat" href="pogon.html" style="text-decoration:none; color:inherit">
+      <div class="k">Погон</div>
+      <div class="v" style="font-size:19px">Как гнать</div>
+      <div class="n">Фазы, тест на альдегиды, что смотреть и электронный журнал партии.</div>
+    </a>
+    <a class="stat" href="calc.html" style="text-decoration:none; color:inherit">
+      <div class="k">Расчёты</div>
+      <div class="v" style="font-size:19px">Процесс</div>
+      <div class="n">Мощность, флегмовое число, захлёб, отбор голов, ШИМ клапана отбора.</div>
+    </a>
+    <a class="stat" href="../index.html" style="text-decoration:none; color:inherit">
+      <div class="k">Пульт</div>
+      <div class="v" style="font-size:19px">Живые данные</div>
+      <div class="n">Отдельная часть: показания прямо с ESP32, аварии и тренды.</div>
+    </a>
+  </div>
+
+</div>
+</div>
+
+<footer class="site"><div class="in">
+  Страницы собраны из рабочих файлов проекта:
+  <code>НАЧНИ_ОТСЮДА.md</code>, <code>P0_Сборка.md</code>,
+  <code>ACTION_PLAN_Автоматика.md</code>.
+  <br>Колонна: медная царга Ø33 внутр., 2 м РПН, ~24 теоретические тарелки,
+  ТЭН 3 кВт / R ≈ 16 Ом, рабочая точка ~900 Вт.
+</div></footer>
+
+<script src="site.js"></script>
+<script>
+/* Даты доставки считаются от сегодняшнего дня, чтобы страница
+   не устаревала: «через 2 дня» вместо «3 сентября». */
+(function(){
+  const MS = 86400000;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const M = ['января','февраля','марта','апреля','мая','июня',
+             'июля','августа','сентября','октября','ноября','декабря'];
+  function human(d){ return d.getDate() + ' ' + M[d.getMonth()]; }
+  function plural(n, a, b, c){
+    const m = n % 100, k = n % 10;
+    return (m > 10 && m < 20) ? c : k === 1 ? a : (k > 1 && k < 5) ? b : c;
+  }
+  document.querySelectorAll('[data-when]').forEach(td => {
+    const d = new Date(td.dataset.when + 'T00:00:00');
+    const u = td.dataset.until ? new Date(td.dataset.until + 'T00:00:00') : null;
+    const days = Math.round((d - today) / MS);
+    let label = u ? human(d) + ' — ' + human(u) : human(d);
+    let hint;
+    if (days < 0)        hint = '<span class="tag ok">должно было прийти</span>';
+    else if (days === 0) hint = '<span class="tag acc">сегодня</span>';
+    else if (days === 1) hint = '<span class="tag acc">завтра</span>';
+    else                 hint = '<span class="tag">через ' + days + ' ' +
+                                plural(days,'день','дня','дней') + '</span>';
+    td.innerHTML = '<div>' + label + '</div><div style="margin-top:5px">' + hint + '</div>';
+  });
+})();
+</script>
+</body>
+</html>

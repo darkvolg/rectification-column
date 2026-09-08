@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Пульт — Колонна</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="pult.css?v=20260907d">
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <span class="name">Колонна</span>
+    <nav aria-label="Разделы"><ul>
+      <li><a href="index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v4l2 2v9a3 3 0 0 1-3 3h-4a3 3 0 0 1-3-3V9l2-2z"/><path d="M9 13h6M9 17h6"/></svg><span>Пульт</span></a></li>
+      <li><a href="grafiki.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 15l4-5 3 3 5-7"/></svg><span>Графики</span></a></li>
+      <li><a href="zhurnal.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>Журнал</span></a></li>
+      <li><a href="nastroyki.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.4"/><circle cx="9" cy="17" r="2.4"/></svg><span>Настройки</span></a></li>
+      <li><a href="doc/index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h6v18H6a2 2 0 0 1-2-2z"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg><span>Документация</span></a></li>
+    </ul></nav>
+    <div class="spacer"></div>
+    <div class="link" id="link" data-s="idle" role="status" aria-live="polite">
+      <span class="dot" aria-hidden="true"></span><span id="linktxt">нет адреса</span>
+    </div>
+    <button class="iconbtn" id="themeBtn" aria-label="Оформление"></button>
+  </div>
+</header>
+
+<main>
+  <div class="strip">
+    <span>Сегодня: <b id="today">—</b></span>
+    <span>Время: <b id="clock">—</b></span>
+    <span class="sep"></span>
+    <span class="mode">Наблюдение · управления нет</span>
+    <span>Давление: <b id="press">—</b> мм</span>
+    <span>История: <b id="hdepth">—</b></span>
+  </div>
+
+  <div class="alarms" id="alarms"></div>
+  <div class="quiet" id="quiet"><span class="dot"></span>Отклонений нет</div>
+
+  <div class="stage">
+    <div class="panel">
+      <svg class="mimic" id="mimic" viewBox="0 0 760 470" role="img"
+           aria-label="Схема колонны. Слева снизу вверх температуры по ходу колонны: ТЭН, куб, две трети царги, разность, точка отбора. Справа охлаждающая вода: вход, проток, выход, а ниже расчёт спирта в кубе и отобранный объём.">
+        <defs>
+          <!-- Медь. Тот же градиент, что полоска на плитках внизу:
+               светлая грань слева, тень справа — труба читается объёмной. -->
+          <linearGradient id="cu" x1="0" y1="0" x2="1" y2="0">
+            <stop class="cus0" offset="0"/>
+            <stop class="cus1" offset="0.16"/>
+            <stop class="cus2" offset="0.42"/>
+            <stop class="cus3" offset="0.78"/>
+            <stop class="cus4" offset="1"/>
+          </linearGradient>
+          <radialGradient id="heat" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0"   stop-color="#FF7A2F" stop-opacity="0.75"/>
+            <stop offset="0.6" stop-color="#E0521A" stop-opacity="0.22"/>
+            <stop offset="1"   stop-color="#E0521A" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="wat" x1="0" y1="0" x2="0" y2="1">
+            <stop class="ws0" offset="0"/>
+            <stop class="ws1" offset="1"/>
+          </linearGradient>
+        </defs>
+
+        <!-- ===== КУБ ===== -->
+        <ellipse class="heat" cx="330" cy="432" rx="92" ry="36" fill="url(#heat)"/>
+        <path class="metal" fill="url(#cu)"
+              d="M262 372 L262 438 Q262 456 280 456 L380 456 Q398 456 398 438 L398 372 Z"/>
+        <ellipse class="metal" cx="330" cy="372" rx="68" ry="13" fill="url(#cu)"/>
+        <path class="metal" fill="url(#cu)" d="M308 370 L312 342 L348 342 L352 370 Z"/>
+        <path class="coil" d="M286 432 q11 -14 22 0 q11 14 22 0 q11 -14 22 0 q11 14 22 0"/>
+        <text class="lblm" x="330" y="404" text-anchor="middle">КУБ</text>
+        <text class="lblm" x="330" y="452" text-anchor="middle">ТЭН 3 кВт</text>
+
+        <!-- ===== ЦАРГА ===== -->
+        <rect class="metal" x="312" y="120" width="36" height="222" fill="url(#cu)"/>
+        <g class="packm">
+          <line x1="316" y1="150" x2="344" y2="164"/><line x1="344" y1="150" x2="316" y2="164"/>
+          <line x1="316" y1="190" x2="344" y2="204"/><line x1="344" y1="190" x2="316" y2="204"/>
+          <line x1="316" y1="230" x2="344" y2="244"/><line x1="344" y1="230" x2="316" y2="244"/>
+          <line x1="316" y1="270" x2="344" y2="284"/><line x1="344" y1="270" x2="316" y2="284"/>
+          <line x1="316" y1="310" x2="344" y2="324"/><line x1="344" y1="310" x2="316" y2="324"/>
+        </g>
+        <!-- Пар идёт вверх, пока ТЭН греет -->
+        <g>
+          <ellipse class="steam" cx="326" cy="332" rx="5.5" ry="3.4"/>
+          <ellipse class="steam" cx="334" cy="332" rx="4.5" ry="2.8"/>
+          <ellipse class="steam" cx="329" cy="332" rx="6.5" ry="3.8"/>
+        </g>
+
+        <!-- ===== ДЕФЛЕГМАТОР ===== -->
+        <rect class="metal" x="304" y="66" width="52" height="54" rx="3" fill="url(#cu)"/>
+        <g class="packm">
+          <line x1="310" y1="76" x2="350" y2="76"/><line x1="310" y1="88" x2="350" y2="88"/>
+          <line x1="310" y1="100" x2="350" y2="100"/><line x1="310" y1="112" x2="350" y2="112"/>
+        </g>
+        <text class="lblm" x="330" y="60" text-anchor="middle">ДЕФЛЕГМАТОР</text>
+
+        <!-- ===== ВОДА =====
+             Вся обвязка справа, там же и её показания: выноска через
+             всю схему читается хуже, чем короткая. Холодная приходит
+             снизу дефлегматора, горячая уходит сверху — как в железе. -->
+        <line class="win flow" x1="356" y1="80" x2="480" y2="80"/>
+        <path class="arrow" d="M472 75.5 l8 4.5 l-8 4.5 Z"/>
+        <line class="win flow" x1="480" y1="108" x2="356" y2="108"/>
+        <path class="arrow" d="M372 103.5 l-8 4.5 l8 4.5 Z"/>
+        <circle class="fm" cx="400" cy="108" r="10"/>
+        <text class="lbl" x="400" y="130" text-anchor="middle">РАСХОДОМЕР</text>
+
+        <!-- ===== УЗЕЛ ОТБОРА ===== -->
+        <line class="pipe" x1="348" y1="190" x2="398" y2="190"/>
+        <polygon class="valve" points="398,182 398,198 409,190"/>
+        <polygon class="valve" points="420,182 420,198 409,190"/>
+        <line class="pipe" x1="409" y1="190" x2="409" y2="178"/>
+        <line class="pipe" x1="402" y1="175" x2="416" y2="175"/>
+        <text class="lbl" x="409" y="168" text-anchor="middle">КРАН</text>
+        <line class="pipe" x1="420" y1="190" x2="428" y2="190"/>
+        <line class="pipe" x1="428" y1="190" x2="428" y2="250"/>
+        <circle class="drop" cx="428" cy="202" r="3.4"/>
+
+        <!-- банка: стекло + уровень отобранного -->
+        <path class="glass" d="M402 250 L402 334 Q402 340 408 340 L448 340 Q454 340 454 334 L454 250"/>
+        <rect class="level" id="lvl" x="404" y="336" width="48" height="2" rx="1" fill="url(#wat)"/>
+        <text class="lbl" x="428" y="356" text-anchor="middle">ПРИЁМНАЯ БАНКА</text>
+
+        <!-- точки измерения -->
+        <circle class="pt" cx="348" cy="190" r="5"/>
+        <circle class="pt" cx="312" cy="250" r="5"/>
+        <circle class="pt" cx="266" cy="400" r="5"/>
+
+        <!-- выноски от плашек к точкам -->
+        <g stroke="currentColor" stroke-width="1" opacity=".32" stroke-dasharray="3 3">
+          <line x1="189" y1="133" x2="307" y2="190"/>
+          <line x1="189" y1="273" x2="307" y2="250"/>
+          <line x1="189" y1="353" x2="262" y2="399"/>
+          <line x1="189" y1="419" x2="272" y2="434"/>
+          <line x1="478" y1="80"  x2="570" y2="71"/>
+          <line x1="484" y1="108" x2="570" y2="127"/>
+          <line x1="410" y1="116" x2="570" y2="183"/>
+          <line x1="458" y1="300" x2="570" y2="325"/>
+        </g>
+
+        <!-- ЛЕВАЯ КОЛОНКА — температуры снизу вверх, по ходу колонны:
+             глаз идёт от ТЭНа к точке отбора так же, как пар. -->
+        <g class="chip" id="ch_otbor" transform="translate(14,110)">
+          <rect width="175" height="46" rx="8"/>
+          <text class="cl" x="11" y="17">ТЕМПЕРАТУРА ОТБОРА · T3</text>
+          <text class="cv" x="11" y="38" id="v_otbor">—</text>
+          <text class="cu" x="164" y="38" text-anchor="end">°C</text>
+        </g>
+        <g class="chip" id="ch_delta" transform="translate(14,176)">
+          <rect width="175" height="58" rx="8"/>
+          <text class="cl" x="11" y="17">ΔT ОТБОР − 2/3</text>
+          <text class="cv" x="11" y="38" id="v_delta">—</text>
+          <text class="cu" x="164" y="38" text-anchor="end">°C</text>
+          <text class="cx" x="11" y="52" id="v_trend">рост 2/3: —</text>
+        </g>
+        <g class="chip" id="ch_carga" transform="translate(14,250)">
+          <rect width="175" height="46" rx="8"/>
+          <text class="cl" x="11" y="17">ТЕМПЕРАТУРА 2/3 · T2</text>
+          <text class="cv" x="11" y="38" id="v_carga">—</text>
+          <text class="cu" x="164" y="38" text-anchor="end">°C</text>
+        </g>
+        <g class="chip" id="ch_kub" transform="translate(14,330)">
+          <rect width="175" height="46" rx="8"/>
+          <text class="cl" x="11" y="17">КУБ · T1</text>
+          <text class="cv" x="11" y="38" id="v_kub">—</text>
+          <text class="cu" x="164" y="38" text-anchor="end">°C</text>
+        </g>
+        <g class="chip" id="ch_pwr" transform="translate(14,396)">
+          <rect width="175" height="58" rx="8"/>
+          <text class="cl" x="11" y="17">ТЭН · МОЩНОСТЬ</text>
+          <text class="cv" x="11" y="38" id="v_pwr">—</text>
+          <text class="cu" x="164" y="38" text-anchor="end">Вт</text>
+          <text class="cx" x="11" y="52" id="v_va">— В · — А</text>
+        </g>
+
+        <!-- ПРАВАЯ КОЛОНКА — вода по ходу потока, ниже расчётные -->
+        <g class="chip" id="ch_voda" transform="translate(570,48)">
+          <rect width="175" height="46" rx="8"/>
+          <text class="cl" x="11" y="17">ВОДА ВЫХОД · T4</text>
+          <text class="cv" x="11" y="38" id="v_voda">—</text>
+          <text class="cu" x="164" y="38" text-anchor="end">°C</text>
+        </g>
+        <g class="chip" id="ch_vodaIn" transform="translate(570,104)">
+          <rect width="175" height="46" rx="8"/>
+          <text class="cl" x="11" y="17" id="l_vodaIn">ВОДА ВХОД · T5</text>
+          <text class="cv" x="11" y="38" id="v_vodaIn">—</text>
+          <text class="cu" x="164" y="38" text-anchor="end">°C</text>
+        </g>
+        <g class="chip" id="ch_flow" transform="translate(570,160)">
+          <rect width="175" height="58" rx="8"/>
+          <text class="cl" x="11" y="17">ПРОТОК</text>
+          <text class="cv" x="11" y="38" id="v_flow">—</text>
+          <text class="cu" x="164" y="38" text-anchor="end">л/мин</text>
+          <text class="cx" x="11" y="52" id="v_wtot">за партию: —</text>
+        </g>
+        <g class="chip" id="ch_abv" transform="translate(570,230)">
+          <rect width="175" height="58" rx="8"/>
+          <text class="cl" x="11" y="17">СПИРТ В КУБЕ · РАСЧЁТ</text>
+          <text class="cv" x="11" y="38" id="v_abv">—</text>
+          <text class="cu" x="164" y="38" text-anchor="end">% об.</text>
+          <text class="cx" x="11" y="52" id="v_abvl">—</text>
+        </g>
+        <g class="chip" id="ch_vol" transform="translate(570,302)">
+          <rect width="175" height="58" rx="8"/>
+          <text class="cl" x="11" y="17">ОТОБРАНО · МОДУЛЬ 2</text>
+          <text class="cv" x="11" y="38" id="v_vol">—</text>
+          <text class="cu" x="164" y="38" text-anchor="end">мл</text>
+          <text class="cx" x="11" y="52" id="v_rate">скорость: —</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="status" id="status">
+      <div class="row" id="st_heat"><span class="led"></span><span class="n">Нагрев</span><span class="v">—</span></div>
+      <div class="row" id="st_cool"><span class="led"></span><span class="n">Охлаждение</span><span class="v">—</span></div>
+      <div class="row" id="st_siren"><span class="led"></span><span class="n">Сирена</span><span class="v">—</span></div>
+      <div class="row" id="st_sens"><span class="led"></span><span class="n">Датчики</span><span class="v">—</span></div>
+      <div class="row" id="st_link"><span class="led"></span><span class="n">Данные</span><span class="v">—</span></div>
+      <div class="row" id="st_pwrw"><span class="led"></span><span class="n">Баланс мощности</span><span class="v">—</span></div>
+    </div>
+  </div>
+
+
+</main>
+
+<footer>
+  Щелчок по любой плашке открывает её настройку: пороги показа,
+  цвет линии на графиках и — если канал поднимает сирену — уставку контроллера.
+  Цвет означает только отклонение: пока всё в норме, экран спокойный.
+  Медь и вода на схеме — материалы, а не состояние; красным и жёлтым
+  загорается только то, что вышло за порог.
+  Спиртуозность куба — расчёт по температуре кипения с поправкой на давление,
+  сверить с ареометром на первом погоне.
+</footer>
+
+<script src="pult.js?v=20260907d"></script>
+<script>
+"use strict";
+const {CH, AL, V, A, S, severity, col, slice, kubAbv} = PULT;
+
+const byKey = {};
+for (const id in CH) byKey[CH[id].k] = CH[id];
+
+/* Значения, сидящие прямо на схеме, в точках установки датчиков.
+   Отдельных карточек под схемой больше нет: то, что помещается второй
+   строкой в плашку, живёт в плашке, остальное — на странице «Графики».
+   Две панели с одними и теми же числами разъезжаются и путают. */
+const ONSVG = ['vodaIn','flow','carga','kub','pwr','voda','otbor','delta','vol'];
+
+/* Температура воды на входе.
+   Датчика T5 пока нет — тогда берём число из настроек и честно об этом
+   говорим: подписью на плашке и пометкой «оценка» у мощности по воде. */
+function inletTemp(){
+  if (V.vodaIn !== undefined) return {t:V.vodaIn, real:true};
+  const m = parseFloat(localStorage.getItem('kol_t_in') || '14');
+  return {t:isFinite(m) ? m : NaN, real:false};
+}
+
+const $ = s => document.querySelector(s);
+function setRow(id, state, txt){
+  const r = document.getElementById(id);
+  r.dataset.s = state;
+  r.querySelector('.v').textContent = txt;
+}
+
+/* Схема живёт: греет — светится ТЭН и идёт пар, есть проток — едет вода,
+   капает отбор — падает капля и растёт уровень в банке.
+   Движение здесь несёт смысл: замерла вода на схеме — замерла и в рубашке. */
+function paintMimic(){
+  const m = document.getElementById('mimic');
+  const heat = (V.pwr !== undefined && V.pwr > 50) ||
+               (V.kub !== undefined && V.kub > 70);
+  m.dataset.heat  = heat ? '1' : '0';
+  m.dataset.flow  = (V.flow !== undefined && V.flow >= 0.3) ? '1' : '0';
+  m.dataset.otbor = (V.rate !== undefined && V.rate > 5) ? '1' : '0';
+
+  // Уровень в банке. Полной считаем литровую: столько за погон и набирается.
+  const vol = V.vol;
+  const h = vol === undefined ? 0 : Math.max(0, Math.min(1, vol / 1000)) * 84;
+  const lv = document.getElementById('lvl');
+  lv.setAttribute('y', String(336 - h));
+  lv.setAttribute('height', String(Math.max(2, h)));
+}
+
+function paint(){
+  // плашки на схеме
+  ONSVG.forEach(k => {
+    const c = byKey[k]; if (!c) return;
+    const v = V[k];
+    document.getElementById('v_' + k).textContent = v === undefined ? '—' : v.toFixed(c.d);
+    document.getElementById('ch_' + k).dataset.s = severity(c, v);
+  });
+  // Ток берём измеренный, а не P/U: при фазовой отсечке напряжение сети
+  // и напряжение на ТЭНе — разные величины, деление даст чушь.
+  $('#v_va').textContent =
+    (V.volt === undefined ? '—' : V.volt.toFixed(0)) + ' В · ' +
+    (V.amp === undefined ? '—' : V.amp.toFixed(2)) + ' А';
+
+  // спиртуозность куба — расчёт, не датчик
+  const abv = kubAbv(V.kub, V.press);
+  const kubV = parseFloat(localStorage.getItem('kol_kub_v') || '22');
+  $('#v_abv').textContent = isFinite(abv) ? abv.toFixed(1) : '—';
+  $('#v_abvl').textContent = isFinite(abv) && isFinite(kubV)
+    ? '≈ ' + (abv / 100 * kubV).toFixed(2) + ' л спирта из ' + kubV + ' л'
+    : 'объём куба — в настройках';
+  document.getElementById('ch_abv').dataset.s = (isFinite(abv) && abv < 3) ? 'w' : '';
+
+  // вход охлаждения: датчик или ручное число из настроек
+  const inl = inletTemp();
+  if (!inl.real && isFinite(inl.t)){
+    $('#v_vodaIn').textContent = inl.t.toFixed(1);
+    $('#l_vodaIn').textContent = 'ВОДА ВХОД · ВРУЧНУЮ';
+    document.getElementById('ch_vodaIn').dataset.s = '';
+  } else if (inl.real){
+    $('#l_vodaIn').textContent = 'ВОДА ВХОД · T5';
+  }
+
+  // мощность по воде: с ESP32, а без датчика входа — своя оценка
+  let pwW = V.pwrW, pwEst = false;
+  if (pwW === undefined && V.flow !== undefined && V.voda !== undefined && isFinite(inl.t)){
+    const dt = V.voda - inl.t;
+    if (dt > 0){ pwW = V.flow * dt * 69.77; pwEst = true; }
+  }
+
+  // вторые строки плашек: то, что раньше занимало отдельные карточки
+  const c2 = (id, pre, k, suf) => {
+    const c = byKey[k];
+    document.getElementById(id).textContent =
+      pre + (V[k] === undefined ? '—' : V[k].toFixed(c.d) + (suf || ''));
+  };
+  c2('v_trend', 'рост 2/3: ', 'trend', ' °C/мин');
+  c2('v_wtot',  'за партию: ', 'wtot', ' л');
+  c2('v_rate',  'скорость: ',  'rate', ' мл/ч');
+
+  paintStatus(pwEst, pwW);
+  paintMimic();
+}
+
+const pwWatts = w => (w === undefined || !isFinite(w)) ? '—' : w.toFixed(0) + ' Вт';
+
+function paintStatus(pwEst, pwW){
+  // Нагрев: реле пока нет, судим по мощности
+  if (V.pwr === undefined) setRow('st_heat','', '—');
+  else setRow('st_heat', V.pwr > 50 ? 'on' : 'off',
+              V.pwr > 50 ? V.pwr.toFixed(0) + ' Вт' : 'выкл');
+
+  if (V.flow === undefined) setRow('st_cool','', '—');
+  else setRow('st_cool', V.flow >= 0.3 ? 'on' : 'bad',
+              V.flow >= 0.3 ? V.flow.toFixed(2) + ' л/мин' : 'нет протока');
+
+  if (S.siren === undefined) setRow('st_siren','', '—');
+  else setRow('st_siren', S.siren ? 'bad' : 'off', S.siren ? 'ОРЁТ' : 'молчит');
+
+  // Обязательных датчиков четыре. T5 на входе воды пока не куплен,
+  // поэтому его отсутствие — не неисправность, а «ещё нет».
+  const T = ['kub','carga','otbor','voda'];
+  const live = T.filter(k => V[k] !== undefined).length;
+  setRow('st_sens', live === 4 ? 'on' : live ? 'bad' : '',
+         live + ' из 4' + (V.vodaIn !== undefined ? ' + T5' : ''));
+
+  const st = PULT.state;
+  setRow('st_link', st === 'live' ? 'on' : st === 'idle' ? '' : 'bad',
+         st === 'live' ? 'идут' : st === 'idle' ? 'нет адреса' : 'нет связи');
+
+  // Сверять две мощности имеет смысл, только когда обе МЕРЕНЫ.
+  // С прикидкой по ручной температуре входа это самообман:
+  // ошибка в 1 °C даёт 12 %, то есть почти всё окно сходимости.
+  if (pwEst) setRow('st_pwrw','', pwWatts(pwW) + ' · нужен T5');
+  else if (V.pwr === undefined || V.pwrW === undefined || V.pwr < 50) setRow('st_pwrw','', '—');
+  else {
+    const d = 100 * (V.pwrW - V.pwr) / V.pwr;
+    setRow('st_pwrw', Math.abs(d) <= 15 ? 'on' : 'bad',
+           pwWatts(V.pwrW) + ' · ' + (d > 0 ? '+' : '') + d.toFixed(0) + ' %');
+  }
+}
+
+function paintAlarms(){
+  const box = document.getElementById('alarms');
+  const act = Object.keys(AL).filter(id => A[id]);
+  document.getElementById('quiet').style.display = act.length ? 'none' : '';
+  box.innerHTML = act.map(id => {
+    const a = AL[id];
+    return '<div class="alm ' + (a.c === 'w' ? 'w' : '') + '" role="alert">' +
+             '<span class="sym" aria-hidden="true">' + a.sym + '</span>' +
+             '<span class="txt"><span class="t">' + a.t + '</span>' +
+             '<span class="d">' + a.d + '</span></span>' +
+             (a.c === 'a' ? '<button class="btn bad" data-ack>Заглушить</button>' : '') +
+           '</div>';
+  }).join('');
+  box.querySelectorAll('[data-ack]').forEach(b => b.onclick = () => PULT.ack(b));
+}
+
+const MM = ['января','февраля','марта','апреля','мая','июня',
+            'июля','августа','сентября','октября','ноября','декабря'];
+const DD = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+function paintStrip(){
+  const d = new Date(), p = n => String(n).padStart(2,'0');
+  $('#today').textContent = DD[d.getDay()] + ', ' + d.getDate() + ' ' + MM[d.getMonth()];
+  $('#clock').textContent = p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+  $('#press').textContent = V.press === undefined ? '—' : V.press.toFixed(1);
+  const h = PULT.histInfo().hours;
+  $('#hdepth').textContent = h >= 1 ? h.toFixed(1) + ' ч' : Math.round(h * 60) + ' мин';
+}
+
+paintAlarms();
+PULT.onUpdate(what => { if (what === 'alarm') paintAlarms(); else paint(); });
+addEventListener('resize', paint);
+setInterval(paint, 2000);
+setInterval(paintStrip, 1000);
+
+if (!PULT.start()) location.href = 'nastroyki.html?first=1';
+PULT.armEditors();       // плашки схемы становятся кнопками настройки
+paintStrip();
+paint();
+</script>
+</body>
+</html>

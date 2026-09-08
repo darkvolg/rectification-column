@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Сборка — Колонна</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="in">
+    <a class="logo" href="index.html">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M9 2h6M10 2v7l-4.6 9.2A2.5 2.5 0 0 0 7.6 22h8.8a2.5 2.5 0 0 0 2.2-3.8L14 9V2"/>
+        <path d="M7.4 15h9.2"/>
+      </svg>
+      <span class="t"><b>Документация</b><i>проект «Водочка»</i></span>
+    </a>
+    <nav aria-label="Разделы"><ul>
+      <li><a href="index.html">Обзор</a></li>
+      <li><a href="plan.html">Модули</a></li>
+      <li><a href="sborka.html">Сборка</a></li>
+      <li><a href="pogon.html">Погон</a></li>
+      <li><a href="calc.html">Расчёты</a></li>
+      <li><a href="../index.html">← Пульт</a></li>
+    </ul></nav>
+    <button class="iconbtn" id="themeBtn" aria-label="Оформление"></button>
+  </div>
+</header>
+
+<div class="wrap with-toc">
+<div class="col">
+
+  <p class="eyebrow">Модуль 1 · наблюдатель</p>
+  <h1>Сборка прибора</h1>
+  <p class="lede">
+    Пять температур, барометр, расход воды, мощность и сирена на одном ESP32.
+    Управлять он пока ничем не будет — только мерить, показывать и орать.
+  </p>
+
+  <div class="btnrow">
+    <button class="btn" onclick="window.print()">Распечатать чек-лист</button>
+  </div>
+
+  <h2 id="pravila">Три правила, каждое проверено чужой сгоревшей платой</h2>
+
+  <div class="note danger">
+    <div class="h"><span class="sym" aria-hidden="true">▲</span>1. Клеммы напряжения PZEM — только ДО диммера</div>
+    <p style="margin-bottom:0">Подключение после симистора выжигает входную цепь модуля.
+    PZEM хочет целую синусоиду, огрызки не переваривает. Кольцо CT — наоборот,
+    после диммера, на проводе к ТЭНу.</p>
+  </div>
+
+  <div class="note danger">
+    <div class="h"><span class="sym" aria-hidden="true">▲</span>2. Прошивать по USB только при обесточенной колонне</div>
+    <p style="margin-bottom:0">TTL-сторона PZEM опторазвязана — это подтверждается тем,
+    что без сети модуль вообще молчит по UART, питается он от измеряемого напряжения.
+    Но модуль дешёвый, оптрон пробивается, а цена ошибки — удар током и сожжённый ноутбук.
+    Отключил колонну → воткнул USB → прошил → вынул USB → подал сеть.</p>
+  </div>
+
+  <div class="note danger">
+    <div class="h"><span class="sym" aria-hidden="true">▲</span>3. УЗО 30 мА на розетку колонны</div>
+    <p style="margin-bottom:0">Вода, металл и 13.6 ампера в одном помещении.
+    Кольцо CT защёлкивать только при снятом напряжении.</p>
+  </div>
+
+  <h2 id="spec">Спецификация</h2>
+  <p>Отмечай по мере поступления — галочки сохраняются в браузере.</p>
+
+  <div class="progress"><span class="txt">0 из 9</span><span class="track"><span class="fill"></span></span></div>
+  <ul class="check" id="ck-bom">
+    <li><label><input type="checkbox"><span class="b">
+      <b>PZEM-004T 3.0, 100 А, разъёмное кольцо CT — 681 ₽</b>
+      <span>Оплачен. Версия 10 А со шунтом не годится: ТЭН даёт 13.6 А.
+      Протокол Modbus-RTU, то есть 3.0 и новее.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b">
+      <b>Зуммер SFM-27, активный, 90 дБ — 130 ₽</b>
+      <span>Оплачен. Активный: подал питание — пищит сам, частоту гнать не надо.
+      Питать от 12 В, так громче.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b">
+      <b>IRLZ44N ×3 — 239 ₽</b>
+      <span>Оплачен. Буква L обязательна. Один пойдёт на сирену,
+      второй пригодится под клапан отбора в модуле 4.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b">
+      <b>Счётчик воды YF-S201C</b>
+      <span>Уже в хозяйстве. Резьба G1/2, 1–30 л/мин, до 0.8 МПа, до 80 °C.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b">
+      <b>ESP32 DevKit v1, 30 pin — 500 ₽</b>
+      <span>Строго 30-пиновый: у 38-пинового другая распиновка.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b">
+      <b>DS18B20 в герметичной гильзе — 150 ₽</b>
+      <span>Один, на вход охлаждающей воды. Четыре остальных уже стоят.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b">
+      <b>Резисторы — 150 ₽</b>
+      <span>4.7 кОм · 100 Ом · 10 кОм · 20 кОм · 1 кОм · 2 кОм, по десятку.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b">
+      <b>Питание — 450 ₽</b>
+      <span>Блок питания 12 В 1 А плюс понижающий модуль LM2596 на 5 В.
+      Отдельный от силовой части.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b">
+      <b>Корпус и мелочёвка — 400 ₽</b>
+      <span>Корпус IP54 примерно 120×80×50, клеммники, провод, термоусадка.</span></span></label></li>
+  </ul>
+  <div class="btnrow"><button class="btn" data-reset="ck-bom">Снять галочки</button></div>
+
+  <h2 id="shema">Общая схема</h2>
+
+  <figure>
+    <svg viewBox="0 0 880 520" role="img"
+         aria-label="Схема: ESP32 с пятью датчиками температуры, барометром, счётчиком воды, сиреной и питанием в низковольтной части. PZEM стоит на границе: напряжение снимает до диммера, ток — кольцом после диммера, на проводе ТЭНа.">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <polygon points="0,1 10,5 0,9" fill="currentColor"/>
+        </marker>
+        <marker id="ac" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <polygon points="0,1 10,5 0,9" fill="var(--accent)"/>
+        </marker>
+      </defs>
+
+      <text x="200" y="18" text-anchor="middle" font-family="IBM Plex Mono, monospace"
+            font-size="11" fill="currentColor" letter-spacing="1">НИЗКОВОЛЬТНАЯ ЧАСТЬ</text>
+      <text x="700" y="18" text-anchor="middle" font-family="IBM Plex Mono, monospace"
+            font-size="11" fill="var(--alarm)" letter-spacing="1">220 В — ОПАСНАЯ ЗОНА</text>
+      <line x1="520" y1="28" x2="520" y2="106" stroke="var(--alarm)" stroke-width="2" stroke-dasharray="8 6"/>
+      <line x1="520" y1="224" x2="520" y2="500" stroke="var(--alarm)" stroke-width="2" stroke-dasharray="8 6"/>
+
+      <g fill="none" stroke="currentColor" stroke-width="1.4">
+        <rect x="10" y="40"  width="176" height="76" rx="3"/>
+        <rect x="10" y="130" width="176" height="56" rx="3"/>
+        <rect x="10" y="200" width="176" height="76" rx="3"/>
+        <rect x="10" y="290" width="176" height="76" rx="3"/>
+        <rect x="10" y="380" width="176" height="56" rx="3"/>
+      </g>
+      <g font-size="12.5" font-weight="600" fill="currentColor">
+        <text x="24" y="62">DS18B20 ×5</text>
+        <text x="24" y="152">BMP280</text>
+        <text x="24" y="222">YF-S201C</text>
+        <text x="24" y="312">Зуммер SFM-27</text>
+        <text x="24" y="402">БП 12 В + LM2596</text>
+      </g>
+      <g font-size="11" fill="currentColor" opacity=".72">
+        <text x="24" y="80">куб · 2/3 · отбор · вода вх/вых</text>
+        <text x="24" y="170">барометр · I2C</text>
+        <text x="24" y="240">проток · холодный вход</text>
+        <text x="24" y="330">90 дБ · 12 В · через IRLZ44N</text>
+        <text x="24" y="420">отдельный от ТЭНа</text>
+      </g>
+      <text x="24" y="98"  font-size="11" fill="var(--ok)">четыре стоят, купить один</text>
+      <text x="24" y="258" font-size="11" fill="var(--accent)">5 В → делитель 10к/20к</text>
+      <text x="24" y="348" font-size="11" fill="var(--ok)">решение принимает ESP32</text>
+
+      <rect x="240" y="40" width="150" height="396" rx="3" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <text x="315" y="232" text-anchor="middle" font-size="16" font-weight="600" fill="currentColor">ESP32</text>
+      <text x="315" y="252" text-anchor="middle" font-family="IBM Plex Mono, monospace"
+            font-size="10.5" fill="currentColor" opacity=".7">DevKit v1 · 30 pin</text>
+
+      <g stroke="currentColor" stroke-width="1.4" marker-end="url(#ah)">
+        <line x1="186" y1="78"  x2="236" y2="78"/>
+        <line x1="186" y1="158" x2="236" y2="158"/>
+        <line x1="186" y1="238" x2="236" y2="238"/>
+        <line x1="236" y1="328" x2="190" y2="328"/>
+        <line x1="186" y1="408" x2="236" y2="408"/>
+      </g>
+      <g font-family="IBM Plex Mono, monospace" font-size="10.5" fill="var(--accent)" text-anchor="middle">
+        <text x="211" y="72">GPIO4</text>
+        <text x="211" y="152">21 / 22</text>
+        <text x="211" y="232">GPIO19</text>
+        <text x="211" y="322">GPIO23</text>
+        <text x="211" y="402">VIN</text>
+      </g>
+
+      <rect x="440" y="110" width="180" height="114" rx="3" fill="var(--surface)"
+            stroke="var(--alarm)" stroke-width="2"/>
+      <text x="454" y="134" font-size="12.5" font-weight="600" fill="currentColor">PZEM-004T v3</text>
+      <text x="454" y="153" font-size="11" fill="currentColor" opacity=".72">100 А, кольцо CT</text>
+      <text x="454" y="176" font-size="11" fill="var(--accent)">TTL 5 В → делитель 1к/2к</text>
+      <text x="454" y="195" font-size="11" fill="currentColor" opacity=".72">питается от измеряемой сети</text>
+      <text x="454" y="214" font-size="11" fill="currentColor" opacity=".72">Modbus RTU, 9600</text>
+
+      <line x1="390" y1="165" x2="436" y2="165" stroke="currentColor" stroke-width="1.4"/>
+      <text x="413" y="158" text-anchor="middle" font-family="IBM Plex Mono, monospace"
+            font-size="10.5" fill="var(--accent)">16/17</text>
+
+      <g fill="none" stroke="var(--alarm)" stroke-width="1.4">
+        <rect x="690" y="60"  width="130" height="48" rx="3"/>
+        <rect x="690" y="190" width="130" height="54" rx="3"/>
+        <rect x="690" y="350" width="130" height="60" rx="3"/>
+      </g>
+      <text x="755" y="90"  text-anchor="middle" font-size="12" fill="currentColor">Сеть 220 В</text>
+      <text x="755" y="213" text-anchor="middle" font-size="12" fill="currentColor">Диммер</text>
+      <text x="755" y="231" text-anchor="middle" font-family="IBM Plex Mono, monospace"
+            font-size="10" fill="currentColor" opacity=".7">крутилка</text>
+      <text x="755" y="378" text-anchor="middle" font-size="12" font-weight="600" fill="currentColor">ТЭН 3 кВт</text>
+      <text x="755" y="396" text-anchor="middle" font-family="IBM Plex Mono, monospace"
+            font-size="10" fill="currentColor" opacity=".7">R ≈ 16 Ом · 13.6 А</text>
+
+      <line x1="755" y1="108" x2="755" y2="190" stroke="var(--alarm)" stroke-width="2.4"/>
+      <line x1="755" y1="244" x2="755" y2="350" stroke="var(--alarm)" stroke-width="2.4"/>
+      <circle cx="755" cy="300" r="17" fill="none" stroke="var(--accent)" stroke-width="3"/>
+
+      <polyline points="620,140 652,140 652,162 755,162" fill="none" stroke="var(--alarm)" stroke-width="1.4"/>
+      <circle cx="755" cy="162" r="4" fill="var(--alarm)"/>
+      <text x="636" y="126" text-anchor="middle" font-size="10.5" fill="var(--alarm)">U — только здесь</text>
+
+      <polyline points="560,224 560,300 736,300" fill="none" stroke="var(--accent)"
+                stroke-width="1.4" marker-end="url(#ac)"/>
+      <text x="620" y="292" text-anchor="middle" font-size="10.5" fill="var(--accent)">кольцо CT — после диммера</text>
+
+      <line x1="315" y1="436" x2="315" y2="462" stroke="currentColor" stroke-width="1.4"
+            stroke-dasharray="4 4" marker-end="url(#ah)"/>
+      <text x="315" y="484" text-anchor="middle" font-size="11" fill="currentColor" opacity=".75">
+        Wi-Fi → Home Assistant · своя страница
+      </text>
+    </svg>
+    <figcaption>
+      Один узел, две точки подключения, и перепутать их нельзя. Напряжение снимается
+      до диммера, где синусоида ещё целая; после симистора модуль выгорает. Ток снимается
+      кольцом после диммера — ему форма безразлична. PZEM нарисован поперёк красной
+      границы, потому что стоит одной ногой на 220 В, а другой на пинах ESP32.
+      Сирена — единственная стрелка, направленная <em>из</em> контроллера:
+      всё остальное он только слушает.
+    </figcaption>
+  </figure>
+
+  <h2 id="pinout">Распиновка</h2>
+  <div class="tw">
+    <table>
+      <thead><tr><th>GPIO</th><th>Куда</th><th>Что важно</th></tr></thead>
+      <tbody>
+        <tr><td class="pin">GPIO4</td><td>DS18B20 DATA, все пять параллельно</td>
+            <td>Резистор 4.7 кОм на 3.3 В. Без него шина не заработает</td></tr>
+        <tr><td class="pin">GPIO16</td><td>PZEM TX → сюда</td>
+            <td>Только через делитель 1к/2к — PZEM отдаёт 5 В</td></tr>
+        <tr><td class="pin">GPIO17</td><td>PZEM RX ← отсюда</td>
+            <td>Напрямую, 3.3 В хватает</td></tr>
+        <tr><td class="pin">GPIO18</td><td>Счётчик капель, выход DO</td>
+            <td>Модуль 2, пока свободен</td></tr>
+        <tr><td class="pin">GPIO19</td><td>YF-S201C, жёлтый сигнальный</td>
+            <td>Делитель 10к/20к: 5 × 20/30 = 3.33 В</td></tr>
+        <tr><td class="pin">GPIO21</td><td>BMP280 SDA</td>
+            <td>Адрес 0x76, у части модулей 0x77 — смотреть по i2c scan в логах</td></tr>
+        <tr><td class="pin">GPIO22</td><td>BMP280 SCL</td><td></td></tr>
+        <tr><td class="pin">GPIO23</td><td>Затвор IRLZ44N, сирена</td>
+            <td>100 Ом в затвор, 10 кОм затвор→GND, иначе взвоет на старте</td></tr>
+        <tr><td class="pin">3V3</td><td>DS18B20, BMP280</td><td></td></tr>
+        <tr><td class="pin">VIN</td><td>+5 В с LM2596</td><td>Оттуда же питание YF-S201C</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="small muted">Пины 6–11 заняты флешем. Пины 0, 2, 12, 15 мешают загрузке,
+  если на них что-то висит.</p>
+
+  <h2 id="uzly">Узлы крупным планом</h2>
+
+  <h3>Шина 1-Wire</h3>
+  <figure>
+    <svg viewBox="0 0 560 210" role="img"
+         aria-label="Шина 1-Wire: резистор 4.7 кОм между 3.3 вольта и линией данных, пять датчиков DS18B20 на одной паре проводов.">
+      <line x1="40" y1="34" x2="520" y2="34" stroke="var(--alarm)" stroke-width="1.5"/>
+      <text x="6" y="38" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">3.3 В</text>
+      <line x1="110" y1="34" x2="110" y2="56" stroke="currentColor" stroke-width="1.4"/>
+      <rect x="96" y="56" width="28" height="50" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <text x="132" y="86" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--accent)">4.7 кОм</text>
+      <line x1="110" y1="106" x2="110" y2="128" stroke="currentColor" stroke-width="1.4"/>
+      <line x1="40" y1="128" x2="520" y2="128" stroke="currentColor" stroke-width="1.8"/>
+      <text x="6" y="132" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--accent)">GPIO4</text>
+      <circle cx="110" cy="128" r="4" fill="currentColor"/>
+
+      <g stroke="currentColor" stroke-width="1.4">
+        <line x1="200" y1="128" x2="200" y2="146"/><line x1="265" y1="128" x2="265" y2="146"/>
+        <line x1="330" y1="128" x2="330" y2="146"/><line x1="395" y1="128" x2="395" y2="146"/>
+        <line x1="460" y1="128" x2="460" y2="146"/>
+        <line x1="200" y1="172" x2="200" y2="190"/><line x1="265" y1="172" x2="265" y2="190"/>
+        <line x1="330" y1="172" x2="330" y2="190"/><line x1="395" y1="172" x2="395" y2="190"/>
+        <line x1="460" y1="172" x2="460" y2="190"/>
+      </g>
+      <g fill="currentColor"><circle cx="200" cy="128" r="3.5"/><circle cx="265" cy="128" r="3.5"/>
+        <circle cx="330" cy="128" r="3.5"/><circle cx="395" cy="128" r="3.5"/></g>
+      <g fill="none" stroke="currentColor" stroke-width="1.4">
+        <rect x="176" y="146" width="48" height="26"/><rect x="241" y="146" width="48" height="26"/>
+        <rect x="306" y="146" width="48" height="26"/><rect x="371" y="146" width="48" height="26"/>
+      </g>
+      <rect x="436" y="146" width="48" height="26" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <g font-family="IBM Plex Mono, monospace" font-size="11" text-anchor="middle" fill="currentColor">
+        <text x="200" y="164">T1</text><text x="265" y="164">T2</text>
+        <text x="330" y="164">T3</text><text x="395" y="164">T4</text>
+      </g>
+      <text x="460" y="164" font-family="IBM Plex Mono, monospace" font-size="11"
+            text-anchor="middle" fill="var(--accent)">T5</text>
+      <line x1="40" y1="190" x2="520" y2="190" stroke="currentColor" stroke-width="1.4"/>
+      <text x="6" y="194" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">GND</text>
+    </svg>
+    <figcaption>
+      Все датчики сидят на одной паре проводов и различаются по адресу — ESPHome находит
+      их сам при первом запуске. Медью выделен T5 на входе охлаждения: единственный,
+      которого пока нет, и без которого не считается мощность по воде.
+      В конфиге стоит <code>resolution: 12</code> — шаг 0.0625 °C против нынешних 0.25.
+    </figcaption>
+  </figure>
+
+  <h3>Счётчик воды через делитель</h3>
+  <figure>
+    <svg viewBox="0 0 560 210" role="img"
+         aria-label="Подключение YF-S201C: питание пять вольт, сигнальный провод через делитель из резисторов 10 и 20 килоом на GPIO19.">
+      <rect x="16" y="46" width="120" height="112" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <text x="76" y="96" text-anchor="middle" font-size="12.5" font-weight="600" fill="currentColor">YF-S201C</text>
+      <text x="76" y="116" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".7">1–30 л/мин</text>
+
+      <line x1="136" y1="62" x2="500" y2="62" stroke="var(--alarm)" stroke-width="1.5"/>
+      <text x="506" y="66" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--alarm)">+5 В</text>
+      <text x="150" y="56" font-size="10.5" fill="currentColor" opacity=".7">красный</text>
+
+      <line x1="136" y1="102" x2="222" y2="102" stroke="currentColor" stroke-width="1.5"/>
+      <text x="150" y="96" font-size="10.5" fill="currentColor" opacity=".7">жёлтый</text>
+      <rect x="222" y="90" width="48" height="24" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <text x="246" y="82" text-anchor="middle" font-family="IBM Plex Mono, monospace"
+            font-size="10.5" fill="var(--accent)">10к</text>
+      <line x1="270" y1="102" x2="410" y2="102" stroke="currentColor" stroke-width="1.5"/>
+      <circle cx="330" cy="102" r="4" fill="currentColor"/>
+      <text x="416" y="106" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--accent)">GPIO19</text>
+
+      <line x1="330" y1="102" x2="330" y2="126" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="318" y="126" width="24" height="44" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <text x="352" y="152" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="var(--accent)">20к</text>
+      <line x1="330" y1="170" x2="330" y2="186" stroke="currentColor" stroke-width="1.5"/>
+
+      <line x1="136" y1="142" x2="330" y2="142" stroke="currentColor" stroke-width="1.5"/>
+      <text x="150" y="136" font-size="10.5" fill="currentColor" opacity=".7">чёрный</text>
+      <line x1="136" y1="142" x2="136" y2="186" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="60" y1="186" x2="500" y2="186" stroke="currentColor" stroke-width="1.5"/>
+      <text x="506" y="190" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">GND</text>
+
+      <text x="280" y="26" text-anchor="middle" font-family="IBM Plex Mono, monospace"
+            font-size="11.5" fill="var(--ok)">5 В × 20 / (10 + 20) = 3.33 В</text>
+    </svg>
+    <figcaption>
+      Выход датчика — прямоугольник амплитудой с питание, а ESP32 к 5 В не толерантен.
+      <strong>Если импульсов нет вообще</strong> (в логах <code>Water Flow</code> всё время
+      ноль, хотя вода идёт) — у твоего экземпляра выход с открытым коллектором без
+      внутренней подтяжки. Лечится одним резистором: 10 кОм с жёлтого на +5 В,
+      делитель остаётся на месте.
+    </figcaption>
+  </figure>
+
+  <h3>Сирена</h3>
+  <figure>
+    <svg viewBox="0 0 560 200" role="img"
+         aria-label="Сирена: GPIO23 через резистор 100 ом на затвор полевого транзистора IRLZ44N, резистор 10 килоом с затвора на землю, зуммер между плюс двенадцать вольт и стоком.">
+      <text x="6" y="76" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--accent)">GPIO23</text>
+      <line x1="56" y1="72" x2="118" y2="72" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="118" y="60" width="46" height="24" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <text x="141" y="52" text-anchor="middle" font-family="IBM Plex Mono, monospace"
+            font-size="10.5" fill="var(--accent)">100 Ом</text>
+      <line x1="164" y1="72" x2="250" y2="72" stroke="currentColor" stroke-width="1.5"/>
+      <circle cx="205" cy="72" r="4" fill="currentColor"/>
+      <line x1="205" y1="72" x2="205" y2="100" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="193" y="100" width="24" height="44" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <text x="227" y="126" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="var(--accent)">10к</text>
+      <line x1="205" y1="144" x2="205" y2="172" stroke="currentColor" stroke-width="1.5"/>
+
+      <rect x="250" y="44" width="104" height="56" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <text x="302" y="68" text-anchor="middle" font-size="12" font-weight="600" fill="currentColor">IRLZ44N</text>
+      <text x="302" y="86" text-anchor="middle" font-size="10" fill="currentColor" opacity=".7">logic level</text>
+      <text x="256" y="40" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity=".8">З</text>
+      <text x="348" y="40" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity=".8">С</text>
+      <text x="302" y="116" text-anchor="middle" font-family="IBM Plex Mono, monospace"
+            font-size="10" fill="currentColor" opacity=".8">И</text>
+      <line x1="302" y1="100" x2="302" y2="172" stroke="currentColor" stroke-width="1.5"/>
+
+      <line x1="354" y1="72" x2="418" y2="72" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="418" y="46" width="76" height="52" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <text x="456" y="68" text-anchor="middle" font-size="11.5" fill="currentColor">зуммер</text>
+      <text x="456" y="86" text-anchor="middle" font-size="10" fill="currentColor" opacity=".7">SFM-27</text>
+      <text x="410" y="42" font-size="11" fill="currentColor">−</text>
+      <text x="498" y="42" font-size="11" fill="var(--alarm)">+</text>
+      <line x1="494" y1="72" x2="530" y2="72" stroke="var(--alarm)" stroke-width="1.5"/>
+      <line x1="530" y1="72" x2="530" y2="20" stroke="var(--alarm)" stroke-width="1.5"/>
+      <text x="470" y="16" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--alarm)">+12 В</text>
+
+      <line x1="120" y1="172" x2="440" y2="172" stroke="currentColor" stroke-width="1.5"/>
+      <text x="76" y="176" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">GND</text>
+    </svg>
+    <figcaption>
+      Резистор 10 кОм с затвора на землю обязателен: без него транзистор ловит наводки,
+      и зуммер взвоет в момент подачи питания, пока ESP32 ещё грузится. Зуммер активный —
+      подал напряжение, пищит сам, частоту генерировать не надо. Полярность соблюдать.
+    </figcaption>
+  </figure>
+
+  <div class="note warn">
+    <div class="h"><span class="sym" aria-hidden="true">◆</span>Если купил IRFZ44N вместо IRLZ44N</div>
+    <p>Для зуммера на 20–30 мА он, скорее всего, откроется — ток мизерный,
+    хватит и приоткрытого канала. Но у части экземпляров порог затвора ровно 4.0 В,
+    а ESP32 даёт 3.3 В, и такой не заработает вовсе.</p>
+    <p style="margin-bottom:0">Проверить на столе. Если оба молчат — поставить обычный
+    NPN, <strong>BC337</strong> или <strong>2N2222</strong>: база через 1 кОм на GPIO23,
+    эмиттер на GND, коллектор на минус зуммера. С 3.3 В открывается гарантированно.</p>
+  </div>
+
+  <h2 id="protok">Датчик протока — куда ставить</h2>
+
+  <div class="note acc">
+    <div class="h"><span class="sym" aria-hidden="true">●</span>На холодный ВХОД, до дефлегматора</div>
+    <p style="margin-bottom:0">Не на выход, хотя интуиция тянет туда: корпус пластиковый
+    и горячая вода его старит, на выходе вода идёт с пузырями и турбинка считает мусор,
+    а на входе давление водопровода стабильное и счёт ровный.</p>
+  </div>
+
+  <ul>
+    <li>Стрелка на корпусе — по направлению потока.</li>
+    <li>Ставить <strong>горизонтально, осью крыльчатки вверх</strong>: так в неё
+    не набивается воздух и меньше износ оси.</li>
+    <li>Перед датчиком желательно сетчатый фильтр — окалина из труб клинит крыльчатку.</li>
+    <li>Если дефлегматор и холодильник соединены последовательно (обычный вариант),
+    одного датчика на входе хватает на всё. Если параллельно — считает только свою
+    ветку, и тепловой баланс будет занижен.</li>
+  </ul>
+
+  <h3>Пятый датчик температуры</h3>
+  <p><strong>Существующий датчик воды стоит на выходе</strong> — он и должен там
+  остаться, потому что именно перегрев выходящей воды означает опасность.
+  Для мощности по воде нужна вторая точка, на входе.</p>
+  <p>Крепить не в разрыв трубы, а хомутом на металлический штуцер входа, под слоем
+  термопасты и поролона. Показания уйдут на пару десятых — это компенсируется
+  через <code>offset</code> в конфиге.</p>
+
+  <div class="note warn">
+    <div class="h"><span class="sym" aria-hidden="true">◆</span>Пока датчика входа нет</div>
+    <p>На пульте, в настройках, есть поле «вода на входе, °C» — температуру можно
+    вписать руками, померив воду из крана перед погоном. Мощность по воде тогда
+    посчитается, но будет помечена как <strong>оценка</strong>.</p>
+    <p style="margin-bottom:0">Сверять с расчётом по току такую цифру бессмысленно:
+    при ΔT около 9 °C ошибка в один градус даёт 12 % по мощности, то есть почти всё
+    окно сходимости. Поэтому строка «Баланс мощности» в панели состояний покажет
+    «нужен T5» и не станет делать вид, что что-то проверила.</p>
+  </div>
+
+  <h2 id="pzem">Куда подключать PZEM</h2>
+
+  <p>Мощность на этой колонне <strong>не измеряется, а вычисляется</strong>:</p>
+  <pre><code>P = I² · R</code></pre>
+  <p>ТЭН — чисто активная нагрузка, поэтому формула верна <em>при любой форме тока</em>.
+  Рубленая синусоида ей не мешает: нужен только честный действующий ток, который PZEM
+  снимает трансформатором, и известное сопротивление.</p>
+  <p>Собственное поле <code>power</code> у PZEM при фазовой отсечке врёт — он перемножает
+  напряжение целой синусоиды на ток рубленой, и ошибка зависит от угла открытия симистора.
+  Поэтому оно оставлено в конфиге только для сравнения: расхождение между
+  <code>Power</code> и <code>Power Raw</code> показывает, насколько сильно порезана синусоида.</p>
+
+  <h3>Вторая мощность, независимая</h3>
+  <p>Почти всё тепло ТЭНа уносит охлаждающая вода, значит её можно посчитать отдельно:</p>
+  <pre><code>P [Вт] = расход [л/мин] × (T_выход − T_вход) [°C] × 69.77
+
+где 69.77 = 4186 Дж/(кг·К) ÷ 60 с</code></pre>
+  <p>Общих деталей у двух оценок нет ни одной: разные датчики, разная физика, разные
+  калибровочные константы. Поэтому совпадение результата — не совпадение,
+  а доказательство. Сошлись в пределах 10–15 % — верны обе. Разошлись — врёт либо
+  <code>ten_resistance</code>, либо <code>pulses_per_liter</code>.</p>
+  <p>Тепловая цифра честно ниже электрической на 5–10 %: часть тепла уходит через
+  изоляцию колонны, а не в холодильник. Это норма, а не повод чинить.</p>
+
+  <h2 id="poryadok">Порядок сборки</h2>
+  <p>Слаботочка первая. К сети подходим только на третьем этапе, когда всё
+  остальное уже проверено и работает.</p>
+
+  <h3>Стол, сеть выключена</h3>
+  <div class="progress"><span class="txt">0 из 7</span><span class="track"><span class="fill"></span></span></div>
+  <ul class="check" id="ck-stol">
+    <li><label><input type="checkbox"><span class="b"><b>Собрать всё на столе</b>
+      <span>ESP32, пять DS18B20, BMP280, зуммер, YF-S201C. Питание от БП. PZEM пока в стороне.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b"><b>Поставить ESPHome</b>
+      <span>Аддон в Home Assistant 192.168.0.74 или ESPHome CLI.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b"><b>Залить <code>kolonna_p0.yaml</code></b>
+      <span>Вписав свои WiFi и ключи в <code>secrets.yaml</code>.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b"><b>Выписать адреса датчиков из логов</b>
+      <span>Строки вида <code>[dallas_temp] Found sensor 0x1c0000031edd2a28</code>.
+      Какой где — определять по поведению: зажать датчик в кулаке и смотреть, чей график поехал вверх.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b"><b>Все датчики в один стакан воды</b>
+      <span>Обязаны показать одно и то же. Расхождение вбить поправками через <code>filters: - offset:</code>.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b"><b>Проверить зуммер</b>
+      <span>Включить <code>Siren</code> из Home Assistant. Не запищал — транзистор не открылся.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b"><b>Проверить проток</b>
+      <span>Подуть в YF-S201C: крыльчатка раскручивается от дыхания, в логах должен
+      дёрнуться <code>Water Flow</code>.</span></span></label></li>
+  </ul>
+  <div class="btnrow"><button class="btn" data-reset="ck-stol">Снять галочки</button></div>
+
+  <h3>Колонна, сеть выключена</h3>
+  <div class="progress"><span class="txt">0 из 3</span><span class="track"><span class="fill"></span></span></div>
+  <ul class="check" id="ck-kolonna">
+    <li><label><input type="checkbox"><span class="b"><b>Поставить датчики температуры</b>
+      <span>T1 в бобышку куба. Три средних уже стоят — перецепить с ардуинки на GPIO4.
+      T5 хомутом на вход воды.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b"><b>Врезать YF-S201C в холодный вход</b>
+      <span>Стрелкой по потоку, горизонтально. Пустить воду, проверить на течь
+      <strong>до</strong> того, как рядом появится 220 В.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b"><b>Врезать PZEM</b>
+      <span>Колонна обесточена. Клеммы напряжения <strong>до диммера</strong>,
+      кольцо CT на фазе после диммера.</span></span></label></li>
+  </ul>
+  <div class="btnrow"><button class="btn" data-reset="ck-kolonna">Снять галочки</button></div>
+
+  <h3>Сеть включена, USB отключён</h3>
+  <div class="progress"><span class="txt">0 из 7</span><span class="track"><span class="fill"></span></span></div>
+  <ul class="check" id="ck-set">
+    <li><label><input type="checkbox"><span class="b"><b>Отключить USB, подать сеть</b>
+      <span>Убедиться, что ток и напряжение видны.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b"><b>Калибровка R</b>
+      <span>Диммер на максимум — синусоида целая, PZEM меряет верно. Записать
+      <code>Power Raw</code> и <code>Current</code>, посчитать <code>R = P / I²</code>,
+      вписать в <code>ten_resistance</code>. Ожидается около 16 Ом.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b"><b>Калибровка протока</b>
+      <span>На рабочем расходе. Процедура ниже.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b"><b>Записать реальную мощность</b>
+      <span>При твоём обычном положении крутилки. ← ради этого всё</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b"><b>Сверить две мощности</b>
+      <span>Разница больше 15 % — разбираться, какая из двух калибровок врёт.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b"><b>Отогнать партию вручную</b>
+      <span>Как обычно, ничем не управляя. Смотреть логи.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b"><b>Разобрать график</b>
+      <span>Когда реально кончились головы, сколько отобрано, тронулся ли тренд
+      раньше, чем нос определил конец голов.</span></span></label></li>
+  </ul>
+  <div class="btnrow"><button class="btn" data-reset="ck-set">Снять галочки</button></div>
+
+  <h2 id="kalibrovki">Калибровки</h2>
+
+  <h3>Сопротивление ТЭНа</h3>
+  <ol>
+    <li>Диммер вывести на максимум: синусоида целая, собственные показания PZEM верны.</li>
+    <li>Записать <code>Power Raw</code> и <code>Current</code>.</li>
+    <li>Посчитать <code>R = P / I²</code>. Паспортное значение 220² / 3000 = 16.13 Ом.</li>
+    <li>Вписать в <code>substitutions: ten_resistance</code>, перезалить.</li>
+  </ol>
+
+  <h3>Импульсы на литр</h3>
+  <p>Паспортные 450 импульсов на литр — среднее по модели, разброс между экземплярами
+  до 10 %. От этой цифры напрямую зависит расчётная мощность по воде.</p>
+  <ol>
+    <li>Нажать в Home Assistant <strong>«Reset Water»</strong>.</li>
+    <li>Пролить в ведро <strong>не меньше 5 литров</strong> — чем больше, тем точнее.</li>
+    <li>Взвесить набранное на кухонных весах: 1 кг = 1 л.</li>
+    <li>Посмотреть <code>Water Total</code> — он покажет литры по текущему коэффициенту.</li>
+    <li>Новый коэффициент: <code>450 × (показания) / (реальные литры)</code>.</li>
+    <li>Вписать в <code>substitutions: pulses_per_liter</code>, перезалить.</li>
+  </ol>
+  <div class="note warn">
+    <div class="h"><span class="sym" aria-hidden="true">◆</span>Калибровать на рабочем расходе</div>
+    <p style="margin-bottom:0">Турбинка нелинейна на краях диапазона. Коэффициент,
+    снятый при полностью открытом кране на 10 л/мин, на рабочих 1.5 л/мин соврёт.</p>
+  </div>
+
+  <h3>Поправки датчиков</h3>
+  <p>На <strong>холодной</strong> колонне перед разгоном все датчики обязаны показывать
+  одну комнатную температуру. Расхождение и есть поправка — вписывается
+  в <code>filters: - offset:</code> каждого датчика.</p>
+
+</div>
+
+<aside class="toc">
+  <b>На странице</b>
+  <a href="#pravila">Три правила</a>
+  <a href="#spec">Спецификация</a>
+  <a href="#shema">Общая схема</a>
+  <a href="#pinout">Распиновка</a>
+  <a href="#uzly">Узлы крупным планом</a>
+  <a href="#protok">Датчик протока</a>
+  <a href="#pzem">Куда подключать PZEM</a>
+  <a href="#poryadok">Порядок сборки</a>
+  <a href="#kalibrovki">Калибровки</a>
+</aside>
+</div>
+
+<footer class="site"><div class="in">
+  Прошивка: <code>esphome/kolonna_p0.yaml</code>. Дашборд Home Assistant:
+  <code>ha/dashboard_kolonna.yaml</code>. Полная версия этой страницы
+  в тексте — <code>P0_Сборка.md</code>.
+</div></footer>
+
+<script src="site.js"></script>
+</body>
+</html>

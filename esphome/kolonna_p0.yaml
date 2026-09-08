@@ -1,0 +1,1172 @@
+# Ректификационная колонна — P0 «прибор-наблюдатель»
+# Версия прошивки 0.5.0
+# Только измерение. Ничем не управляет.
+# Схема подключения: ../P0_Сборка.md
+#
+# УСТАВКИ АВАРИЙ — в секции number: ниже, НЕ в лямбдах.
+#   Крутятся с пульта (страница «Настройки»), из Home Assistant или
+#   со своей страницы контроллера. Лежат в NVS (restore_value: true),
+#   поэтому переживают перезагрузку и обесточивание.
+#   Менять уставку перепрошивкой больше не нужно.
+#
+# ЖУРНАЛ ПОГОНА — внутри контроллера, файл kolonna_log.h.
+#   Пишется раз в 20 с, глубина 11 часов, скачивается по http://<ip>/log.csv
+#   готовым CSV для Excel. Работает при закрытом браузере и без сервера.
+#   Основное хранилище — microSD (CS 26, SCK 14, MOSI 13, MISO 27).
+#   Все четыре линии — в ЛЕВОМ ряду платы, поэтому модуль ставится под
+#   ESP32 и провода падают вниз без обходов. CS перенесён с GPIO5 на
+#   GPIO26: GPIO5 в правом ряду (тянуть вокруг платы) и он strapping.
+#   Без карты работает кольцо в памяти на 11 часов, но оно стирается
+#   перезагрузкой. Список погонов на карте: http://<ip>/logs
+#
+# ПЕРЕД ПЕРВОЙ ЗАЛИВКОЙ:
+#   1. Вписать WiFi в secrets.yaml
+#   2. !!! ВПИСАТЬ АДРЕСА DS18B20 !!!
+#      Пока у всех пяти стоит заглушка 0x0000000000000000, ESPHome цепляет
+#      ВСЕ пять сенсоров к ОДНОМУ физическому датчику: на экране пять
+#      «живых» температур, а датчик один. Проверено 07.09.2026: все плашки
+#      показывали 27.75, вода 27.8 — это то же число, просто у T4/T5
+#      accuracy_decimals: 1, а у T1..T3 больше.
+#      ЭТО ОПАСНО: автостоп по кубу 98.5 C и авария охлаждения сработают
+#      от датчика, который физически не в кубе и не на воде.
+#      Снять адреса (PowerShell, НЕ Git Bash — там ESPHome не собирается):
+#         $env:ESPHOME_DATA_DIR = "C:/esphome_data"
+#         esphome logs "C:/Users/Dark/Desktop/Проекты/Водочка/esphome/kolonna_p0.yaml"
+#      В логах искать строки вида:
+#         [dallas_temp] Found sensor 0x1c0000031edd2a28
+#      Каждый адрес вписать вместо своей заглушки. Какой адрес где —
+#      определять по поведению: зажать датчик в кулаке и смотреть,
+#      чьё показание поехало вверх.
+#   3. Калибровку счётчика капель сделать по процедуре из P0_Сборка.md
+#   4. Калибровку YF-S201C (импульсы на литр) — там же
+#
+# РАСПИНОВКА:
+#   GPIO4  — 1-Wire, все DS18B20 (подтяжка 4.7 кОм на 3.3 В)
+#   GPIO21 — I2C SDA, BMP280
+#   GPIO22 — I2C SCL, BMP280
+#   GPIO16 — RX PZEM-004T (через делитель 1к/2к)
+#   GPIO17 — TX PZEM-004T
+#   GPIO18 — счётчик капель (модуль 2, пока свободен)
+#   GPIO19 — YF-S201C, проток воды (через делитель 10к/20к)
+#   GPIO23 — сирена через полевик
+#   GPIO13 — microSD MOSI  (D13)
+#   GPIO14 — microSD SCK   (D14)   все четыре — в ВЕРХНЕМ ряду платы,
+#   GPIO27 — microSD MISO  (D27)   поэтому модуль ставится НАД ESP32
+#   GPIO26 — microSD CS    (D26)
+#
+#   РЯДЫ ПЛАТЫ (DevKit 30 pin, положить USB влево, шелкографией вверх):
+#   верхний ряд: VIN GND D13 D12 D14 D27 D26 D25 D33 D32 D35 D34 VN VP EN
+#                — питание и microSD
+#   нижний  ряд: 3V3 GND D15 D2 D4 RX2 TX2 D5 D18 D19 D21 RX0 TX0 D22 D23
+#                — вся периферия колонны (RX2=GPIO16, TX2=GPIO17)
+#
+# ⚠️ Прошивать по USB ТОЛЬКО при отключённой от сети колонне.
+#    TTL PZEM-004T не развязан от 220 В.
+#
+# ПОЧЕМУ НАЗВАНИЯ ЛАТИНИЦЕЙ:
+#   ESPHome строит внутренние id из названия, вырезая всё, кроме латиницы и цифр.
+#   С русскими названиями id превращаются в "sensor-t1___" и своя страница
+#   с ними работать не сможет. Поэтому здесь латиница, а русские подписи
+#   задаются в дашборде Home Assistant и на своей странице.
+
+substitutions:
+  device_name: kolonna
+  friendly_name: "Kolonna"
+  # Объём одной капли в мл. КАЛИБРУЕТСЯ: накапать 100 мл в мерный цилиндр,
+  # поделить 100 на число капель. Обычно выходит 0.033–0.05.
+  # Пересчитывать после каждой смены капельницы.
+  ml_per_drop: "0.040"
+  # Сопротивление ТЭНа, Ом. Паспортное: 220² / 3000 = 16.13.
+  # УТОЧНЯЕТСЯ на калибровке: диммер на максимум (чистая синусоида,
+  # PZEM меряет верно) → R = P / I².
+  ten_resistance: "16.13"
+  # Импульсов на литр у YF-S201C. Паспортное 450 (F = 7.5 · Q л/мин).
+  # ОБЯЗАТЕЛЬНО КАЛИБРУЕТСЯ: пролить 5 л в ведро, поделить импульсы на литры.
+  # Разброс между экземплярами до 10%, а от него зависит расчёт мощности по воде.
+  pulses_per_liter: "450"
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+  # ЖУРНАЛ ВРЕМЕННО ОТКЛЮЧЁН.
+  # Написан под Arduino AsyncWebServer и SD.h, а ESPHome 2026.8 собирает
+  # ESP32 через ESP-IDF: там свой веб-сервер без chunked-ответов,
+  # и Arduino-библиотек нет в путях компилятора.
+  # Переписывается на esp_http_server + esp_vfs_fat — тогда вернётся.
+  # includes:
+  #   - kolonna_log.h
+  # on_boot:
+  #   priority: -100
+  #   then:
+  #     - lambda: 'kolonna_log::setup(id(web_base));'
+
+esp32:
+  board: esp32dev
+  # Явно arduino: на нём работают AsyncWebServer (страница и /log.csv)
+  # и библиотека SD для карты журнала.
+  framework:
+    type: arduino
+
+logger:
+  level: DEBUG   # ВРЕМЕННО: на INFO строки «Found sensor 0x...» не печатаются
+
+# Родной протокол Home Assistant. Быстрее и надёжнее MQTT, автообнаружение.
+api:
+  encryption:
+    key: !secret api_encryption_key
+  # 0 — НЕ перезагружаться, если Home Assistant не подключён.
+  # По умолчанию ESPHome ребутит плату через 15 минут без клиента API.
+  # Для дома с HA это разумно, для колонны без HA — катастрофа:
+  # перезагрузка посреди погона, а с ней потеря журнала в памяти.
+  # Прибор обязан работать сам по себе, HA — необязательная надстройка.
+  reboot_timeout: 0s
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  # Колонна работает 10 часов. Потеря WiFi не должна ничего ронять.
+  reboot_timeout: 0s
+  ap:
+    ssid: "Kolonna Fallback"
+    password: !secret ap_password
+
+captive_portal:
+
+# Веб-сервер на самом ESP32. Два применения:
+#   1. http://kolonna.local — список датчиков живьём, работает даже если HA лёг
+#   2. http://kolonna.local/events — поток данных для своей страницы (../web/index.html)
+# Базовый веб-сервер объявлен отдельно, чтобы получить id: к нему
+# цепляется обработчик /log.csv из kolonna_log.h
+# web_server_base:
+#   id: web_base
+
+web_server:
+  port: 80
+  version: 3
+
+# ============================================================
+#  ВРЕМЯ
+# ============================================================
+# Нужно журналу: строка без метки времени бесполезна.
+# Сначала спрашиваем Home Assistant (работает без интернета),
+# если его нет — обычный SNTP.
+time:
+  - platform: homeassistant
+    id: ha_time
+    on_time_sync:
+      - logger.log: "время получено от Home Assistant"
+  - platform: sntp
+    id: sntp_time
+    servers:
+      - ru.pool.ntp.org
+      - pool.ntp.org
+
+
+# ============================================================
+#  MQTT — ОПЦИЯ, по умолчанию выключено
+# ============================================================
+# Включать, если данные понадобятся не только Home Assistant:
+# Node-RED, своя база, Grafana, скрипты, другие проекты.
+#
+# Работает ОДНОВРЕМЕННО с api: выше — одно другому не мешает.
+#
+# ⚠️ discovery: false обязательно! Иначе HA заведёт вторые копии всех
+#    датчиков — одни по родному протоколу, другие по MQTT.
+#
+# Брокер: аддон Mosquitto в Home Assistant (Настройки → Дополнения).
+#
+# mqtt:
+#   broker: 192.168.0.74
+#   username: !secret mqtt_user
+#   password: !secret mqtt_password
+#   topic_prefix: kolonna
+#   discovery: false
+#   # Ретейн: последнее значение получит любой, кто подпишется позже
+#   birth_message:
+#     topic: kolonna/status
+#     payload: online
+#   will_message:
+#     topic: kolonna/status
+#     payload: offline
+
+
+# ============================================================
+#  ШИНЫ
+# ============================================================
+
+# 1-Wire для DS18B20 — GPIO4 + подтяжка 4.7 кОм на 3.3 В
+one_wire:
+  - platform: gpio
+    pin: GPIO4
+    id: ow_bus
+
+# I2C для BMP280
+i2c:
+  sda: GPIO21
+  scl: GPIO22
+  scan: true
+
+# UART до PZEM-004T v3 (Modbus RTU, 9600 8N1)
+uart:
+  id: uart_pzem
+  tx_pin: GPIO17
+  rx_pin: GPIO16
+  baud_rate: 9600
+  stop_bits: 1
+
+modbus:
+  uart_id: uart_pzem
+  id: modbus_pzem
+
+
+# ============================================================
+#  ДАТЧИКИ
+# ============================================================
+
+sensor:
+
+  # ---------- Мощность: главный смысл этапа P0 ----------
+  # Заменяет врущий вольтметр. Показывал 90 В / 502 Вт при реальных ~120 В / ~900 Вт.
+  #
+  # ⚠️ ВАЖНО ПРО ПОДКЛЮЧЕНИЕ:
+  #   Клеммы напряжения PZEM — ТОЛЬКО ДО диммера, на чистую сеть.
+  #   Подключение после симистора выжигает входную цепь модуля (проверено
+  #   на форуме: "с r11 пошёл дымок"). Кольцо CT — после диммера, на ТЭНе.
+  #
+  # ⚠️ ВАЖНО ПРО ПОКАЗАНИЯ:
+  #   Поле power у PZEM при таком подключении ВРЁТ: он перемножает
+  #   напряжение целой синусоиды на ток рубленой. Ошибка зависит от угла
+  #   отсечки. Поэтому рабочая мощность берётся из Power Calc ниже.
+  - platform: pzemac
+    id: pzem
+    modbus_id: modbus_pzem
+    address: 0x01
+    update_interval: 5s
+    voltage:
+      name: "Voltage"
+      id: pzem_voltage
+      accuracy_decimals: 1
+    current:
+      name: "Current"
+      id: pzem_current
+      accuracy_decimals: 2
+    # Сырое поле PZEM. НЕ рабочее — оставлено для сравнения с Power Calc.
+    # Расхождение между ними показывает, насколько сильно порезана синусоида.
+    power:
+      name: "Power Raw"
+      id: pzem_power
+      accuracy_decimals: 0
+      filters:
+        - exponential_moving_average:
+            alpha: 0.3
+            send_every: 1
+    energy:
+      name: "Energy"
+      id: pzem_energy
+    frequency:
+      name: "Frequency"
+      id: pzem_freq
+    power_factor:
+      name: "Power Factor"
+      id: pzem_pf
+
+  # ---------- РАБОЧАЯ МОЩНОСТЬ ----------
+  # ТЭН — чисто активная нагрузка, значит P = I²·R верно ПРИ ЛЮБОЙ ФОРМЕ ТОКА.
+  # Рубленая синусоида этой формуле не мешает. Нужен только честный
+  # действующий ток (PZEM меряет его трансформатором) и известное R.
+  #
+  # Это обходит всю проблему с фазовой отсечкой: мы не меряем мощность,
+  # мы её вычисляем.
+  - platform: template
+    name: "Power"
+    id: power_calc
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    accuracy_decimals: 0
+    update_interval: 5s
+    lambda: |-
+      if (isnan(id(pzem_current).state)) return {};
+      float i = id(pzem_current).state;
+      return i * i * ${ten_resistance};
+
+  # ---------- Температуры ----------
+  # АДРЕСА: при первом запуске в логах появятся строки вида
+  #   [dallas_temp:0xx] Found sensor 0x1c0000031edd2a28
+  # Выписать четыре штуки и подставить сюда.
+  #
+  # Какой где: три датчика уже вмонтированы в колонну, поэтому определять
+  # придётся по поведению. Проще всего на разгоне — куб поедет первым,
+  # царга следом, вода последней. Либо отсоединять по одному и смотреть,
+  # какой адрес пропал из логов.
+  #
+  # Поправки offset: на ХОЛОДНОЙ колонне перед разгоном все четыре обязаны
+  # показывать одну комнатную температуру. Расхождение и есть поправка.
+  #
+  # resolution: 12 — шаг 0.0625 °C. На старой ардуинке было 10 бит (шаг 0.25),
+  # поэтому медленный дрейф был не виден в принципе.
+
+  # Единственный датчик, которого пока нет физически. Без него нет автостопа.
+  # ================= СЛОТЫ: что физически висит на шине =================
+  # Привязка по ПОЗИЦИИ на шине, а не по адресу. Поэтому прошивка не знает
+  # заранее, какой датчик где стоит, и менять датчики можно без перепрошивки.
+  # Как назначить: зажать датчик в кулаке, посмотреть, какой слот греется,
+  # и выбрать этот слот в списке роли (секция select ниже, видна в вебе).
+  #
+  # ВАЖНО: позиции считаются по возрастанию адреса. Добавил или заменил
+  # датчик — порядок может сдвинуться, роли надо переназначить. Это видно
+  # сразу: показания роли уедут не туда. Перепрошивка при этом не нужна.
+  - platform: dallas_temp
+    one_wire_id: ow_bus
+    index: 0
+    name: "Slot 1"
+    id: slot1
+    resolution: 12
+    update_interval: 10s
+    accuracy_decimals: 3
+    filters:
+      - offset: 0.0          # поправка конкретного датчика, снимается в стакане воды
+
+  - platform: dallas_temp
+    one_wire_id: ow_bus
+    index: 1
+    name: "Slot 2"
+    id: slot2
+    resolution: 12
+    update_interval: 10s
+    accuracy_decimals: 3
+    filters:
+      - offset: 0.0          # поправка конкретного датчика, снимается в стакане воды
+
+  - platform: dallas_temp
+    one_wire_id: ow_bus
+    index: 2
+    name: "Slot 3"
+    id: slot3
+    resolution: 12
+    update_interval: 10s
+    accuracy_decimals: 3
+    filters:
+      - offset: 0.0          # поправка конкретного датчика, снимается в стакане воды
+
+  - platform: dallas_temp
+    one_wire_id: ow_bus
+    index: 3
+    name: "Slot 4"
+    id: slot4
+    resolution: 12
+    update_interval: 10s
+    accuracy_decimals: 3
+    filters:
+      - offset: 0.0          # поправка конкретного датчика, снимается в стакане воды
+
+  - platform: dallas_temp
+    one_wire_id: ow_bus
+    index: 4
+    name: "Slot 5"
+    id: slot5
+    resolution: 12
+    update_interval: 10s
+    accuracy_decimals: 3
+    filters:
+      - offset: 0.0          # поправка конкретного датчика, снимается в стакане воды
+
+  - platform: dallas_temp
+    one_wire_id: ow_bus
+    index: 5
+    name: "Slot 6"
+    id: slot6
+    resolution: 12
+    update_interval: 10s
+    accuracy_decimals: 3
+    filters:
+      - offset: 0.0          # поправка конкретного датчика, снимается в стакане воды
+
+  # ================= РОЛИ: что этот датчик значит для колонны =================
+  # Значение берётся из слота, выбранного в списке. «нет» -> роль пустая,
+  # и все аварии по ней молчат (в лямбдах стоят проверки isnan).
+  - platform: template
+    name: "T1 Kub"
+    id: t_kub
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 3
+    update_interval: 10s
+    lambda: |-
+      // active_index(): 0 = «нет», 1..6 = слоты. Индекс, а не строка,
+      // потому что у Select в ESPHome 2026.8 поля state больше нет.
+      auto sel = id(sel_kub).active_index();
+      if (!sel.has_value()) return NAN;
+      switch (sel.value()) {
+        case 1: return id(slot1).state;
+        case 2: return id(slot2).state;
+        case 3: return id(slot3).state;
+        case 4: return id(slot4).state;
+        case 5: return id(slot5).state;
+        case 6: return id(slot6).state;
+        default: return NAN;
+      }
+
+  - platform: template
+    name: "T2 Carga"
+    id: t_carga
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 3
+    update_interval: 10s
+    lambda: |-
+      // active_index(): 0 = «нет», 1..6 = слоты. Индекс, а не строка,
+      // потому что у Select в ESPHome 2026.8 поля state больше нет.
+      auto sel = id(sel_carga).active_index();
+      if (!sel.has_value()) return NAN;
+      switch (sel.value()) {
+        case 1: return id(slot1).state;
+        case 2: return id(slot2).state;
+        case 3: return id(slot3).state;
+        case 4: return id(slot4).state;
+        case 5: return id(slot5).state;
+        case 6: return id(slot6).state;
+        default: return NAN;
+      }
+
+  - platform: template
+    name: "T3 Otbor"
+    id: t_otbor
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 3
+    update_interval: 10s
+    lambda: |-
+      // active_index(): 0 = «нет», 1..6 = слоты. Индекс, а не строка,
+      // потому что у Select в ESPHome 2026.8 поля state больше нет.
+      auto sel = id(sel_otbor).active_index();
+      if (!sel.has_value()) return NAN;
+      switch (sel.value()) {
+        case 1: return id(slot1).state;
+        case 2: return id(slot2).state;
+        case 3: return id(slot3).state;
+        case 4: return id(slot4).state;
+        case 5: return id(slot5).state;
+        case 6: return id(slot6).state;
+        default: return NAN;
+      }
+
+  - platform: template
+    name: "T4 Voda"
+    id: t_voda
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    update_interval: 10s
+    lambda: |-
+      // active_index(): 0 = «нет», 1..6 = слоты. Индекс, а не строка,
+      // потому что у Select в ESPHome 2026.8 поля state больше нет.
+      auto sel = id(sel_voda).active_index();
+      if (!sel.has_value()) return NAN;
+      switch (sel.value()) {
+        case 1: return id(slot1).state;
+        case 2: return id(slot2).state;
+        case 3: return id(slot3).state;
+        case 4: return id(slot4).state;
+        case 5: return id(slot5).state;
+        case 6: return id(slot6).state;
+        default: return NAN;
+      }
+
+  - platform: template
+    name: "T5 Voda Vhod"
+    id: t_voda_in
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    update_interval: 10s
+    lambda: |-
+      // active_index(): 0 = «нет», 1..6 = слоты. Индекс, а не строка,
+      // потому что у Select в ESPHome 2026.8 поля state больше нет.
+      auto sel = id(sel_vhod).active_index();
+      if (!sel.has_value()) return NAN;
+      switch (sel.value()) {
+        case 1: return id(slot1).state;
+        case 2: return id(slot2).state;
+        case 3: return id(slot3).state;
+        case 4: return id(slot4).state;
+        case 5: return id(slot5).state;
+        case 6: return id(slot6).state;
+        default: return NAN;
+      }
+
+  # ---------- Проток охлаждающей воды: YF-S201C ----------
+  # Турбинка с датчиком Холла. Ставится на ХОЛОДНЫЙ ВХОД, до дефлегматора.
+  #
+  # Зачем на входе, а не на выходе:
+  #   • корпус пластиковый, холодная вода его не старит;
+  #   • на выходе вода горячая и с пузырями — турбинка считает мусор;
+  #   • на входе стабильное давление водопровода.
+  #
+  # ⚠️ Выход датчика — 5 В. Напрямую в GPIO нельзя, нужен делитель.
+  #    Схема в P0_Сборка.md, раздел «Датчик протока».
+  - platform: pulse_meter
+    pin:
+      number: GPIO19
+      mode:
+        input: true
+    name: "Water Flow"
+    id: water_flow
+    unit_of_measurement: "L/min"
+    accuracy_decimals: 2
+    # При 30 л/мин период импульса 4.4 мс, так что 2 мс не срежут максимум
+    internal_filter: 2ms
+    # Вода встала → через 5 с ноль, а не последнее значение. От этого
+    # зависит скорость срабатывания аварии.
+    timeout: 5s
+    filters:
+      - lambda: return x / ${pulses_per_liter};
+      - exponential_moving_average:
+          alpha: 0.3
+          send_every: 1
+    total:
+      name: "Water Total"
+      id: water_total
+      unit_of_measurement: "L"
+      accuracy_decimals: 1
+      filters:
+        - lambda: return x / ${pulses_per_liter};
+
+  # ---------- ВТОРАЯ, НЕЗАВИСИМАЯ МОЩНОСТЬ ----------
+  # Тепловой баланс: почти всё, что даёт ТЭН, уносит охлаждающая вода.
+  #   P [Вт] = Q [л/мин] · ΔT [°C] · 69.77
+  # (69.77 = 4186 Дж/(кг·К) / 60 с)
+  #
+  # Считает мощность БЕЗ PZEM — только по расходу и разности температур воды.
+  # Это независимая проверка: если Power и Power Water сходятся в пределах
+  # 10-15%, обеим можно верить. Расходятся — врёт либо R ТЭНа, либо
+  # калибровка импульсов на литр.
+  #
+  # Показания на 5-10% ниже электрической мощности — это норма: часть тепла
+  # уходит через изоляцию колонны и с самим отбором.
+  - platform: template
+    name: "Power Water"
+    id: power_water
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    accuracy_decimals: 0
+    update_interval: 10s
+    lambda: |-
+      if (isnan(id(water_flow).state) || isnan(id(t_voda).state)
+          || isnan(id(t_voda_in).state)) return {};
+      float dt = id(t_voda).state - id(t_voda_in).state;
+      if (dt <= 0.0f) return 0.0f;
+      return id(water_flow).state * dt * 69.77f;
+
+  # ---------- Производные: ловят фронт раньше абсолютной температуры ----------
+
+  # Разность верх − 2/3. Не зависит от погоды: обе точки плывут вместе с давлением.
+  - platform: template
+    name: "Delta T"
+    id: delta_t
+    unit_of_measurement: "°C"
+    accuracy_decimals: 3
+    update_interval: 10s
+    lambda: |-
+      if (isnan(id(t_otbor).state) || isnan(id(t_carga).state)) return {};
+      return id(t_otbor).state - id(t_carga).state;
+
+  # Скорость роста T на 2/3 за окно 5 минут. Ловит фронт за 20–30 минут до того,
+  # как абсолютная температура сдвинется на заметную величину.
+  - platform: template
+    name: "Trend T2"
+    id: t_carga_trend
+    unit_of_measurement: "°C/min"
+    accuracy_decimals: 3
+    update_interval: never
+    filters:
+      - exponential_moving_average:
+          alpha: 0.3
+          send_every: 1
+
+  # ---------- Журнал ----------
+  # Строк на карте. Ноль при живом Log Rows означает, что карты нет
+  # или её выдернули: журнал есть только в памяти и умрёт с перезагрузкой.
+#   - platform: template
+#     name: "Log Rows SD"
+#     id: log_rows_sd
+#     unit_of_measurement: "зап."
+#     accuracy_decimals: 0
+#     update_interval: 30s
+#     entity_category: diagnostic
+#     lambda: 'return (float) kolonna_log::rows_sd();'
+
+  # Видно со страницы и из Home Assistant: пишется ли вообще.
+#   - platform: template
+#     name: "Log Rows"
+#     id: log_rows
+#     unit_of_measurement: "зап."
+#     accuracy_decimals: 0
+#     update_interval: 30s
+#     entity_category: diagnostic
+#     lambda: 'return (float) kolonna_log::rows();'
+
+  # ---------- Атмосферное давление ----------
+  # Т кипения плывёт ~0.037 °C на 1 мм рт.ст. Без этого смена погоды
+  # выглядит как приход хвостов.
+  - platform: bmp085
+    # У юзера физически BMP180 (написано на модуле), а не BMP280.
+    # BMP180 и BMP085 — один драйвер, адрес жёстко 0x77, менять нельзя.
+    # Проверено 07.09.2026: i2c-скан нашёл 0x77, а bmp280 ответил
+    # «Wrong chip ID» (BMP280 = 0x58, BMP180 = 0x55).
+    # Точность BMP180 ±1 гПа против ±0.12 у BMP280. Для поправки температуры
+    # кипения это не важно: 1 гПа = 0.75 мм рт.ст. = 0.028 C поправки.
+    temperature:
+      name: "Box Temp"
+      id: box_temp
+      accuracy_decimals: 1
+    pressure:
+      name: "Pressure hPa"
+      id: atm_pressure
+      unit_of_measurement: "hPa"
+      accuracy_decimals: 1
+      filters:
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 1
+    update_interval: 60s
+
+  - platform: template
+    name: "Pressure mmHg"
+    id: atm_mmhg
+    unit_of_measurement: "mmHg"
+    accuracy_decimals: 1
+    update_interval: 60s
+    lambda: |-
+      if (isnan(id(atm_pressure).state)) return {};
+      return id(atm_pressure).state / 1.333224f;
+
+  - platform: template
+    name: "T Boil Correction"
+    id: t_correction
+    unit_of_measurement: "°C"
+    accuracy_decimals: 2
+    update_interval: 60s
+    lambda: |-
+      if (isnan(id(atm_mmhg).state)) return {};
+      // Отклонение от 760 мм рт.ст., 0.037 °C на мм
+      return (id(atm_mmhg).state - 760.0f) * 0.037f;
+
+  # ---------- Спиртуозность кубовой жидкости ----------
+  # Идея подсмотрена у серийного АРД-403PROFI: по температуре кипения
+  # кубовой жидкости из таблицы равновесия вода-этанол считается, сколько
+  # спирта ещё осталось. Куб за погон едет с 78 до 100 °C, и эта цифра
+  # прямо говорит, сколько ещё гнать — в отличие от самой температуры,
+  # которую надо держать в голове вместе с таблицей.
+  #
+  # ⚠️ Это РАСЧЁТ, а не измерение. Точность зависит от давления (учтено)
+  #    и от того, что датчик стоит в бобышке, а не в толще жидкости.
+  #    На первом погоне сверить с ареометром.
+  - platform: template
+    name: "Kub ABV"
+    id: kub_abv
+    unit_of_measurement: "%"
+    accuracy_decimals: 1
+    update_interval: 30s
+    lambda: |-
+      if (isnan(id(t_kub).state)) return {};
+      float t = id(t_kub).state;
+      if (!isnan(id(atm_mmhg).state)) t -= (id(atm_mmhg).state - 760.0f) * 0.037f;
+      static const float T[16] = {100.0f, 95.5f, 92.0f, 89.5f, 87.5f, 86.0f,
+                                  85.0f, 84.0f, 83.1f, 82.5f, 82.0f, 81.0f,
+                                  80.2f, 79.3f, 78.5f, 78.15f};
+      static const float A[16] = {0, 5, 10, 15, 20, 25, 30, 35,
+                                  40, 45, 50, 60, 70, 80, 90, 96};
+      if (t >= T[0])  return 0.0f;
+      if (t <= T[15]) return 96.0f;
+      for (int i = 0; i < 15; i++) {
+        if (t <= T[i] && t >= T[i + 1])
+          return A[i] + (T[i] - t) / (T[i] - T[i + 1]) * (A[i + 1] - A[i]);
+      }
+      return {};
+
+  # ---------- Счётчик капель ----------
+  # Оптопара на капельной камере в линии отбора.
+  # На голове 120 мл/ч это примерно 1 капля в секунду, на теле — 7–8.
+  - platform: pulse_meter
+    pin:
+      number: GPIO18
+      mode:
+        input: true
+        pullup: true
+    name: "Drops per min"
+    id: drops
+    unit_of_measurement: "drop/min"
+    accuracy_decimals: 0
+    # Отсекает дребезг фронта. Мало — считает одну каплю дважды,
+    # много — пропускает капли на теле. 20 мс держит до 50 капель/с.
+    internal_filter: 20ms
+    # Клапан закрыт → через 3 минуты покажет ноль, а не последнее значение
+    timeout: 3min
+    filters:
+      - exponential_moving_average:
+          alpha: 0.3
+          send_every: 1
+    total:
+      name: "Drops Total"
+      id: drops_total
+      accuracy_decimals: 0
+
+  # Главное рабочее число: держим 120 мл/ч на голове, 1100 на теле
+  - platform: template
+    name: "Otbor Rate"
+    id: otbor_rate
+    unit_of_measurement: "ml/h"
+    accuracy_decimals: 0
+    update_interval: 10s
+    lambda: |-
+      if (isnan(id(drops).state)) return {};
+      return id(drops).state * ${ml_per_drop} * 60.0f;
+
+  # Сколько уже взято. Головы = 400 мл, дальше переход на тело.
+  - platform: template
+    name: "Otbor Volume"
+    id: otbor_volume
+    unit_of_measurement: "ml"
+    accuracy_decimals: 0
+    update_interval: 10s
+    lambda: |-
+      if (isnan(id(drops_total).state)) return {};
+      return id(drops_total).state * ${ml_per_drop};
+
+  - platform: uptime
+    name: "Uptime"
+
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    update_interval: 120s
+
+
+# ============================================================
+#  ОТКЛОНЕНИЯ — для дашборда в стиле ISA-101
+# ============================================================
+# Экран остаётся серым, пока всё в норме. Цвет появляется только здесь.
+# На P0 это только индикация — управления нет, реле нет.
+
+# ============================================================
+#  УСТАВКИ АВАРИЙ
+# ============================================================
+# Почему number, а не константы в лямбдах: уставку хочется поправить
+# по ходу погона, а не в 2 часа ночи через перепрошивку. Значения
+# лежат в NVS и переживают перезагрузку.
+#
+# Границы min/max выбраны так, чтобы нельзя было случайно отключить
+# защиту: воду на выходе не задать выше 75 °C, проток — ниже 0.1 л/мин.
+# Уставка, которую можно увести в бесконечность, защитой не является.
+
+# ============================================================
+#  НАЗНАЧЕНИЕ ДАТЧИКОВ — из веб-интерфейса, без перепрошивки
+# ============================================================
+# Выбор сохраняется в NVS и переживает перезагрузку и обесточивание.
+select:
+  - platform: template
+    name: "SLOT T1 Kub"
+    id: sel_kub
+    optimistic: true
+    restore_value: true
+    entity_category: config
+    options: ["нет", "Слот 1", "Слот 2", "Слот 3", "Слот 4", "Слот 5", "Слот 6"]
+    initial_option: "Слот 1"
+
+  - platform: template
+    name: "SLOT T2 Carga"
+    id: sel_carga
+    optimistic: true
+    restore_value: true
+    entity_category: config
+    options: ["нет", "Слот 1", "Слот 2", "Слот 3", "Слот 4", "Слот 5", "Слот 6"]
+    initial_option: "нет"
+
+  - platform: template
+    name: "SLOT T3 Otbor"
+    id: sel_otbor
+    optimistic: true
+    restore_value: true
+    entity_category: config
+    options: ["нет", "Слот 1", "Слот 2", "Слот 3", "Слот 4", "Слот 5", "Слот 6"]
+    initial_option: "нет"
+
+  - platform: template
+    name: "SLOT T4 Voda"
+    id: sel_voda
+    optimistic: true
+    restore_value: true
+    entity_category: config
+    options: ["нет", "Слот 1", "Слот 2", "Слот 3", "Слот 4", "Слот 5", "Слот 6"]
+    initial_option: "нет"
+
+  - platform: template
+    name: "SLOT T5 Voda Vhod"
+    id: sel_vhod
+    optimistic: true
+    restore_value: true
+    entity_category: config
+    options: ["нет", "Слот 1", "Слот 2", "Слот 3", "Слот 4", "Слот 5", "Слот 6"]
+    initial_option: "нет"
+
+number:
+  - platform: template
+    name: "SET Voda Max"
+    id: set_voda_max
+    optimistic: true
+    restore_value: true
+    initial_value: 55
+    min_value: 40
+    max_value: 75
+    step: 0.5
+    unit_of_measurement: "°C"
+    mode: box
+    entity_category: config
+
+  - platform: template
+    name: "SET Flow Min"
+    id: set_flow_min
+    optimistic: true
+    restore_value: true
+    initial_value: 0.3
+    min_value: 0.1
+    max_value: 2
+    step: 0.05
+    unit_of_measurement: "L/min"
+    mode: box
+    entity_category: config
+
+  - platform: template
+    name: "SET Kub Max"
+    id: set_kub_max
+    optimistic: true
+    restore_value: true
+    initial_value: 98.5
+    min_value: 90
+    max_value: 100
+    step: 0.1
+    unit_of_measurement: "°C"
+    mode: box
+    entity_category: config
+
+  # Взвод аварии по протоку: ниже этой температуры куба протока
+  # и не должно быть, поэтому сирену не поднимаем.
+  - platform: template
+    name: "SET Kub Arm"
+    id: set_kub_arm
+    optimistic: true
+    restore_value: true
+    initial_value: 50
+    min_value: 30
+    max_value: 80
+    step: 1
+    unit_of_measurement: "°C"
+    mode: box
+    entity_category: config
+
+  - platform: template
+    name: "SET Pwr Warn"
+    id: set_pwr_warn
+    optimistic: true
+    restore_value: true
+    initial_value: 1300
+    min_value: 800
+    max_value: 2000
+    step: 10
+    unit_of_measurement: "W"
+    mode: box
+    entity_category: config
+
+  - platform: template
+    name: "SET Trend Warn"
+    id: set_trend_warn
+    optimistic: true
+    restore_value: true
+    initial_value: 0.01
+    min_value: 0.002
+    max_value: 0.1
+    step: 0.001
+    unit_of_measurement: "°C/min"
+    mode: box
+    entity_category: config
+
+
+binary_sensor:
+
+  # Главная авария: нет охлаждения → пары спирта пойдут в комнату
+  - platform: template
+    name: "ALARM Cooling"
+    id: alm_cooling
+    lambda: |-
+      if (isnan(id(t_voda).state)) return {};
+      float lim = id(set_voda_max).state;
+      if (isnan(lim)) lim = 55.0;          // уставка не поднялась из NVS
+      return id(t_voda).state > lim;
+    on_press:
+      - switch.turn_on: siren
+
+  # Та же авария, но по протоку — срабатывает на минуты раньше температурной.
+  # Вода ушла (шланг слетел, давление упало, кран закрыли) → турбинка встала
+  # мгновенно, а вода в рубашке ещё какое-то время остаётся холодной,
+  # и T4 об аварии не догадывается.
+  #
+  # Условие «куб горячее 50» отсекает ложняк на холодной колонне:
+  # пока не греем — протока и не должно быть.
+  - platform: template
+    name: "ALARM No Flow"
+    id: alm_flow
+    lambda: |-
+      if (isnan(id(t_kub).state) || isnan(id(water_flow).state)) return {};
+      float arm = id(set_kub_arm).state;
+      float lim = id(set_flow_min).state;
+      if (isnan(arm)) arm = 50.0;
+      if (isnan(lim)) lim = 0.3;
+      return id(t_kub).state > arm && id(water_flow).state < lim;
+    filters:
+      - delayed_on: 20s     # переходные провалы давления не считаем аварией
+    on_press:
+      - switch.turn_on: siren
+
+  # Куб дошёл до конца — тело кончилось
+  - platform: template
+    name: "ALARM Kub Hot"
+    id: alm_kub
+    lambda: |-
+      if (isnan(id(t_kub).state)) return {};
+      float lim = id(set_kub_max).state;
+      if (isnan(lim)) lim = 98.5;
+      return id(t_kub).state > lim;
+    on_press:
+      - switch.turn_on: siren
+
+  # Приближение к захлёбу: расчётный порог Ø33 РПН ~1370 Вт,
+  # уставка по умолчанию 1300 — правится в SET Pwr Warn
+  - platform: template
+    name: "WARN Power"
+    id: warn_power
+    lambda: |-
+      if (isnan(id(power_calc).state)) return {};
+      float lim = id(set_pwr_warn).state;
+      if (isnan(lim)) lim = 1300.0;
+      return id(power_calc).state > lim;
+
+  # Фронт примесей тронулся: тренд на 2/3 пошёл вверх
+  - platform: template
+    name: "WARN Front"
+    id: warn_front
+    lambda: |-
+      if (isnan(id(t_carga_trend).state)) return {};
+      float lim = id(set_trend_warn).state;
+      if (isnan(lim)) lim = 0.01;
+      return id(t_carga_trend).state > lim;
+
+  # Карта журнала. Не авария: без карты прибор работает, но архив
+  # переживёт только до перезагрузки — про это надо знать заранее.
+#   - platform: template
+#     name: "SD Card"
+#     id: sd_card
+#     device_class: problem
+#     entity_category: diagnostic
+#     lambda: 'return !kolonna_log::card();'
+
+  # Обрыв датчика
+  - platform: template
+    name: "ALARM Sensor Fault"
+    id: alm_sensor
+    lambda: |-
+      // Обрыв — это когда роль НАЗНАЧЕНА на слот, а данных нет.
+      // Неназначенная роль (выбрано «нет») — не неисправность, а честное
+      // «датчик сюда ещё не поставлен». Иначе на пустом стенде авария
+      // висела бы всегда и тянула за собой сирену, а постоянно орущая
+      // сирена — это сирена, которую перестают слушать.
+      auto broken = [](int idx, float v) {
+        return idx > 0 && isnan(v);
+      };
+      auto i1 = id(sel_kub).active_index();
+      auto i2 = id(sel_carga).active_index();
+      auto i3 = id(sel_otbor).active_index();
+      auto i4 = id(sel_voda).active_index();
+      return broken(i1.value_or(0), id(t_kub).state)
+          || broken(i2.value_or(0), id(t_carga).state)
+          || broken(i3.value_or(0), id(t_otbor).state)
+          || broken(i4.value_or(0), id(t_voda).state);
+    filters:
+      # Первые секунды после включения роли ещё пустые: назначение слотов
+      # поднимается из NVS, датчики не опрошены. Без задержки плата на
+      # каждой загрузке коротко орала бы сиреной на ровном месте.
+      # 30 секунд заведомо перекрывают старт и ничего не стоят: настоящий
+      # обрыв датчика полминуты подождёт, он не про секунды.
+      - delayed_on: 30s
+    on_press:
+      - switch.turn_on: siren
+
+
+# ============================================================
+#  СИРЕНА — локальная, не зависит от сети
+# ============================================================
+# Решение о включении принимает сам ESP32. Роутер выключен, Home Assistant
+# обновляется, интернет лёг — сирена всё равно орёт.
+# Пуш в телефон идёт вторым каналом, а не вместо.
+
+switch:
+  - platform: gpio
+    pin: GPIO23
+    name: "Siren"
+    id: siren
+    restore_mode: ALWAYS_OFF     # после перезагрузки молчит, пока авария не повторится
+
+
+# Кнопка квитирования — в общей секции button ниже.
+
+
+# ============================================================
+#  РАСЧЁТ ТРЕНДА
+# ============================================================
+# Окно 5 минут. При шаге датчика 0.0625 °C это позволяет разглядеть
+# дрейф порядка 0.01 °C/мин — то, что в ручном журнале раз в полчаса
+# не видно вообще.
+
+globals:
+  - id: t_prev
+    type: float
+    restore_value: false
+    initial_value: '0'
+  - id: trend_primed
+    type: bool
+    restore_value: false
+    initial_value: 'false'
+
+interval:
+  # ---------- ЖУРНАЛ ПОГОНА ----------
+  # Шаг 20 секунд: при глубине 2000 записей это 11 часов — погон с запасом.
+  # Значения собираются здесь, потому что только тут известны id датчиков.
+#   - interval: 20s
+#     then:
+#       - lambda: |-
+#           float v[17] = {
+#             id(t_kub).state,          // 0  куб
+#             id(t_carga).state,        // 1  температура 2/3
+#             id(t_otbor).state,        // 2  температура отбора
+#             id(delta_t).state,        // 3  ΔT
+#             id(t_carga_trend).state,  // 4  скорость роста 2/3
+#             id(kub_abv).state,        // 5  спирт в кубе
+#             id(power_calc).state,     // 6  мощность по току
+#             id(power_water).state,    // 7  мощность по воде
+#             id(pzem_current).state,   // 8  ток
+#             id(pzem_voltage).state,   // 9  напряжение
+#             id(water_flow).state,     // 10 проток
+#             id(water_total).state,    // 11 расход воды
+#             id(t_voda).state,         // 12 вода выход
+#             id(t_voda_in).state,      // 13 вода вход
+#             id(atm_mmhg).state,       // 14 давление
+#             id(otbor_rate).state,     // 15 скорость отбора
+#             id(otbor_volume).state    // 16 отобрано
+#           };
+#           uint16_t al = 0;
+#           if (id(alm_flow).state)    al |= 1;
+#           if (id(alm_cooling).state) al |= 2;
+#           if (id(alm_kub).state)     al |= 4;
+#           if (id(alm_sensor).state)  al |= 8;
+#           if (id(warn_power).state)  al |= 16;
+#           if (id(warn_front).state)  al |= 32;
+
+#           uint32_t ts = 0;
+#           auto t = id(ha_time).now();
+#           if (!t.is_valid()) t = id(sntp_time).now();
+#           if (t.is_valid()) ts = t.timestamp;
+
+#           kolonna_log::push(ts, v, al);
+
+  - interval: 300s
+    then:
+      - lambda: |-
+          float t = id(t_carga).state;
+          if (isnan(t)) return;
+          if (!id(trend_primed)) {
+            id(t_prev) = t;
+            id(trend_primed) = true;
+            return;
+          }
+          float d = (t - id(t_prev)) / 5.0f;   // °C за минуту
+          id(t_prev) = t;
+          id(t_carga_trend).publish_state(d);
+
+
+# ============================================================
+#  КНОПКИ
+# ============================================================
+
+button:
+  # Квитирование сирены, как на нормальном щите: звук глушится,
+  # но авария остаётся видимой на экране, пока причина не ушла.
+  # Новая авария включит сирену заново.
+  - platform: template
+    name: "Ack Siren"
+    id: btn_ack
+    on_press:
+      - switch.turn_off: siren
+
+  # Очистка журнала. Жать перед новым погоном, иначе в файле окажутся
+  # хвосты прошлого — а их потом примут за начало этого.
+#   - platform: template
+#     name: "Reset Log"
+#     id: btn_reset_log
+#     entity_category: config
+#     on_press:
+#       - lambda: 'kolonna_log::clear();'
+
+  # Жать перед началом голов, а потом ещё раз перед телом
+  - platform: template
+    name: "Reset Otbor"
+    id: btn_reset_drops
+    on_press:
+      - pulse_meter.set_total_pulses:
+          id: drops
+          value: 0
+
+  - platform: template
+    name: "Reset Energy"
+    on_press:
+      # Штатное действие компонента. Своя лямбда лезла в приватный метод
+      # сенсора, которого у него нет.
+      - pzemac.reset_energy: pzem
+
+  # Обнулить счётчик литров перед погоном — потом видно расход воды за партию.
+  # Это прямые деньги: вода + водоотведение 70 руб/м³.
+  - platform: template
+    name: "Reset Water"
+    on_press:
+      - pulse_meter.set_total_pulses:
+          id: water_flow
+          value: 0
+
+  - platform: restart
+    name: "Restart"
+
+
+# ============================================================
+#  ЧЕГО ЗДЕСЬ НЕТ И ПОЧЕМУ
+# ============================================================
+# Ни реле, ни симистора, ни клапана. P0 — только наблюдение.
+# Управление появляется в P1 (клапан отбора) и P2 (мощность),
+# и только после P3 (механическое реле в разрыв ТЭНа) колонну
+# можно оставлять без присмотра.
+#
+# ⚠️ Датчик протока переехал сюда из P3, но это НЕ значит, что колонну
+#    уже можно оставлять. Сейчас он только орёт сиреной. Уйти из дома
+#    можно будет тогда, когда появится реле, которое по этой аварии
+#    физически рвёт питание ТЭНа.
+#
+# Порядок в ACTION_PLAN_Автоматика.md нарушать не стоит: симистор
+# пробивается в замкнутое состояние, и без механического реле
+# автоматика способна выпарить куб досуха.

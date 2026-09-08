@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Настройки — Колонна</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="pult.css?v=20260907d">
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <span class="name">Колонна</span>
+    <nav aria-label="Разделы"><ul>
+      <li><a href="index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v4l2 2v9a3 3 0 0 1-3 3h-4a3 3 0 0 1-3-3V9l2-2z"/><path d="M9 13h6M9 17h6"/></svg><span>Пульт</span></a></li>
+      <li><a href="grafiki.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 15l4-5 3 3 5-7"/></svg><span>Графики</span></a></li>
+      <li><a href="zhurnal.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>Журнал</span></a></li>
+      <li><a href="nastroyki.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.4"/><circle cx="9" cy="17" r="2.4"/></svg><span>Настройки</span></a></li>
+      <li><a href="doc/index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h6v18H6a2 2 0 0 1-2-2z"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg><span>Документация</span></a></li>
+    </ul></nav>
+    <div class="spacer"></div>
+    <div class="link" id="link" data-s="idle" role="status" aria-live="polite">
+      <span class="dot" aria-hidden="true"></span><span id="linktxt">нет адреса</span>
+    </div>
+    <button class="iconbtn" id="themeBtn" aria-label="Оформление"></button>
+  </div>
+</header>
+
+<main>
+  <div class="quiet" id="first" style="display:none">
+    <span class="dot" style="background:var(--warn)"></span>
+    Сначала впиши адрес контроллера — без него показывать нечего.
+  </div>
+
+  <div class="card">
+    <h3>Адрес ESP32</h3>
+    <p>Смотреть в роутере или в логах ESPHome. Запомнится — вводить каждый раз не надо.</p>
+    <div class="fld">
+      <label for="ip">IP в домашней сети</label>
+      <input id="ip" type="text" inputmode="decimal" autocomplete="off"
+             spellcheck="false" placeholder="192.168.0.55">
+    </div>
+    <div class="btnrow">
+      <button class="btn prim" id="save">Подключиться</button>
+      <button class="btn" id="open">Открыть страницу контроллера</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Какой датчик где стоит</h3>
+    <p>Прошивка не знает заранее, какой датчик куда вкручен. Она видит только
+    то, что нашла на шине — <strong>слоты</strong>. Роль каждому слоту
+    назначается здесь и хранится в самом контроллере, поэтому переживает
+    перезагрузку и одинакова на всех устройствах.</p>
+    <p><strong>Как определить, где какой:</strong> зажми датчик в кулаке и
+    смотри таблицу слотов — который поехал вверх, тот и в руке. Выбери его
+    в нужной строке.</p>
+
+    <table class="slots" id="slottab">
+      <thead><tr><th>Слот</th><th>Показывает</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <div id="roles"></div>
+
+    <p class="jhint">Роль «нет» — датчик не подключён. Тогда плашка на пульте
+    пустая, а аварии по ней молчат: лучше честное «нет данных», чем чужое
+    показание. Порядок слотов считается по адресам датчиков, поэтому после
+    замены датчика роли могут сдвинуться — просто назначь заново, перепрошивка
+    не нужна.</p>
+
+    <h3 style="margin-top:28px">Пороги и уставки</h3>
+    <p>Пороги показа, цвет линии, уставка контроллера, объём куба и температура
+    воды на входе задаются <strong>щелчком по самому параметру</strong> —
+    по плашке на схеме пульта или по панели справа на графиках.</p>
+    <p>Отдельного списка здесь нет намеренно: два места правки одних и тех же
+    чисел рано или поздно разъезжаются, и потом непонятно, какое из них
+    настоящее.</p>
+    <div class="btnrow">
+      <a class="btn" href="index.html">Открыть пульт</a>
+      <a class="btn" href="grafiki.html">Открыть графики</a>
+    </div>
+    <p style="margin-top:16px">Сбросить всё разом, если накрутил лишнего:</p>
+    <div class="btnrow">
+      <button class="btn bad" id="limreset">Вернуть заводские пороги</button>
+      <button class="btn" id="palreset">Вернуть цвета темы</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Звук аварии</h3>
+    <p>Сирена на колонне слышна в мастерской, но не в доме. Компьютер стоит
+    рядом с человеком — пусть звонит и он. Тон синтезируется страницей,
+    интернет и файлы со звуком не нужны.</p>
+    <label class="sw" for="snd">
+      <span class="t">
+        <b>Звонить при аварии</b>
+        <span>Только настоящие аварии. Предупреждения вроде «фронт тронулся» молчат.</span>
+      </span>
+      <input id="snd" type="checkbox">
+    </label>
+    <div class="btnrow" style="margin-top:14px">
+      <button class="btn" id="sndtest">Проверить звук</button>
+      <button class="btn" id="ntf">Разрешить уведомления Windows</button>
+    </div>
+    <p class="jhint" id="ntfstate" style="margin-top:12px">—</p>
+    <div class="note calm">
+      <span aria-hidden="true">◆</span>
+      <span>Браузер не даёт звучать, пока по странице не щёлкнули хотя бы раз.
+      Открыл вкладку перед погоном — нажми «Проверить звук», заодно
+      убедишься, что слышно.</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Оформление</h3>
+    <p>По умолчанию как в системе: днём светлое, ночью тёмное.</p>
+    <div class="seg" role="group" aria-label="Оформление">
+      <button data-theme-set="auto" aria-pressed="true">Авто</button>
+      <button data-theme-set="light" aria-pressed="false">День</button>
+      <button data-theme-set="dark" aria-pressed="false">Ночь</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Экран</h3>
+    <label class="sw" for="wake">
+      <span class="t">
+        <b>Не гасить экран</b>
+        <span>Пока вкладка открыта. Удобно, когда ноут стоит у колонны все десять часов.</span>
+      </span>
+      <input id="wake" type="checkbox">
+    </label>
+  </div>
+
+  <div class="card">
+    <h3>История</h3>
+    <p>Копится в браузере с шагом 30 секунд, глубина 12 часов. Нужна, чтобы графики
+    не начинались с нуля при каждом переходе между страницами.</p>
+    <div class="note">
+      <span aria-hidden="true">▲</span>
+      <span><b>Это не журнал погона.</b> История пишется только пока вкладка
+      открыта, живёт в этом браузере на этом устройстве и нужна лишь затем,
+      чтобы графики не начинались с нуля при переходе между страницами.
+      Закрыл вкладку — дыра. Настоящий журнал ведёт сам контроллер:
+      кнопка <strong>«Журнал контроллера»</strong> на странице графиков или
+      напрямую <code>http://&lt;адрес&gt;/log.csv</code>. Он пишется всегда,
+      даже когда ноут закрыт.</span>
+    </div>
+    <div class="kv"><span>Накоплено точек</span><b id="h_pts">—</b></div>
+    <div class="kv"><span>Глубина</span><b id="h_hrs">—</b></div>
+    <div class="kv"><span>Занимает</span><b id="h_kb">—</b></div>
+    <p style="margin-top:14px">Где что хранится и почему именно так —
+    в <code>tools/README.md</code>. Коротко: журнал погона ведёт контроллер
+    (11 часов, скачивается готовым CSV), долгий архив — Home Assistant,
+    а эта история нужна только графикам на самом пульте.</p>
+    <div class="btnrow">
+      <button class="btn bad" id="wipe">Очистить историю</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Про колонну</h3>
+    <p>Медная царга Ø33 внутр., 2 м РПН, около 24 теоретических тарелок,
+    ТЭН 3 кВт при R ≈ 16 Ом, рабочая точка ~900 Вт. Отбор по жидкости,
+    игольчатый кран в верхней точке.</p>
+    <p>Схемы, сборка, расчёты и журнал погона — отдельный раздел:
+    <a href="doc/index.html">документация проекта</a>.</p>
+  </div>
+
+</main>
+
+<footer>
+  Адрес можно зашить в ссылку и положить в закладки телефона:
+  <code>index.html?ip=192.168.0.55</code>
+</footer>
+
+<script src="pult.js?v=20260907d"></script>
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+
+if (new URLSearchParams(location.search).get('first')) $('#first').style.display = '';
+
+$('#save').onclick = () => {
+  const v = $('#ip').value.trim();
+  if (!v){ PULT.toast('Адрес пустой'); return; }
+  PULT.connect(v);
+  PULT.toast('Подключаюсь к ' + v);
+};
+$('#ip').addEventListener('keydown', e => { if (e.key === 'Enter') $('#save').click(); });
+
+$('#open').onclick = () => {
+  const v = $('#ip').value.trim() || PULT.ip;
+  if (!v){ PULT.toast('Сначала адрес'); return; }
+  window.open('http://' + v + '/', '_blank', 'noopener');
+};
+
+/* Оптовый сброс. Поканальный живёт в самом окне канала — здесь только
+   «снести всё», когда накручено столько, что разбирать по одному лень. */
+$('#limreset').onclick = () => {
+  if (!confirm('Вернуть заводскими пороги показа у всех каналов?')) return;
+  PULT.resetLim(); PULT.toast('Пороги показа сброшены');
+};
+$('#palreset').onclick = () => {
+  if (!confirm('Вернуть всем линиям цвета темы?')) return;
+  PULT.resetPal(); PULT.toast('Цвета вернулись к теме');
+};
+
+document.querySelectorAll('[data-theme-set]').forEach(b =>
+  b.onclick = () => PULT.applyTheme(b.dataset.themeSet));
+
+$('#wake').checked = !!localStorage.getItem('kol_wake');
+$('#wake').onchange = e => PULT.wake(e.target.checked);
+
+function histView(){
+  const i = PULT.histInfo();
+  $('#h_pts').textContent = i.points ? i.points.toLocaleString('ru-RU') : '0';
+  $('#h_hrs').textContent = i.hours >= 1 ? i.hours.toFixed(1) + ' ч'
+                          : i.points ? Math.round(i.hours * 60) + ' мин' : '—';
+  let kb = 0;
+  try { kb = (localStorage.getItem('kol_hist_v2') || '').length / 1024; } catch(_){}
+  $('#h_kb').textContent = kb ? kb.toFixed(0) + ' КБ' : '—';
+}
+$('#wipe').onclick = () => {
+  if (!confirm('Удалить всю накопленную историю? Графики начнутся с нуля.')) return;
+  PULT.clearHist(); histView(); PULT.toast('История очищена');
+};
+
+PULT.start();
+$('#ip').value = PULT.ip;
+histView();
+setInterval(histView, 5000);
+
+/* ---------- Какой датчик где стоит ---------- */
+/* Слоты — сырое железо, роли — смысл. Перерисовываем на каждое событие,
+   чтобы во время «зажми в кулаке» цифры бежали в реальном времени. */
+let prevSlot = {};
+function drawSlots(){
+  const tb = $('#slottab').querySelector('tbody');
+  let html = '';
+  for (let i = 1; i <= 6; i++){
+    const v = PULT.SLOT[i];
+    const has = (v !== null && v !== undefined);
+    // подсветим тот слот, что заметно потеплел — это и есть датчик в руке
+    const was = prevSlot[i];
+    const hot = has && was !== undefined && (v - was) > 0.4;
+    if (has) prevSlot[i] = v;
+    html += '<tr class="' + (hot ? 'hot' : '') + '"><td>Слот ' + i + '</td>' +
+            '<td class="v">' + (has ? v.toFixed(2) + ' °C' : '— пусто') + '</td></tr>';
+  }
+  tb.innerHTML = html;
+}
+
+function drawRoles(){
+  const box = $('#roles');
+  if (!box.dataset.built){
+    box.innerHTML = PULT.ROLES.map(r =>
+      '<div class="rolerow"><label>' + r.t + '</label>' +
+      '<select data-sel="' + r.sel + '"></select>' +
+      '<span class="now" data-now="' + r.sel + '"></span></div>').join('');
+    box.dataset.built = '1';
+    box.querySelectorAll('select').forEach(el => {
+      el.onchange = () => PULT.setSelect(el.dataset.sel, el.value);
+    });
+  }
+  PULT.ROLES.forEach(r => {
+    const st = PULT.SEL[r.sel];
+    const el = box.querySelector('[data-sel="' + r.sel + '"]');
+    const now = box.querySelector('[data-now="' + r.sel + '"]');
+    if (!st){ el.innerHTML = '<option>нет связи</option>'; now.textContent = ''; return; }
+    const opts = st.options || ['нет'];
+    if (el.options.length !== opts.length){
+      el.innerHTML = opts.map(o => '<option>' + o + '</option>').join('');
+    }
+    if (el.value !== st.state) el.value = st.state;
+    const n = parseInt((st.state || '').replace(/\D/g, ''), 10);
+    const v = PULT.SLOT[n];
+    now.textContent = (v === null || v === undefined) ? '' : v.toFixed(2) + ' °C';
+  });
+}
+
+drawSlots(); drawRoles();
+PULT.onUpdate(what => {
+  if (what === 'slot'){ drawSlots(); drawRoles(); }
+  if (what === 'role') drawRoles();
+});
+
+/* ---------- Звук аварии ---------- */
+$('#snd').checked = PULT.soundOn();
+$('#snd').onchange = e => {
+  PULT.setSound(e.target.checked);
+  PULT.toast(e.target.checked ? 'Звук включён' : 'Звук выключен');
+};
+$('#sndtest').onclick = () => {
+  if (PULT.testSound()) PULT.toast('Так это звучит');
+};
+
+/* Уведомление рабочего стола — второй канал на случай наушников
+   или свёрнутого окна. Разрешение спрашивается только по кнопке:
+   непрошеный запрос браузер и сам придержит. */
+function ntfView(){
+  const st = PULT.notifyState();
+  const t = {granted:  'Уведомления разрешены',
+             denied:   'Уведомления запрещены в настройках браузера',
+             'default':'Уведомления пока не разрешены',
+             unsupported:'Браузер не умеет уведомления'}[st] || st;
+  $('#ntfstate').textContent = t;
+  $('#ntf').disabled = (st === 'granted' || st === 'unsupported');
+}
+$('#ntf').onclick = () => PULT.askNotify().then(ntfView);
+ntfView();
+</script>
+</body>
+</html>

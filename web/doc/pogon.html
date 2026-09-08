@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Погон — Колонна</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="in">
+    <a class="logo" href="index.html">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M9 2h6M10 2v7l-4.6 9.2A2.5 2.5 0 0 0 7.6 22h8.8a2.5 2.5 0 0 0 2.2-3.8L14 9V2"/>
+        <path d="M7.4 15h9.2"/>
+      </svg>
+      <span class="t"><b>Документация</b><i>проект «Водочка»</i></span>
+    </a>
+    <nav aria-label="Разделы"><ul>
+      <li><a href="index.html">Обзор</a></li>
+      <li><a href="plan.html">Модули</a></li>
+      <li><a href="sborka.html">Сборка</a></li>
+      <li><a href="pogon.html">Погон</a></li>
+      <li><a href="calc.html">Расчёты</a></li>
+      <li><a href="../index.html">← Пульт</a></li>
+    </ul></nav>
+    <button class="iconbtn" id="themeBtn" aria-label="Оформление"></button>
+  </div>
+</header>
+
+<div class="wrap with-toc">
+<div class="col">
+
+  <p class="eyebrow">Партия · 22 л СС 30 % · 6.6 л АС</p>
+  <h1>Как гнать</h1>
+  <p class="lede">
+    Пять часов лишнего времени лежат в одном месте — в головах. Здесь показано,
+    где именно, чем это проверить и куда записывать.
+  </p>
+
+  <h2 id="fazy">Куда уходят пять часов</h2>
+
+  <figure>
+    <svg viewBox="0 0 880 230" role="img"
+         aria-label="Сравнение двух погонов. В нынешнем головы занимают 8.5 часа из 15. В целевом головы идут 3.3 часа, весь погон укладывается в 10 часов, экономия 5.2 часа.">
+      <defs>
+        <pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <line x1="0" y1="0" x2="0" y2="8" stroke="var(--ok)" stroke-width="2.5" opacity=".45"/>
+        </pattern>
+      </defs>
+
+      <text x="4" y="42" font-size="12" font-weight="600" fill="currentColor">Как было</text>
+      <text x="4" y="58" font-family="IBM Plex Mono, monospace" font-size="11"
+            fill="currentColor" opacity=".65">15 часов</text>
+      <g stroke="currentColor" stroke-width="1.3" fill="none">
+        <rect x="90" y="30" width="51"  height="34"/>
+        <rect x="141" y="30" width="25" height="34"/>
+        <rect x="166" y="30" width="431" height="34" stroke="var(--alarm)" stroke-width="2"/>
+        <rect x="597" y="30" width="254" height="34"/>
+      </g>
+      <g font-size="10.5" fill="currentColor" opacity=".8" text-anchor="middle">
+        <text x="115" y="80">разгон</text>
+        <text x="153" y="80">себя</text>
+        <text x="724" y="80">тело · 5 ч</text>
+      </g>
+      <text x="381" y="80" text-anchor="middle" font-size="11" font-weight="600"
+            fill="var(--alarm)">головы 8.5 ч · 640 мл · 78 мл/ч</text>
+
+      <text x="4" y="132" font-size="12" font-weight="600" fill="currentColor">Как надо</text>
+      <text x="4" y="148" font-family="IBM Plex Mono, monospace" font-size="11"
+            fill="currentColor" opacity=".65">10 часов</text>
+      <g stroke="currentColor" stroke-width="1.3" fill="none">
+        <rect x="90" y="120" width="51"  height="34"/>
+        <rect x="141" y="120" width="25" height="34"/>
+        <rect x="166" y="120" width="167" height="34" stroke="var(--ok)" stroke-width="2"/>
+        <rect x="333" y="120" width="254" height="34"/>
+      </g>
+      <rect x="587" y="120" width="264" height="34" fill="url(#hatch)"
+            stroke="var(--ok)" stroke-width="1.3" stroke-dasharray="5 4"/>
+      <g font-size="10.5" fill="currentColor" opacity=".8" text-anchor="middle">
+        <text x="115" y="170">разгон</text>
+        <text x="153" y="170">себя</text>
+        <text x="460" y="170">тело · 5 ч</text>
+      </g>
+      <text x="249" y="170" text-anchor="middle" font-size="11" font-weight="600"
+            fill="var(--ok)">головы 3.3 ч · 400 мл · 120 мл/ч</text>
+      <text x="719" y="142" text-anchor="middle" font-size="12" font-weight="600"
+            fill="var(--ok)">−5.2 часа и +0.6 л</text>
+      <text x="719" y="170" text-anchor="middle" font-size="10.5" fill="var(--ok)" opacity=".85">
+        ≈ 3500 ₽ с партии
+      </text>
+
+      <line x1="90" y1="196" x2="851" y2="196" stroke="currentColor" stroke-width="1" opacity=".3"/>
+      <g font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor"
+         opacity=".55" text-anchor="middle">
+        <text x="90" y="212">0</text><text x="343" y="212">5 ч</text>
+        <text x="597" y="212">10 ч</text><text x="851" y="212">15 ч</text>
+      </g>
+    </svg>
+    <figcaption>
+      Разница только в одном отрезке. Флегмовое число при 120 мл/ч остаётся 37,
+      а чистота перестаёт расти уже после 20 — она упирается в число тарелок,
+      а не в скорость отбора. Значит качество не пострадает, а пять часов вернутся.
+    </figcaption>
+  </figure>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Фаза</th><th>Что делаем</th><th>На что смотрим</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Разгон</strong><br><span class="small muted">~1 ч</span></td>
+            <td>Полная мощность до подхода пара к дефлегматору</td>
+            <td>Куб. Как пошёл пар — сбросить на рабочие ~900 Вт</td></tr>
+        <tr><td><strong>Работа на себя</strong><br><span class="small muted">30 мин</span></td>
+            <td>Отбор закрыт, колонна набирает разделение</td>
+            <td>Царга должна встать и перестать двигаться</td></tr>
+        <tr><td><strong>Головы</strong><br><span class="small muted">3.3 ч цель</span></td>
+            <td>120 мл/ч, набрать 400 мл</td>
+            <td><strong>Тест на альдегиды каждые 30 минут.</strong>
+                Температура здесь бесполезна</td></tr>
+        <tr><td><strong>Тело</strong><br><span class="small muted">~5 ч</span></td>
+            <td>~1100 мл/ч до конца</td>
+            <td>Куб, тренд царги, ΔT. Вот теперь термометр работает</td></tr>
+        <tr><td><strong>Хвосты</strong></td>
+            <td><span class="tag bad">не гоним</span></td>
+            <td>Куб 92–94 °C — заканчиваем. Решено и не пересматривается</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="test">Тест на альдегиды</h2>
+
+  <p>Реактив Шиффа — фуксинсернистая кислота. Обесцвеченный фуксин, альдегид возвращает
+  окраску: бесцветный → розовый → фиолетовый. Ловит ацетальдегид, главный компонент голов.</p>
+
+  <div class="note danger">
+    <div class="h"><span class="sym" aria-hidden="true">▲</span>Чего тест не делает</div>
+    <p>На фото товара показаны пробирки «метанол / этанол». <strong>Метанол этим
+    флаконом не определяется.</strong> У метанола нет альдегидной группы. Настоящий
+    тест требует окислить его перманганатом до формальдегида, погасить избыток
+    щавелевой кислотой и только потом добавлять фуксинсернистую — три реактива
+    и процедура.</p>
+    <p style="margin-bottom:0">Не использовать для решения «безопасно ли пить».
+    Только «где кончились головы». Эфиры (этилацетат — вторая половина голов по массе)
+    и сивуху он тоже не видит: «прозрачный» означает лишь «ацетальдегида мало».</p>
+  </div>
+
+  <h3>Приёмка и хранение</h3>
+  <ul>
+    <li>Проверить <strong>дату розлива</strong> на флаконе — реактив живёт месяцами, не годами.</li>
+    <li>Жидкость бесцветная или чуть желтоватая. <strong>Пришёл розовым — брак,
+    возврат в 15 дней.</strong></li>
+    <li>Хранить в холодильнике, в темноте, крышка плотно. Реактив дохнет от света,
+    тепла и воздуха и со временем розовеет сам.</li>
+  </ul>
+
+  <h3>Протокол</h3>
+  <p>Реактив чувствителен к крепости: головы 92 % и тело 60 % дадут разный цвет
+  при одинаковом альдегиде. Поэтому <strong>каждую пробу разбавлять до 40 %</strong>.</p>
+
+  <div class="calc">
+    <div class="hd">
+      <h3>Сколько воды на пробу</h3>
+      <p>Дистиллированной. В водопроводной хлор и железо, реактиву это не нравится.</p>
+    </div>
+    <div class="body">
+      <div class="f"><label for="d_abv">Крепость пробы, %</label>
+        <input id="d_abv" type="number" inputmode="decimal" step="0.5" value="93"></div>
+      <div class="f"><label for="d_vol">Объём пробы, мл</label>
+        <input id="d_vol" type="number" inputmode="decimal" step="0.5" value="1"></div>
+    </div>
+    <div class="out">
+      <div class="res"><div class="k">Добавить воды</div>
+        <div class="v" id="d_water">—<small>мл</small></div>
+        <div class="n">до крепости 40 %</div></div>
+      <div class="res"><div class="k">Итого в пробирке</div>
+        <div class="v" id="d_total">—<small>мл</small></div>
+        <div class="n">плюс 1 мл реактива</div></div>
+    </div>
+  </div>
+
+  <p class="small muted">Практическое правило: <strong>1 мл пробы + 1.3 мл воды</strong>
+  покрывает весь диапазон 90–96 %. Пересчитывать только если крепость ушла ниже 85 %.</p>
+
+  <ol>
+    <li>1 мл реактива плюс одинаковое число капель разбавленной пробы — <strong>считать капли</strong>.</li>
+    <li>Выдержка 10–15 минут, одна и та же для всех проб.</li>
+    <li>Читать на белом фоне при дневном свете.</li>
+    <li>Контроль рядом — тело прошлой удачной партии.</li>
+  </ol>
+
+  <div class="note warn">
+    <div class="h"><span class="sym" aria-hidden="true">◆</span>Шкала на этикетке — приблизительная</div>
+    <p style="margin-bottom:0">Градации 2/3/4/5 мг/л — маркетинг. Глазом по печатной
+    карточке, при кухонном свете, различимы <strong>три состояния: чисто / есть / много</strong>,
+    а не восемнадцать. Сравнение проб <em>между собой</em> — честное.
+    Поэтому в журнале ниже колонка «цвет» от 1 до 5, а не в миллиграммах.</p>
+  </div>
+
+  <h3>Что делать на первом погоне</h3>
+  <p>Процесс <strong>не менять</strong>. Гнать как обычно. Задача одна — снять кривую.</p>
+  <p>Проба каждые 30 минут на головах. Пробирку подписать: время, объём отобранного,
+  крепость. Выстроить в ряд, сфотографировать.</p>
+  <p><strong>Вопрос, на который смотрим: на каком часу цвет перестал меняться.</strong>
+  Если на третьем, а гонишь восемь с половиной — это ответ на весь проект за 307 ₽.</p>
+
+  <h2 id="chek">Перед стартом</h2>
+  <div class="progress"><span class="txt">0 из 8</span><span class="track"><span class="fill"></span></span></div>
+  <ul class="check" id="ck-start">
+    <li><label><input type="checkbox"><span class="b"><b>Вода на охлаждение пущена и проверена</b>
+      <span>До подачи 220 В. Течей нет.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b"><b>Реактив достан из холодильника</b>
+      <span>Дать согреться до комнатной, иначе цвет пойдёт медленнее.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b"><b>12 пробирок подписаны и выстроены</b>
+      <span>Плюс дистиллированная вода и шприц 5 мл.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b"><b>Контрольная проба поставлена</b>
+      <span>Тело прошлой удачной партии — не с чем сравнивать без неё.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b"><b>Мерный цилиндр и секундомер под рукой</b>
+      <span>Скорость отбора ставится 10 мл за 5 минут = 120 мл/ч.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b"><b>Банки под головы и тело разные</b>
+      <span>И подписанные. Перепутать — потерять партию.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b"><b>УЗО проверено кнопкой «Тест»</b>
+      <span>Раз в сезон, но лучше перед каждым погоном.</span></span></label></li>
+    <li><label><input type="checkbox"><span class="b"><b>Журнал открыт</b>
+      <span>Первая строка со временем старта — прямо на этой странице ниже.</span></span></label></li>
+  </ul>
+  <div class="btnrow"><button class="btn" data-reset="ck-start">Снять галочки</button></div>
+
+  <h2 id="zhurnal">Журнал партии</h2>
+  <p>Заполняется прямо здесь и сохраняется в браузере — вкладку можно закрыть.
+  В конце выгружается в CSV и открывается в Excel.</p>
+
+  <div class="btnrow">
+    <button class="btn prim" id="addRow">Добавить строку</button>
+    <button class="btn" id="exportCsv">Скачать CSV</button>
+    <button class="btn bad" id="clearLog">Очистить журнал</button>
+  </div>
+
+  <div class="tw">
+    <table class="log">
+      <thead><tr>
+        <th>Время</th><th>Куб</th><th>Царга 2/3</th><th>Отбор</th><th>Вода</th>
+        <th>Вт</th><th>Отобрано, мл</th><th>Крепость</th><th>Цвет 1–5</th><th>Заметка</th><th></th>
+      </tr></thead>
+      <tbody id="logBody"></tbody>
+    </table>
+  </div>
+  <p class="small muted">Колонка «Цвет» — результат теста на альдегиды по своей же шкале:
+  1 прозрачный, 3 розовый, 5 ярко-фиолетовый. Сравнивать пробы между собой,
+  а не с картинкой на этикетке.</p>
+
+  <h2 id="smotret">Что смотреть по фазам</h2>
+
+  <h3>На головах — только тест</h3>
+  <p>Температура здесь бесполезна принципиально. Ацетальдегид в головах — миллиграммы
+  на литр, на температуру кипения он не влияет. Царга стоит на месте: кипит тот же
+  спирт, просто грязный. Именно поэтому серийные контроллеры берут головы по таймеру.</p>
+
+  <h3>На теле — термометр наконец работает</h3>
+  <p>Спирт в кубе кончается, разделяющая способность падает, температура ползёт вверх.
+  Это изменение состава на <em>проценты</em>, а не на миллиграммы — вот его датчик берёт.</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Признак</th><th>Что значит</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Куб 92–94 °C</strong></td>
+            <td>Опережающий сигнал. Тело кончается, независимо от царги</td></tr>
+        <tr><td><strong>Скорость роста 2/3 пошла вверх</strong></td>
+            <td>Фронт тронулся. С шагом 0.0625 °C ловится за 3–5 минут вместо 10–25</td></tr>
+        <tr><td><strong>ΔT отбор − царга растёт</strong></td>
+            <td>Не зависит от погоды: обе точки плывут вместе с давлением</td></tr>
+        <tr><td><strong>Куб 98.5 °C</strong></td>
+            <td>Всё. Закрыть отбор, выключить ТЭН</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note acc">
+    <div class="h"><span class="sym" aria-hidden="true">●</span>Почему смотреть надо на ΔT, а не на абсолютную температуру</div>
+    <p style="margin-bottom:0">Температура кипения гуляет примерно на 0.037 °C
+    на миллиметр ртутного столба. За десять часов погона атмосфера легко ходит
+    на 5–10 мм — это 0.2–0.4 °C дрейфа, больше самого сигнала. Разность двух точек
+    давление не чувствует: обе уезжают вместе.</p>
+  </div>
+
+</div>
+
+<aside class="toc">
+  <b>На странице</b>
+  <a href="#fazy">Куда уходят часы</a>
+  <a href="#test">Тест на альдегиды</a>
+  <a href="#chek">Перед стартом</a>
+  <a href="#zhurnal">Журнал партии</a>
+  <a href="#smotret">Что смотреть</a>
+</aside>
+</div>
+
+<footer class="site"><div class="in">
+  Живые показания во время погона — на странице <a href="../index.html">Пульт</a>.
+  Долгий архив пишется в Home Assistant автоматически, каждые 10 секунд.
+</div></footer>
+
+<script src="site.js"></script>
+<script>
+/* ---------- Разбавление пробы до 40 % ---------- */
+bindCalc(['d_abv','d_vol'], function(){
+  const abv = num('d_abv'), vol = num('d_vol');
+  const w = vol * (abv / 40 - 1);
+  const ok = isFinite(w) && w >= 0;
+  document.getElementById('d_water').innerHTML =
+    (ok ? fmt(w, 2) : '—') + '<small>мл</small>';
+  document.getElementById('d_total').innerHTML =
+    (ok ? fmt(vol + w, 2) : '—') + '<small>мл</small>';
+});
+
+/* ---------- Журнал ----------
+   Хранится целиком одной строкой JSON. Партия за десять часов
+   это 20–30 строк, экономить тут не на чем.                   */
+(function(){
+  const KEY = 'kol_log_v1';
+  const COLS = ['time','kub','carga','otbor','voda','pwr','ml','abv','color','note'];
+  const HEAD = ['Время','Куб','Царга 2/3','Отбор','Вода','Вт','Отобрано мл','Крепость','Цвет','Заметка'];
+  const body = document.getElementById('logBody');
+  let rows = [];
+
+  try { rows = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(_) { rows = []; }
+
+  function save(){
+    try { localStorage.setItem(KEY, JSON.stringify(rows)); }
+    catch(_) { toast('Не удалось сохранить журнал'); }
+  }
+
+  function render(){
+    body.innerHTML = '';
+    rows.forEach((r, i) => {
+      const tr = document.createElement('tr');
+      COLS.forEach(c => {
+        const td = document.createElement('td');
+        const inp = document.createElement('input');
+        inp.value = r[c] || '';
+        if (c === 'note'){ inp.className = 'txt'; inp.placeholder = '—'; }
+        else if (c === 'time'){ inp.className = ''; inp.placeholder = '00:00'; }
+        else { inp.inputMode = 'decimal'; inp.placeholder = '—'; }
+        inp.setAttribute('aria-label', HEAD[COLS.indexOf(c)] + ', строка ' + (i + 1));
+        inp.addEventListener('input', () => { rows[i][c] = inp.value; save(); });
+        td.appendChild(inp);
+        tr.appendChild(td);
+      });
+      const td = document.createElement('td');
+      const del = document.createElement('button');
+      del.className = 'del'; del.textContent = '×';
+      del.title = 'Удалить строку';
+      del.setAttribute('aria-label', 'Удалить строку ' + (i + 1));
+      del.onclick = () => { rows.splice(i, 1); save(); render(); };
+      td.appendChild(del); tr.appendChild(td);
+      body.appendChild(tr);
+    });
+    if (!rows.length){
+      body.innerHTML = '<tr><td colspan="11" style="color:var(--ink-3); padding:20px 16px">' +
+        'Журнал пуст. Нажми «Добавить строку» — время подставится само.</td></tr>';
+    }
+  }
+
+  document.getElementById('addRow').onclick = () => {
+    const d = new Date();
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mm = String(d.getMinutes()).padStart(2,'0');
+    const r = {}; COLS.forEach(c => r[c] = '');
+    r.time = hh + ':' + mm;
+    // перенести последний объём отбора: чаще всего он растёт от строки к строке
+    if (rows.length) r.ml = rows[rows.length - 1].ml || '';
+    rows.push(r); save(); render();
+    const inputs = body.querySelectorAll('tr:last-child input');
+    if (inputs[1]) inputs[1].focus();
+  };
+
+  document.getElementById('clearLog').onclick = () => {
+    if (!rows.length){ toast('Журнал и так пуст'); return; }
+    if (!confirm('Удалить все ' + rows.length + ' строк журнала? Отменить будет нельзя.')) return;
+    rows = []; save(); render(); toast('Журнал очищен');
+  };
+
+  document.getElementById('exportCsv').onclick = () => {
+    if (!rows.length){ toast('Нечего выгружать'); return; }
+    const esc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    // точка с запятой и BOM — иначе русский Excel откроет кашу в одной колонке
+    const csv = '﻿' + [HEAD.map(esc).join(';')]
+      .concat(rows.map(r => COLS.map(c => esc(r[c])).join(';')))
+      .join('\r\n');
+    const d = new Date();
+    const name = 'pogon_' + d.getFullYear() + '-' +
+      String(d.getMonth()+1).padStart(2,'0') + '-' +
+      String(d.getDate()).padStart(2,'0') + '.csv';
+    const url = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
+    const a = document.createElement('a');
+    a.href = url; a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    toast('Сохранено: ' + name);
+  };
+
+  render();
+})();
+</script>
+</body>
+</html>

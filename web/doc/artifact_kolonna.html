@@ -1,0 +1,608 @@
+<title>Обвязка колонны</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --paper:#E9EBEE; --card:#FBFCFD; --ink:#171A1D; --ink-2:#4A525A; --rule:#C9CFD6;
+    --copper:#A0602F; --danger:#B5322A; --danger-bg:#F7E4E2; --patina:#2F7A68;
+    --shadow:0 1px 2px rgba(23,26,29,.06),0 6px 18px rgba(23,26,29,.05);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#121517; --card:#1A1E22; --ink:#E6E9EC; --ink-2:#98A2AB; --rule:#2C3339;
+      --copper:#D08C55; --danger:#E2685C; --danger-bg:#2A1A19; --patina:#4FA68F;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.3);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#121517; --card:#1A1E22; --ink:#E6E9EC; --ink-2:#98A2AB; --rule:#2C3339;
+    --copper:#D08C55; --danger:#E2685C; --danger-bg:#2A1A19; --patina:#4FA68F;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.3);
+  }
+  *{box-sizing:border-box}
+  body{background:var(--paper);color:var(--ink);
+    font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+    font-size:16px;line-height:1.6;margin:0;padding:40px 20px 96px}
+  .wrap{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:44px}
+  header{display:flex;flex-direction:column;gap:10px}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--copper)}
+  h1{font-family:"IBM Plex Sans Condensed","IBM Plex Sans",sans-serif;font-weight:700;
+    font-size:clamp(30px,5vw,44px);line-height:1.1;letter-spacing:-.01em;margin:0;text-wrap:balance}
+  .lede{color:var(--ink-2);max-width:64ch;margin:0}
+  h2{font-family:"IBM Plex Sans Condensed","IBM Plex Sans",sans-serif;font-weight:600;
+    font-size:23px;margin:0 0 4px;letter-spacing:.005em}
+  h3{font-family:"IBM Plex Sans Condensed","IBM Plex Sans",sans-serif;font-weight:600;
+    font-size:16px;margin:0 0 2px}
+  section{display:flex;flex-direction:column;gap:16px}
+  p{margin:0;max-width:68ch}
+  .card{background:var(--card);border:1px solid var(--rule);border-radius:4px;
+    box-shadow:var(--shadow);padding:22px;overflow-x:auto}
+  figure{margin:0;display:flex;flex-direction:column;gap:12px}
+  figure svg{display:block;width:100%;max-width:100%;height:auto;color:var(--ink)}
+  figcaption{font-size:13.5px;color:var(--ink-2);max-width:68ch}
+  .grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px}
+  table{width:100%;border-collapse:collapse;font-size:14.5px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+  th{font-family:"IBM Plex Sans Condensed",sans-serif;font-weight:600;font-size:12px;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+  tbody tr:last-child td{border-bottom:none}
+  .pin{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+    font-weight:500;color:var(--copper);white-space:nowrap}
+  .num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+  td.note{color:var(--ink-2);font-size:13.5px}
+  tfoot td{font-weight:600;border-top:2px solid var(--rule)}
+  .alert{border:1px solid var(--danger);background:var(--danger-bg);border-radius:4px;
+    padding:20px 22px;display:flex;flex-direction:column;gap:14px}
+  .alert h2{color:var(--danger);font-size:19px}
+  .alert h3{color:var(--danger)}
+  .alert p,.alert ol{max-width:72ch}
+  .alert ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px}
+  code{font-family:"IBM Plex Mono",monospace;font-size:.9em;
+    background:color-mix(in srgb,var(--ink) 7%,transparent);padding:1px 5px;border-radius:3px}
+  pre{font-family:"IBM Plex Mono",monospace;font-size:13px;line-height:1.7;margin:0;
+    background:color-mix(in srgb,var(--ink) 5%,transparent);padding:14px 16px;
+    border-radius:4px;overflow-x:auto}
+  .rule{height:1px;background:var(--rule);border:0;margin:0}
+  .swatches{display:flex;gap:0;border:1px solid var(--rule);border-radius:4px;overflow:hidden}
+  .sw{flex:1;height:56px;display:flex;align-items:flex-end;padding:6px 8px;
+    font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:#15181A}
+  .sw.dk{color:#E9ECEE}
+  footer{color:var(--ink-2);font-size:13.5px;display:flex;flex-direction:column;gap:6px}
+  ul.tight{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px;max-width:68ch}
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Водочка · модуль 1 · готовое решение</div>
+  <h1>Обвязка колонны</h1>
+  <p class="lede">Приборный контур для медной колонны Ø33, РПН 2 м, ТЭН 3 кВт. Мерит две независимые мощности, пять температур и проток охлаждения, орёт сиреной на авариях и пишет всё в Home Assistant. Не управляет ничем — управление начинается с модуля 3.</p>
+</header>
+
+<!-- ============ КРАСНЫЕ ПРАВИЛА ============ -->
+<section class="alert">
+  <h2>Четыре правила, три из них проверены чужой сгоревшей платой</h2>
+
+  <div>
+    <h3>1. Клеммы напряжения PZEM — только ДО диммера</h3>
+    <p>Подключение после симистора выжигает входную цепь модуля. PZEM хочет целую синусоиду, огрызки не переваривает. Кольцо CT — наоборот, после диммера, на проводе к ТЭНу.</p>
+  </div>
+
+  <div>
+    <h3>2. Прошивать по USB только при обесточенной колонне</h3>
+    <p>TTL-сторона PZEM опторазвязана — это подтверждается тем, что без сети модуль вообще молчит по UART, питается он от измеряемого напряжения. Но модуль дешёвый, оптрон пробивается, а цена ошибки — удар током и сожжённый ноутбук. Отключил колонну → воткнул USB → прошил → вынул USB → подал сеть.</p>
+  </div>
+
+  <div>
+    <h3>3. Реле в разрыв ТЭНа появляется раньше автоматики</h3>
+    <p>Симистор пробивается в <em>замкнутое</em> состояние. Без механического реле, которое держится программой, автоматика способна выпарить куб досуха. Поэтому P3 не откладывается «на потом».</p>
+  </div>
+
+  <div>
+    <h3>4. Сирена по протоку — ещё не право уйти из дома</h3>
+    <p>Датчик протока переехал в модуль 1, потому что он уже есть и ловит пропажу воды на минуты раньше температурного. Но сейчас он умеет ровно одно — орать. Уходить можно тогда, когда по этой аварии реле физически рвёт питание ТЭНа, а не когда её слышно из другой комнаты.</p>
+  </div>
+</section>
+
+<!-- ============ ОБЩАЯ СХЕМА ============ -->
+<section>
+  <h2>Схема подключения</h2>
+  <div class="card">
+    <figure>
+      <svg viewBox="0 0 940 560" role="img" aria-label="Схема: ESP32 с пятью датчиками температуры, барометром, счётчиком расхода воды и сиреной в низковольтной части; PZEM снимает напряжение до диммера, а ток после него, кольцом на проводе ТЭНа.">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <polygon points="0,1 10,5 0,9" fill="currentColor"/>
+          </marker>
+          <marker id="ah-cu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <polygon points="0,1 10,5 0,9" fill="#A0602F"/>
+          </marker>
+        </defs>
+
+        <text class="m" x="300" y="24" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="currentColor" opacity=".65" letter-spacing="1">НИЗКОВОЛЬТНАЯ ЧАСТЬ</text>
+        <text x="775" y="24" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="var(--danger)" letter-spacing="1">220 В — ОПАСНАЯ ЗОНА</text>
+        <line x1="600" y1="36" x2="600" y2="106" stroke="var(--danger)" stroke-width="2" stroke-dasharray="8 6"/>
+        <line x1="600" y1="224" x2="600" y2="540" stroke="var(--danger)" stroke-width="2" stroke-dasharray="8 6"/>
+
+        <!-- левые блоки -->
+        <rect x="20" y="56" width="190" height="82" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <text x="34" y="80" font-size="13" font-weight="600" fill="currentColor">DS18B20 ×5</text>
+        <text x="34" y="99" font-size="11" fill="currentColor" opacity=".7">куб · 2/3 · отбор · вода вх/вых</text>
+        <text x="34" y="118" font-size="11" fill="var(--patina)">четыре стоят, купить один</text>
+
+        <rect x="20" y="154" width="190" height="60" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <text x="34" y="178" font-size="13" font-weight="600" fill="currentColor">BMP280</text>
+        <text x="34" y="197" font-size="11" fill="currentColor" opacity=".7">барометр · I2C</text>
+
+        <rect x="20" y="230" width="190" height="82" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <text x="34" y="254" font-size="13" font-weight="600" fill="currentColor">YF-S201C</text>
+        <text x="34" y="273" font-size="11" fill="currentColor" opacity=".7">проток · холодный вход</text>
+        <text x="34" y="292" font-size="11" fill="var(--copper)">5 В → делитель 10к/20к</text>
+
+        <rect x="20" y="328" width="190" height="82" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <text x="34" y="352" font-size="13" font-weight="600" fill="currentColor">Сирена SFM-27</text>
+        <text x="34" y="371" font-size="11" fill="currentColor" opacity=".7">90 дБ · 12 В · через IRLZ44N</text>
+        <text x="34" y="390" font-size="11" fill="var(--patina)">решение принимает ESP32</text>
+
+        <rect x="20" y="426" width="190" height="60" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <text x="34" y="450" font-size="13" font-weight="600" fill="currentColor">БП 12 В + LM2596</text>
+        <text x="34" y="469" font-size="11" fill="currentColor" opacity=".7">отдельный от ТЭНа</text>
+
+        <!-- ESP32 -->
+        <rect x="270" y="56" width="160" height="430" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/>
+        <text x="350" y="262" text-anchor="middle" font-size="17" font-weight="600" fill="currentColor">ESP32</text>
+        <text x="350" y="284" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="currentColor" opacity=".7">DevKit v1 · 30 pin</text>
+
+        <line x1="210" y1="97" x2="266" y2="97" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)"/>
+        <text x="238" y="90" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="var(--copper)">GPIO4</text>
+        <line x1="210" y1="184" x2="266" y2="184" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)"/>
+        <text x="238" y="177" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="var(--copper)">21 / 22</text>
+        <line x1="210" y1="271" x2="266" y2="271" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)"/>
+        <text x="238" y="264" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="var(--copper)">GPIO19</text>
+        <line x1="266" y1="369" x2="214" y2="369" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)"/>
+        <text x="238" y="362" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="var(--copper)">GPIO23</text>
+        <line x1="210" y1="456" x2="266" y2="456" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)"/>
+        <text x="238" y="449" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="var(--copper)">VIN</text>
+
+        <line x1="350" y1="486" x2="350" y2="512" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#ah)"/>
+        <text x="350" y="534" text-anchor="middle" font-size="11.5" fill="currentColor" opacity=".75">Wi-Fi → Home Assistant · своя страница · MQTT</text>
+
+        <!-- PZEM -->
+        <rect x="530" y="106" width="200" height="118" rx="3" fill="var(--card)" stroke="var(--danger)" stroke-width="2"/>
+        <text x="544" y="132" font-size="13" font-weight="600" fill="currentColor">PZEM-004T v3</text>
+        <text x="544" y="152" font-size="11" fill="currentColor" opacity=".7">100 А, трансформатор тока</text>
+        <text x="544" y="176" font-size="11" fill="var(--copper)">TTL 5 В → делитель 1к/2к</text>
+        <text x="544" y="196" font-size="11" fill="currentColor" opacity=".7">питается от измеряемой сети</text>
+
+        <line x1="434" y1="165" x2="526" y2="165" stroke="currentColor" stroke-width="1.5"/>
+        <text x="480" y="157" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="var(--copper)">UART 9600</text>
+        <text x="480" y="180" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="currentColor" opacity=".7">GPIO16/17</text>
+
+        <!-- силовая цепь: сеть → диммер → CT → ТЭН -->
+        <rect x="770" y="86" width="140" height="50" rx="3" fill="none" stroke="var(--danger)" stroke-width="1.5"/>
+        <text x="840" y="116" text-anchor="middle" font-size="12.5" fill="currentColor">Сеть 220 В</text>
+
+        <rect x="770" y="220" width="140" height="56" rx="3" fill="none" stroke="var(--danger)" stroke-width="1.5"/>
+        <text x="840" y="243" text-anchor="middle" font-size="12.5" fill="currentColor">Диммер</text>
+        <text x="840" y="262" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="currentColor" opacity=".7">BTA41 · крутилка</text>
+
+        <rect x="770" y="380" width="140" height="66" rx="3" fill="none" stroke="var(--danger)" stroke-width="1.5"/>
+        <text x="840" y="407" text-anchor="middle" font-size="12.5" font-weight="600" fill="currentColor">ТЭН 3 кВт</text>
+        <text x="840" y="428" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="currentColor" opacity=".7">R ≈ 16 Ом · 13.6 А</text>
+
+        <line x1="840" y1="136" x2="840" y2="220" stroke="var(--danger)" stroke-width="2.5"/>
+        <line x1="840" y1="276" x2="840" y2="380" stroke="var(--danger)" stroke-width="2.5"/>
+        <circle cx="840" cy="330" r="19" fill="none" stroke="var(--copper)" stroke-width="3"/>
+
+        <!-- отвод напряжения ДО диммера -->
+        <polyline points="730,140 752,140 752,168 840,168" fill="none" stroke="var(--danger)" stroke-width="1.5"/>
+        <circle cx="840" cy="168" r="4" fill="var(--danger)"/>
+        <text x="700" y="134" text-anchor="middle" font-size="11" fill="var(--danger)">U — только здесь</text>
+        <text x="700" y="150" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".7">до диммера</text>
+
+        <!-- кольцо CT после диммера -->
+        <polyline points="640,224 640,330 817,330" fill="none" stroke="var(--copper)" stroke-width="1.5" marker-end="url(#ah-cu)"/>
+        <text x="712" y="322" text-anchor="middle" font-size="11" fill="var(--copper)">кольцо CT — после диммера</text>
+      </svg>
+      <figcaption>Один узел, две точки подключения, и перепутать их нельзя. Напряжение снимается до диммера, где синусоида ещё целая: после симистора модуль выгорает. Ток снимается кольцом после диммера — ему форма безразлична. PZEM нарисован поперёк красной границы, потому что стоит одной ногой на 220 В, а другой на пинах ESP32. Сирена — единственная стрелка, направленная <em>из</em> контроллера: всё остальное он только слушает.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ МОЩНОСТЬ ============ -->
+<section>
+  <h2>Как получить честную мощность с рубленой синусоиды</h2>
+  <p>Вольтметр показывает 90 В при реальных ~120. Но и PZEM при фазовой отсечке соврёт — по своей причине: он перемножает напряжение целой синусоиды на ток рубленой, и ошибка зависит от угла открытия симистора.</p>
+
+  <div class="card">
+    <figure>
+      <svg viewBox="0 0 900 300" role="img" aria-label="Диаграмма: напряжение снимается до диммера и остаётся целой синусоидой, ток после диммера обрезан. Перемножение этих двух величин даёт неверную мощность, а формула I в квадрате на R даёт верную.">
+        <!-- U -->
+        <text x="10" y="26" font-family="IBM Plex Mono,monospace" font-size="12" fill="currentColor" opacity=".7">U — до диммера</text>
+        <line x1="10" y1="70" x2="420" y2="70" stroke="currentColor" stroke-width="1" opacity=".3"/>
+        <path d="M20 70 Q65 10 110 70 Q155 130 200 70 Q245 10 290 70 Q335 130 380 70"
+              fill="none" stroke="currentColor" stroke-width="2"/>
+        <text x="20" y="112" font-size="11.5" fill="var(--patina)">целая синусоида — меряется точно</text>
+
+        <!-- I -->
+        <text x="10" y="166" font-family="IBM Plex Mono,monospace" font-size="12" fill="currentColor" opacity=".7">I — после диммера</text>
+        <line x1="10" y1="210" x2="420" y2="210" stroke="currentColor" stroke-width="1" opacity=".3"/>
+        <path d="M65 210 L65 178 Q88 156 110 210 M155 210 L155 242 Q178 264 200 210
+                 M245 210 L245 178 Q268 156 290 210 M335 210 L335 242 Q358 264 380 210"
+              fill="none" stroke="var(--copper)" stroke-width="2.5"/>
+        <text x="20" y="256" font-size="11.5" fill="var(--copper)">обрезан — но действующее значение честное</text>
+
+        <!-- разделитель -->
+        <line x1="460" y1="20" x2="460" y2="280" stroke="currentColor" stroke-width="1" opacity=".2"/>
+
+        <!-- формулы -->
+        <rect x="500" y="40" width="380" height="80" rx="3" fill="none" stroke="var(--danger)" stroke-width="1.5"/>
+        <text x="520" y="70" font-family="IBM Plex Mono,monospace" font-size="15" fill="currentColor">P = U · I · cos φ</text>
+        <text x="520" y="96" font-size="12" fill="var(--danger)">✕ поле «power» у PZEM — завышено</text>
+        <text x="782" y="70" font-size="13" fill="var(--danger)" font-weight="600">неверно</text>
+
+        <rect x="500" y="160" width="380" height="80" rx="3" fill="none" stroke="var(--patina)" stroke-width="2"/>
+        <text x="520" y="190" font-family="IBM Plex Mono,monospace" font-size="15" fill="currentColor">P = I² · R</text>
+        <text x="520" y="216" font-size="12" fill="var(--patina)">✓ верно при любой форме тока</text>
+        <text x="778" y="190" font-size="13" fill="var(--patina)" font-weight="600">верно</text>
+      </svg>
+      <figcaption>ТЭН — чисто активная нагрузка, поэтому <code>P = I²·R</code> справедливо независимо от формы тока. Действующее значение тока PZEM снимает трансформатором честно, сопротивление известно. Значит мощность не измеряется, а вычисляется — и проблема рубленой синусоиды просто исчезает.</figcaption>
+    </figure>
+  </div>
+
+  <p><strong>Калибровка R, один раз.</strong> Вывести диммер на максимум — синусоида целая, и тогда собственные показания PZEM верны. Записать мощность и ток, посчитать <code>R = P / I²</code>, вписать в <code>ten_resistance</code>. Ожидается около 16 Ом против паспортных 16.13.</p>
+
+  <h3>Вторая мощность — та же величина из других датчиков</h3>
+  <p>Формула <code>P = I²·R</code> опирается на одно допущение: что <code>R</code> известно верно. Проверить это нечем — пока не появляется расходомер. Почти всё тепло ТЭНа уносит охлаждающая вода, и её можно посчитать отдельно.</p>
+
+  <div class="card">
+    <figure>
+      <svg viewBox="0 0 900 250" role="img" aria-label="Две независимые цепочки измерения мощности: через трансформатор тока PZEM и сопротивление ТЭНа, и через расходомер воды с двумя датчиками температуры. Обе сходятся к одному числу.">
+        <defs>
+          <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <polygon points="0,1 10,5 0,9" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <text x="20" y="26" font-family="IBM Plex Mono,monospace" font-size="11" fill="currentColor" opacity=".65" letter-spacing="1">ЦЕПОЧКА 1 — ЭЛЕКТРИКА</text>
+        <rect x="20" y="42" width="150" height="46" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <text x="95" y="62" text-anchor="middle" font-size="12">кольцо CT</text>
+        <text x="95" y="79" text-anchor="middle" font-size="11" opacity=".7" fill="currentColor">ток, А</text>
+        <line x1="170" y1="65" x2="238" y2="65" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah2)"/>
+        <rect x="242" y="42" width="170" height="46" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <text x="327" y="70" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="14">P = I² · R</text>
+
+        <text x="20" y="140" font-family="IBM Plex Mono,monospace" font-size="11" fill="currentColor" opacity=".65" letter-spacing="1">ЦЕПОЧКА 2 — ТЕПЛО</text>
+        <rect x="20" y="156" width="150" height="64" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <text x="95" y="176" text-anchor="middle" font-size="12">YF-S201C</text>
+        <text x="95" y="193" text-anchor="middle" font-size="11" opacity=".7" fill="currentColor">расход, л/мин</text>
+        <text x="95" y="210" text-anchor="middle" font-size="11" opacity=".7" fill="currentColor">T5 и T4, °C</text>
+        <line x1="170" y1="188" x2="238" y2="188" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah2)"/>
+        <rect x="242" y="156" width="170" height="64" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <text x="327" y="182" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="13">P = Q · ΔT · 69.77</text>
+        <text x="327" y="204" text-anchor="middle" font-size="10.5" opacity=".7" fill="currentColor">4186 Дж/(кг·К) ÷ 60 с</text>
+
+        <line x1="412" y1="65" x2="500" y2="112" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah2)"/>
+        <line x1="412" y1="188" x2="500" y2="140" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah2)"/>
+
+        <rect x="512" y="94" width="180" height="64" rx="3" fill="none" stroke="var(--patina)" stroke-width="2.5"/>
+        <text x="602" y="120" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">Сошлись ±15%</text>
+        <text x="602" y="141" text-anchor="middle" font-size="11" fill="var(--patina)">верны обе</text>
+
+        <text x="716" y="112" font-size="11.5" fill="currentColor" opacity=".75">Разошлись — врёт</text>
+        <text x="716" y="130" font-family="IBM Plex Mono,monospace" font-size="11" fill="var(--danger)">ten_resistance</text>
+        <text x="716" y="148" font-size="11.5" fill="currentColor" opacity=".75">либо</text>
+        <text x="716" y="166" font-family="IBM Plex Mono,monospace" font-size="11" fill="var(--danger)">pulses_per_liter</text>
+      </svg>
+      <figcaption>Общих деталей у цепочек нет ни одной: разные датчики, разная физика, разные калибровочные константы. Поэтому совпадение результата — не совпадение, а доказательство. При 900 Вт и протоке 1.5 л/мин вода нагреется примерно на 8.6 °C. Тепловая цифра честно ниже электрической на 5–10%: часть тепла уходит через изоляцию колонны, а не в холодильник.</figcaption>
+    </figure>
+  </div>
+
+  <p><strong>Калибровка протока.</strong> Паспортные 450 импульсов на литр — среднее по модели, разброс между экземплярами до 10%. Пролить в ведро не меньше 5 литров, взвесить, сравнить с показаниями. Калибровать <em>на рабочем расходе</em>: турбинка нелинейна на краях диапазона, и коэффициент, снятый при 10 л/мин, на рабочих 1.5 л/мин соврёт.</p>
+
+  <p>Сырое поле PZEM оставлено на дашборде рядом с расчётным под именем «PZEM, сырое». Расхождение между ними — прямая мера того, насколько порезана синусоида, то есть косвенный указатель положения крутилки.</p>
+</section>
+
+<!-- ============ СПЕЦИФИКАЦИЯ ============ -->
+<section>
+  <h2>Спецификация</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Позиция</th><th>Что именно</th><th class="num">₽</th></tr></thead>
+      <tbody>
+        <tr><td>Ваттметр ✅</td><td>PZEM-004T <strong>v3.0, 100 А, разъёмное кольцо CT</strong>. Версия 10 А со шунтом не годится: ТЭН даёт 13.6 А</td><td class="num">681</td></tr>
+        <tr><td>Сирена ✅</td><td>Зуммер SFM-27, активный, 90 дБ, 3–24 В. Питать от 12 В — громче</td><td class="num">130</td></tr>
+        <tr><td>Ключ сирены ✅</td><td><strong>IRLZ44N</strong>, ×3. Буква L обязательна: у IRFZ порог затвора до 4 В, а ESP32 даёт 3.3</td><td class="num">239</td></tr>
+        <tr><td>Проток ✅</td><td>YF-S201C, уже был в хозяйстве. G1/2, 1–30 л/мин</td><td class="num">0</td></tr>
+        <tr><td>Контроллер</td><td>ESP32 DevKit v1, <strong>30 pin</strong>. У 38-пинового другая распиновка</td><td class="num">500</td></tr>
+        <tr><td>Температура</td><td>DS18B20 в гильзе — <strong>один, на вход воды</strong>. Четыре уже стоят</td><td class="num">150</td></tr>
+        <tr><td>Барометр</td><td>BMP280, I2C-версия на 4 пина. Не BME280. Уже есть</td><td class="num">0</td></tr>
+        <tr><td>Питание</td><td>БП 12 В 1 А + понижающий модуль LM2596</td><td class="num">450</td></tr>
+        <tr><td>Мелочёвка</td><td>4.7к, 100, 10к, 20к, 1к, 2к, клеммники, корпус IP54, провод</td><td class="num">400</td></tr>
+      </tbody>
+      <tfoot><tr><td colspan="2">Итого модуль 1</td><td class="num">~2550</td></tr></tfoot>
+    </table>
+  </div>
+  <p>Счётчик капель уехал в модуль 2 (+300 ₽), реле в разрыв ТЭНа — в модуль 3. Датчик протока, наоборот, переехал <em>сюда</em> из модуля 3: он уже есть, а авария по нему срабатывает на минуты раньше температурной.</p>
+  <p>Главный выигрыш проекта при этом лежит не здесь. Экономия 5.2 часа цикла и 0.6 л продукта берётся тем, что игольчатый кран на головах открывают с 78 до 120 мл/ч. Это мерный стакан и десять минут. Модули дают удобство, надёжность и данные, а не прибыль.</p>
+</section>
+
+<hr class="rule">
+
+<!-- ============ РАСПИНОВКА ============ -->
+<section>
+  <h2>Распиновка</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>GPIO</th><th>Куда</th><th>Что важно</th></tr></thead>
+      <tbody>
+        <tr><td class="pin">GPIO4</td><td>DS18B20 DATA, все пять параллельно</td><td class="note">Резистор 4.7 кОм на 3.3 В. Без него шина не заработает</td></tr>
+        <tr><td class="pin">GPIO16</td><td>PZEM TX → сюда</td><td class="note">Только через делитель 1к/2к — PZEM отдаёт 5 В</td></tr>
+        <tr><td class="pin">GPIO17</td><td>PZEM RX ← отсюда</td><td class="note">Напрямую, 3.3 В хватает</td></tr>
+        <tr><td class="pin">GPIO18</td><td>Счётчик капель, выход DO</td><td class="note">Модуль 2, пока свободен</td></tr>
+        <tr><td class="pin">GPIO19</td><td>YF-S201C, жёлтый сигнальный</td><td class="note">Делитель 10к/20к: 5 × 20/30 = 3.33 В. Импульсов нет вообще — добавить 10 кОм с жёлтого на +5 В</td></tr>
+        <tr><td class="pin">GPIO21</td><td>BMP280 SDA</td><td class="note">Адрес 0x76, у части модулей 0x77</td></tr>
+        <tr><td class="pin">GPIO22</td><td>BMP280 SCL</td><td class="note"></td></tr>
+        <tr><td class="pin">GPIO23</td><td>Затвор IRLZ44N, сирена</td><td class="note">100 Ом в затвор, 10 кОм затвор→GND, иначе взвоет на старте</td></tr>
+        <tr><td class="pin">3V3</td><td>DS18B20, BMP280</td><td class="note"></td></tr>
+        <tr><td class="pin">VIN</td><td>+5 В с LM2596</td><td class="note">Оттуда же питание YF-S201C</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Пины 6–11 заняты флешем. Пины 0, 2, 12, 15 мешают загрузке, если на них что-то висит.</p>
+</section>
+
+<!-- ============ УЗЛЫ ============ -->
+<section>
+  <h2>Узлы крупным планом</h2>
+  <div class="grid-2">
+
+    <div class="card">
+      <figure>
+        <svg viewBox="0 0 440 180" role="img" aria-label="Делитель напряжения: выход PZEM через резистор 1 кОм на GPIO16, от той же точки резистор 2 кОм на землю.">
+          <text x="8" y="66" font-size="12" fill="currentColor">PZEM TX</text>
+          <text x="8" y="82" font-family="IBM Plex Mono,monospace" font-size="11" fill="var(--danger)">5 В</text>
+          <line x1="66" y1="70" x2="150" y2="70" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="150" y="58" width="58" height="24" fill="none" stroke="var(--copper)" stroke-width="2"/>
+          <text x="179" y="50" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="var(--copper)">1 кОм</text>
+          <line x1="208" y1="70" x2="330" y2="70" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)"/>
+          <circle cx="266" cy="70" r="4" fill="currentColor"/>
+          <text x="345" y="66" font-family="IBM Plex Mono,monospace" font-size="12" fill="var(--copper)">GPIO16</text>
+          <text x="345" y="82" font-family="IBM Plex Mono,monospace" font-size="11" fill="var(--patina)">3.3 В</text>
+          <line x1="266" y1="70" x2="266" y2="104" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="237" y="104" width="58" height="24" fill="none" stroke="var(--copper)" stroke-width="2"/>
+          <text x="305" y="121" font-family="IBM Plex Mono,monospace" font-size="11" fill="var(--copper)">2 кОм</text>
+          <line x1="266" y1="128" x2="266" y2="146" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="248" y1="146" x2="284" y2="146" stroke="currentColor" stroke-width="2"/>
+          <line x1="254" y1="153" x2="278" y2="153" stroke="currentColor" stroke-width="2"/>
+          <line x1="260" y1="160" x2="272" y2="160" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <figcaption><strong>Делитель на RX.</strong> ESP32 не терпит 5 В на входе. Обратная линия GPIO17 → PZEM идёт напрямую.</figcaption>
+      </figure>
+    </div>
+
+    <div class="card">
+      <figure>
+        <svg viewBox="0 0 440 200" role="img" aria-label="Шина 1-Wire с резистором 4.7 кОм и пятью датчиками DS18B20 на одной паре проводов.">
+          <line x1="40" y1="40" x2="410" y2="40" stroke="var(--danger)" stroke-width="1.5"/>
+          <text x="8" y="44" font-family="IBM Plex Mono,monospace" font-size="11" fill="currentColor">3.3 В</text>
+          <line x1="110" y1="40" x2="110" y2="58" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="96" y="58" width="28" height="52" fill="none" stroke="var(--copper)" stroke-width="2"/>
+          <text x="132" y="88" font-family="IBM Plex Mono,monospace" font-size="11" fill="var(--copper)">4.7 кОм</text>
+          <line x1="110" y1="110" x2="110" y2="126" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="40" y1="126" x2="410" y2="126" stroke="currentColor" stroke-width="1.8"/>
+          <text x="8" y="130" font-family="IBM Plex Mono,monospace" font-size="11" fill="var(--copper)">GPIO4</text>
+          <circle cx="110" cy="126" r="4" fill="currentColor"/>
+          <line x1="140" y1="126" x2="140" y2="144" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="195" y1="126" x2="195" y2="144" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="250" y1="126" x2="250" y2="144" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="305" y1="126" x2="305" y2="144" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="360" y1="126" x2="360" y2="144" stroke="currentColor" stroke-width="1.5"/>
+          <circle cx="140" cy="126" r="3.5" fill="currentColor"/>
+          <circle cx="195" cy="126" r="3.5" fill="currentColor"/>
+          <circle cx="250" cy="126" r="3.5" fill="currentColor"/>
+          <circle cx="305" cy="126" r="3.5" fill="currentColor"/>
+          <rect x="116" y="144" width="48" height="26" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="171" y="144" width="48" height="26" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="226" y="144" width="48" height="26" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="281" y="144" width="48" height="26" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="336" y="144" width="48" height="26" fill="none" stroke="var(--copper)" stroke-width="1.8"/>
+          <text x="140" y="162" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="currentColor">T1</text>
+          <text x="195" y="162" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="currentColor">T2</text>
+          <text x="250" y="162" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="currentColor">T3</text>
+          <text x="305" y="162" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="currentColor">T4</text>
+          <text x="360" y="162" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="var(--copper)">T5</text>
+          <line x1="140" y1="170" x2="140" y2="188" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="195" y1="170" x2="195" y2="188" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="250" y1="170" x2="250" y2="188" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="305" y1="170" x2="305" y2="188" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="360" y1="170" x2="360" y2="188" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="40" y1="188" x2="410" y2="188" stroke="currentColor" stroke-width="1.5"/>
+          <text x="8" y="192" font-family="IBM Plex Mono,monospace" font-size="11" fill="currentColor">GND</text>
+        </svg>
+        <figcaption><strong>Шина 1-Wire.</strong> Четыре датчика уже стоят — их просто перецепить с ардуинки. Медью выделен T5 на входе охлаждения: единственный, которого нет, и без которого не считается мощность по воде. В конфиге стоит <code>resolution: 12</code> — шаг 0.0625 °C против нынешних 0.25.</figcaption>
+      </figure>
+    </div>
+
+    <div class="card">
+      <figure>
+        <svg viewBox="0 0 440 230" role="img" aria-label="Счётчик капель: медицинская капельная камера в линии отбора, по бокам инфракрасный светодиод и фототранзистор.">
+          <line x1="200" y1="14" x2="200" y2="46" stroke="var(--copper)" stroke-width="3"/>
+          <text x="8" y="34" font-size="10.5" fill="currentColor" opacity=".75">шланг отбора</text>
+          <line x1="86" y1="30" x2="194" y2="30" stroke="currentColor" stroke-width="1" opacity=".4"/>
+          <rect x="172" y="46" width="56" height="112" rx="7" fill="none" stroke="currentColor" stroke-width="1.8"/>
+          <polygon points="193,48 207,48 200,64" fill="currentColor"/>
+          <circle cx="200" cy="100" r="5.5" fill="var(--copper)"/>
+          <line x1="166" y1="100" x2="234" y2="100" stroke="var(--copper)" stroke-width="1.5" stroke-dasharray="5 4"/>
+          <rect x="130" y="86" width="36" height="28" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="234" y="86" width="36" height="28" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <text x="148" y="104" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="currentColor">ИК</text>
+          <text x="252" y="104" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="currentColor">ФТ</text>
+          <line x1="270" y1="100" x2="308" y2="100" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)"/>
+          <text x="314" y="97" font-family="IBM Plex Mono,monospace" font-size="11.5" fill="var(--copper)">GPIO18</text>
+          <text x="314" y="113" font-size="10" fill="currentColor" opacity=".7">1 капля = 1 импульс</text>
+          <line x1="232" y1="56" x2="296" y2="56" stroke="currentColor" stroke-width="1" opacity=".4"/>
+          <text x="302" y="59" font-size="10.5" fill="currentColor" opacity=".75">камера из аптеки</text>
+          <line x1="232" y1="146" x2="296" y2="146" stroke="currentColor" stroke-width="1" opacity=".4"/>
+          <text x="302" y="149" font-size="10.5" fill="var(--danger)">закрыть от света</text>
+          <line x1="200" y1="158" x2="200" y2="192" stroke="var(--copper)" stroke-width="2.5"/>
+          <path d="M170 192 L170 218 L230 218 L230 192" fill="none" stroke="currentColor" stroke-width="1.8"/>
+          <text x="242" y="214" font-size="10.5" fill="currentColor" opacity=".75">в банку</text>
+        </svg>
+        <figcaption><strong>Счётчик капель — контрольный, не обязательный.</strong> Серийные контроллеры расход не меряют вообще. Счётчик нужен, чтобы видеть график и проверять ШИМ. Бонусом камера служит разрывом струи, без которого скорость отбора уплывает от разрежения в шланге.</figcaption>
+      </figure>
+    </div>
+
+  </div>
+</section>
+
+<hr class="rule">
+
+<!-- ============ АЛГОРИТМ ============ -->
+<section>
+  <h2>Алгоритм отбора — как у серийных контроллеров</h2>
+  <p>Проверено по SSVC0059 v2 «Смартмодуль», ШИМ-2 и БКУ-07. Расходомера у них нет ни в каком виде. Скорость задаётся разомкнутым ШИМ клапана, а обратная связь идёт по температуре в царге.</p>
+
+  <div class="card">
+    <figure>
+      <svg viewBox="0 0 900 300" role="img" aria-label="Алгоритм: головы ведутся по таймеру, тело ведётся с запомненной температурой, при её превышении отбор останавливается, а после возврата возобновляется с уменьшенным на десять процентов временем открытия клапана.">
+        <rect x="20" y="40" width="150" height="62" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/>
+        <text x="95" y="66" text-anchor="middle" font-size="14" font-weight="600" fill="currentColor">ГОЛОВЫ</text>
+        <text x="95" y="86" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">120 мл/ч · 3.3 ч</text>
+
+        <line x1="170" y1="71" x2="226" y2="71" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)"/>
+        <text x="198" y="62" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".7">таймер</text>
+
+        <rect x="230" y="40" width="170" height="62" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/>
+        <text x="315" y="66" text-anchor="middle" font-size="14" font-weight="600" fill="currentColor">ТЕЛО</text>
+        <text x="315" y="86" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">запомнить T царги</text>
+
+        <line x1="400" y1="71" x2="456" y2="71" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)"/>
+
+        <rect x="460" y="40" width="180" height="62" rx="3" fill="none" stroke="var(--copper)" stroke-width="2"/>
+        <text x="550" y="66" text-anchor="middle" font-size="13" font-weight="600" fill="var(--copper)">T &gt; запомненной</text>
+        <text x="550" y="86" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">+ 0.25 °C</text>
+
+        <line x1="550" y1="102" x2="550" y2="140" stroke="var(--copper)" stroke-width="1.5" marker-end="url(#ah-cu)"/>
+
+        <rect x="460" y="144" width="180" height="56" rx="3" fill="none" stroke="var(--copper)" stroke-width="2"/>
+        <text x="550" y="170" text-anchor="middle" font-size="13" font-weight="600" fill="var(--copper)">ОТБОР СТОП</text>
+        <text x="550" y="189" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">ждём возврата T</text>
+
+        <!-- петля декремента -->
+        <polyline points="460,172 340,172 340,120 315,120 315,106" fill="none" stroke="var(--copper)" stroke-width="1.8" marker-end="url(#ah-cu)"/>
+        <text x="392" y="164" text-anchor="middle" font-size="12" font-weight="600" fill="var(--copper)">Ton × 0.9</text>
+        <text x="392" y="146" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".7">декремент 10 %</text>
+
+        <line x1="640" y1="71" x2="700" y2="71" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#ah)"/>
+        <text x="670" y="62" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".7">Ton = 0</text>
+
+        <rect x="704" y="40" width="176" height="62" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/>
+        <text x="792" y="66" text-anchor="middle" font-size="14" font-weight="600" fill="currentColor">СТОП</text>
+        <text x="792" y="86" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">куб 98.5 °C</text>
+
+        <text x="20" y="248" font-size="12.5" fill="currentColor" opacity=".8">Кран настраивается на ~1500 мл/ч, период ШИМ 10 с.</text>
+        <text x="20" y="270" font-family="IBM Plex Mono,monospace" font-size="12.5" fill="var(--copper)">Головы: Ton 0.8 / 10   ·   Тело: Ton 7.3 / 10</text>
+      </svg>
+      <figcaption>Автомат сам нащупывает правильную скорость: пошёл слишком резво — колонна ответила ростом температуры — скорость срезалась на 10 %, и так до равновесия. Это релейный регулятор с самонастройкой, а не ПИД, поэтому расходомер ему не нужен. Датчик для этого ставится на 2/3 высоты царги — и он там уже стоит.</figcaption>
+    </figure>
+  </div>
+
+  <p><strong>Кран настраивать под тело, а не под головы.</strong> Тело 1100 мл/ч должно получаться при почти полностью открытом клапане, иначе на теле упрёшься в потолок. И обязателен разрыв струи после клапана: иначе стекающий спирт создаёт разрежение и скорость уплывает независимо от того, что задал ШИМ.</p>
+</section>
+
+<hr class="rule">
+
+<!-- ============ ЭКРАН ============ -->
+<section>
+  <h2>Операторский экран</h2>
+  <p>Сделан по <strong>ISA-101</strong> — стандарту, по которому рисуют SCADA в нефтехимии и энергетике. Главный принцип звучит контринтуитивно: экран должен быть серым.</p>
+
+  <div class="card">
+    <div class="swatches">
+      <div class="sw" style="background:#BFC3C6">#BFC3C6 поле</div>
+      <div class="sw" style="background:#CBCFD2">#CBCFD2 панель</div>
+      <div class="sw dk" style="background:#41474A">#41474A контур</div>
+      <div class="sw dk" style="background:#B32D1F">#B32D1F авария</div>
+      <div class="sw dk" style="background:#C77B0A">#C77B0A внимание</div>
+      <div class="sw dk" style="background:#7B3F9D">#7B3F9D событие</div>
+    </div>
+  </div>
+
+  <p>Серый фон — не эстетика, а перцептивная инженерия. На нейтральном поле изменение цвета ловится боковым зрением, без вглядывания. На пёстром экране красный конкурирует с десятком других насыщенных цветов и теряется. По замерам ASM Consortium, один только правильный цвет даёт <strong>48 % улучшения</strong> в обнаружении отклонений до срабатывания аварий.</p>
+
+  <h3 style="margin-top:8px">Что из этого следует для твоего экрана</h3>
+  <ul class="tight">
+    <li><strong>Пустой серый экран = всё в порядке.</strong> Взглянул, цвета нет — ушёл. Не надо читать цифры.</li>
+    <li><strong>Ни одного цветного циферблата.</strong> Радужная шкала раскрашивает экран постоянно и обесценивает красный. Вместо них — шкала отклонения: серая полоса нормы и метка текущего значения.</li>
+    <li><strong>Тренд рядом с каждым числом.</strong> Значение без тренда — половина информации: 78.2 °C ничего не говорит, а 78.2 с загибающейся вверх линией говорит всё.</li>
+    <li><strong>Аварии отличаются не только цветом.</strong> У каждой свой символ: ▲ авария, ◆ внимание, ● событие. Дальтонизм и плохой монитор не должны ломать читаемость.</li>
+    <li><strong>Мнемосхема вместо списка.</strong> Значения стоят на схеме колонны там, где физически находятся датчики. Это уровень 2 по ISA-101 — обзор установки.</li>
+    <li><strong>Карточки аварий появляются, а не гаснут.</strong> В Home Assistant они условные: в норме их на экране просто нет.</li>
+  </ul>
+
+  <p>Плюс ночной режим — те же правила, тёмно-серое поле вместо светло-серого, потому что гнать десятичасовой процесс приходится и в темноте.</p>
+</section>
+
+<hr class="rule">
+
+<!-- ============ КУДА СМОТРЕТЬ ============ -->
+<section>
+  <h2>Три места, откуда смотреть</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Где</th><th>Что даёт</th><th>Когда нужно</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Home Assistant</strong><br><span class="pin">192.168.0.74:8123</span></td><td>Дашборд, история на любую глубину, выгрузка в CSV, пуши в телегу</td><td class="note">Основное место. Журнал ректификации заполняется отсюда сам</td></tr>
+        <tr><td><strong>Свой пульт</strong><br><span class="pin">web/index.html</span></td><td>Мнемосхема, шкалы отклонений, три тренда. Данные прямо с ESP32</td><td class="note">Работает, когда HA выключен или обновляется. История 3 часа</td></tr>
+        <tr><td><strong>Страница ESP32</strong><br><span class="pin">kolonna.local</span></td><td>Голый список датчиков от самого контроллера</td><td class="note">Проверка связи и отладка</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>MQTT лежит в конфиге закомментированным и работает одновременно с родным протоколом HA. Включать, когда данные понадобятся третьей стороне — Node-RED, Grafana, своим скриптам. Обязательно с <code>discovery: false</code>, иначе HA заведёт вторые копии всех датчиков.</p>
+</section>
+
+<!-- ============ ПЛАН ============ -->
+<section>
+  <h2>План работ</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Модуль</th><th>Что даёт</th><th class="num">₽</th></tr></thead>
+      <tbody>
+        <tr><td><strong>0</strong> Тест на альдегиды ✅</td><td>Где на самом деле кончаются головы. Термометр этого не видит принципиально</td><td class="num">307</td></tr>
+        <tr><td><strong>1</strong> Наблюдатель</td><td>Две мощности, тренд царги с шагом 0.0625 °C, сирена, проток, автожурнал</td><td class="num">2550</td></tr>
+        <tr><td><strong>2</strong> Счётчик капель</td><td>Скорость отбора без мерного стакана</td><td class="num">300</td></tr>
+        <tr><td><strong>3</strong> Реле в разрыв</td><td>По аварии рвёт ТЭН — <strong>вот теперь можно уйти из дома</strong></td><td class="num">1200</td></tr>
+        <tr><td><strong>4</strong> Клапан отбора</td><td>Автомат ведёт головы и тело по ШИМ</td><td class="num">2200</td></tr>
+        <tr><td><strong>5</strong> Силовой узел</td><td>Держит 900 Вт при просадках сети</td><td class="num">1700</td></tr>
+        <tr><td><strong>6</strong> Автомат фаз</td><td>Переходы, уведомления, автозаполнение журнала</td><td class="num">0</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Порядок нарушать не стоит: модуль 3 — единственная защита от пробитого симистора, и он идёт раньше 4 и 5 намеренно. Остановиться можно в любой точке, ничего не сломается.</p>
+  <p>Модуль 0 стоит первым не по номеру, а по смыслу: <strong>307 ₽ бьют ровно в ту дыру, ради которой всё затевалось</strong>, а 2550 ₽ модуля 1 покупают удобство и данные.</p>
+</section>
+
+<!-- ============ ОТКРЫТЫЕ ВОПРОСЫ ============ -->
+<section>
+  <h2>Что закроет первый погон</h2>
+  <ul class="tight">
+    <li><strong>Реальная мощность.</strong> В журнале от 25.05 поле «Мощность ТЭН» заполнено как 1500 Вт, но расчётный порог захлёба для Ø33 РПН — около 1370. Либо поле не соответствует факту, либо оценка захлёба занижена.</li>
+    <li><strong>Головы 15 % против плановых 5–6 %.</strong> Журнал заряжен на 990 мл вместо 400. Это ровно та дыра, ради которой всё затевалось.</li>
+    <li><strong>Ловится ли фронт по тренду.</strong> Гнать руками как обычно, ничем не управляя, и посмотреть: дёрнулся ли тренд раньше, чем нос определил конец голов. Если да — модуль 4 строится на нём. Если нет — думаем про PT100 с разрешением 0.01 °C.</li>
+    <li><strong>Сойдутся ли две мощности.</strong> Электрическая и тепловая посчитаны из разных датчиков. Разошлись больше чем на 15% — переделывать одну из двух калибровок.</li>
+    <li><strong>Хватает ли протока для расходомера.</strong> YF-S201C уверенно считает от 1 л/мин. Если рабочий расход окажется ниже, тепловой баланс отпадает, а датчик остаётся как «есть вода / нет воды» — и это всё равно самая быстрая авария в системе.</li>
+  </ul>
+  <p><strong>Бобышка в кубе есть</strong> — сверлить и паять медь не придётся. Осталось замерить в ней резьбу: обычно G1/4", реже M10×1. Если отверстие гладкое 6 мм — берётся стандартная герметичная гильза Ø6 мм на термопасту. Это последнее, что отделяло от заказа.</p>
+</section>
+
+<footer>
+  <div>Файлы: <code>НАЧНИ_ОТСЮДА.md</code> · <code>P0_Сборка.md</code> · <code>esphome/kolonna_p0.yaml</code> · <code>ha/dashboard_kolonna.yaml</code> · <code>ha/README.md</code> · <code>web/index.html</code> · <code>ACTION_PLAN_Автоматика.md</code></div>
+  <div>Колонна: медная царга Ø33 внутр., 2 м РПН, ~24 теоретические тарелки, ТЭН 3 кВт / R ≈ 16 Ом, рабочая точка ~900 Вт. Отбор по жидкости, игольчатый кран в верхней точке.</div>
+</footer>
+
+</div>
+
