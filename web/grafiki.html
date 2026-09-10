@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260908j">
+<link rel="stylesheet" href="pult.css?v=20260910a">
 </head>
 <body>
 
@@ -43,13 +43,18 @@
       <button data-p="kub">Куб и мощность</button>
       <button data-p="cool">Охлаждение</button>
     </div>
+    <button class="btn" id="fill">Дотянуть с платы</button>
     <button class="btn" id="csv">История браузера</button>
     <button class="btn prim" id="log">Журнал контроллера</button>
   </div>
 
   <div class="work">
     <div class="chart big">
-      <canvas id="main" aria-label="График выбранных каналов за выбранный отрезок времени"></canvas>
+      <div class="cwrap">
+        <canvas id="main" aria-label="График выбранных каналов за выбранный отрезок времени"></canvas>
+        <canvas id="hover" class="hover" aria-hidden="true"></canvas>
+        <div class="tip" id="tip" role="status" hidden></div>
+      </div>
       <div class="leg" id="leg"></div>
     </div>
     <div class="pcol" id="pcol"></div>
@@ -58,14 +63,16 @@
 </main>
 
 <footer>
-  Панель справа — кнопка: щелчок открывает настройку канала, глаз убирает
-  линию с графика. Множитель у линии (×100, ÷30) нужен, чтобы величины
-  разного масштаба легли на одну ось: сам ряд не искажается, меняется только
-  цена деления. Данные копятся в браузере с шагом 30 секунд на 12 часов;
-  долгий архив пишет Home Assistant.
+  Наведи указатель на график — вертикальная нить покажет значения всех
+  линий на этот момент. Панель справа — кнопка: щелчок открывает настройку
+  канала, глаз убирает линию с графика. Величины разного масштаба лежат
+  каждая в своей полосе со своей шкалой, поэтому давление не расплющивает
+  температуры. Браузер копит точки с шагом 30 секунд на 12 часов, но пишет
+  только пока вкладка открыта: кнопка «Дотянуть с платы» закрывает дыру за
+  то время, что она была закрыта.
 </footer>
 
-<script src="pult.js?v=20260908j"></script>
+<script src="pult.js?v=20260910a"></script>
 <script>
 "use strict";
 const {slice, col, lineColor, V, CH} = PULT;
@@ -180,55 +187,148 @@ function paintLegend(){
   document.getElementById('leg').innerHTML = SHOW.length
     ? SHOW.map(k => {
         const c = byKey[k]; if (!c) return '';
+        const dash = PULT.dashOf(k).length ? ' class="dash"' : '';
         return '<span data-k="' + k + '" role="button" tabindex="0" title="Настроить канал">' +
-               '<i style="background:' + lineColor(k) + '"></i>' +
+               '<i' + dash + ' style="background:' + lineColor(k) + '"></i>' +
                c.n + (c.u ? ', ' + c.u : '') + '</span>';
       }).join('')
     : '<span>ни одной линии не выбрано — включи глазом справа</span>';
 }
 
+/* Геометрия последней отрисовки — по ней слой наведения находит точки
+   и рисует перекрестие, не перерисовывая сам график. */
+let GEO = null;
+
+/* Где стоит нить и стоит ли она вообще. Живёт снаружи chart(), потому что
+   график сам перерисовывается раз в пять секунд: без этого подсказка
+   гасла прямо под носом у человека, который её читает. */
+let hoverX = null;
+
+/* Круглые числа на шкале: 1, 2, 5 и их десятки. Шкала с делениями
+   вида 26.37 читается медленнее, чем с 26.4 — а смотрят на неё во
+   время погона, между делом. */
+function niceStep(range, want){
+  const raw = range / Math.max(1, want);
+  const p = Math.pow(10, Math.floor(Math.log10(raw)));
+  const n = raw / p;
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p;
+}
+
+const hhmm = ts => {
+  const d = new Date(ts), two = n => String(n).padStart(2, '0');
+  return two(d.getHours()) + ':' + two(d.getMinutes());
+};
+
+/* Полосы. Одной единицы измерения мало: ΔT (0-3 °C), вода (40-48 °C) и
+   куб (78-90 °C) — всё градусы, но на общей шкале разница царги и отбора
+   в 0.7 °C схлопывается в одну линию. Поэтому внутри единицы ряды ещё
+   делятся по масштабу: полоса режется по самому большому разрыву, пока
+   каждый ряд не займёт заметную долю своей шкалы.
+   Это тот же приём, что «малые кратные», и он честнее второй оси справа:
+   две шкалы на одном поле показывают пересечения, которых в данных нет. */
+// Восемь полос — предел не по вкусу, а по высоте экрана: ниже 78 пикселей
+// полоса перестаёт читаться. Обычно их три-четыре.
+const MAXBANDS = 8;
+const CRUSH = 1 / 8;          // ряд сплющен, если его размах меньше доли полосы
+
+function bandSpan(b){
+  let lo = Infinity, hi = -Infinity;
+  b.items.forEach(s => { if (s.lo < lo) lo = s.lo; if (s.hi > hi) hi = s.hi; });
+  return isFinite(lo) ? hi - lo : 0;
+}
+
+function cutAtGap(b){
+  const sorted = b.items.slice().sort((x, y) => x.mid - y.mid);
+  let cut = 1, best = -1;
+  for (let i = 1; i < sorted.length; i++){
+    const gap = sorted[i].mid - sorted[i - 1].mid;
+    if (gap > best){ best = gap; cut = i; }
+  }
+  return [{u: b.u, items: sorted.slice(0, cut)},
+          {u: b.u, items: sorted.slice(cut)}];
+}
+
+function makeBands(items){
+  const bands = [], byUnit = {};
+  items.forEach(s => {
+    if (!byUnit[s.u]){ byUnit[s.u] = {u: s.u, items: []}; bands.push(byUnit[s.u]); }
+    byUnit[s.u].items.push(s);
+  });
+
+  // Пока есть место, режем самую сплющенную полосу
+  while (bands.length < MAXBANDS){
+    let worst = null, worstRatio = 1;
+    bands.forEach(b => {
+      if (b.items.length < 2) return;
+      const span = bandSpan(b);
+      if (!(span > 0)) return;
+      b.items.forEach(s => {
+        const r = (s.span || 0) / span;
+        if (r < worstRatio){ worstRatio = r; worst = b; }
+      });
+    });
+    if (!worst || worstRatio >= CRUSH) break;
+    const parts = cutAtGap(worst);
+    bands.splice(bands.indexOf(worst), 1, parts[0], parts[1]);
+  }
+
+  // Градусы сверху — это главное, на что смотрят во время погона;
+  // внутри одной величины крупное над мелким.
+  bands.forEach(b => { b.mid = b.items.reduce((m, s) => m + s.mid, 0) / b.items.length; });
+  bands.sort((a, b) => {
+    if ((a.u === '°C') !== (b.u === '°C')) return a.u === '°C' ? -1 : 1;
+    if (a.u !== b.u) return 0;
+    return b.mid - a.mid;
+  });
+  return bands;
+}
+
 function chart(){
   const cv = document.getElementById('main');
+  const ov = document.getElementById('hover');
   const ser = SHOW.filter(k => byKey[k]);
 
-  /* Группируем ряды по единице измерения. Градусы, миллиметры ртутного
-     столба и ватты не живут на одной шкале: у давления рабочий диапазон
-     720-790, у температур 20-100, и на общей оси температуры превращаются
-     в прямую линию у края. Поэтому каждая величина получает свою полосу
-     с собственным масштабом, а ось времени остаётся общей. */
-  const groups = [], byUnit = {};
-  ser.forEach(k => {
-    const u = byKey[k].u || '';
-    if (!byUnit[u]){ byUnit[u] = {u: u, keys: []}; groups.push(byUnit[u]); }
-    byUnit[u].keys.push(k);
+  // Ряд со своей статистикой: по ней и раскладываются полосы
+  let any = false, t0 = Infinity, t1 = -Infinity;
+  const items = ser.map(k => {
+    const a = slice(k, winMin);
+    let lo = Infinity, hi = -Infinity;
+    a.forEach(pt => {
+      any = true;
+      if (pt[1] < lo) lo = pt[1];
+      if (pt[1] > hi) hi = pt[1];
+      if (pt[0] < t0) t0 = pt[0];
+      if (pt[0] > t1) t1 = pt[0];
+    });
+    return {k: k, a: a, u: byKey[k].u || '',
+            lo: lo, hi: hi, span: isFinite(lo) ? hi - lo : 0,
+            mid: isFinite(lo) ? (lo + hi) / 2 : 0};
   });
-  // Температуры всегда сверху: это главное, на что смотрят во время погона
-  groups.sort((a, b) => (a.u === '°C' ? -1 : b.u === '°C' ? 1 : 0));
 
-  const B = 20;                                   // полоса под отметки времени
-  const rowH = Math.max(96, Math.round(340 / Math.max(groups.length, 1)));
+  const groups = makeBands(items).map(b => ({
+    u: b.u,
+    keys: b.items.map(s => s.k),
+    data: b.items.map(s => s.a)
+  }));
+
+  const B = 22;                                   // полоса под отметки времени
+  const rowH = Math.max(78, Math.min(150, Math.round(460 / Math.max(groups.length, 1))));
   const need = groups.length ? groups.length * rowH + B : 320;
   cv.style.height = need + 'px';
+  ov.style.height = need + 'px';
 
   const dpr = devicePixelRatio || 1, w = cv.clientWidth, h = need;
   if (!w) return;
-  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  [cv, ov].forEach(c => { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); });
   const g = cv.getContext('2d');
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, w, h);
-
-  // Ось времени общая для всех полос, иначе полосы нельзя сопоставить
-  let t0 = Infinity, t1 = -Infinity, any = false;
-  groups.forEach(gr => {
-    gr.data = gr.keys.map(k => slice(k, winMin));
-    gr.data.forEach(a => a.forEach(pt => {
-      any = true;
-      if (pt[0] < t0) t0 = pt[0];
-      if (pt[0] > t1) t1 = pt[0];
-    }));
-  });
+  ov.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
 
   if (!any){
+    GEO = null;
+    hoverX = null;
+    document.getElementById('tip').hidden = true;
     g.fillStyle = col('--ink-3');
     g.font = '13px "IBM Plex Sans", system-ui, sans-serif';
     g.textAlign = 'center';
@@ -238,12 +338,14 @@ function chart(){
   }
   if (t1 - t0 < 1000) t1 = t0 + 1000;
 
-  const L = 52;
-  const xOf = t => L + (w - L) * (t - t0) / (t1 - t0);
+  // Справа оставляем поле под подписи последних значений
+  const L = 54, R = 62;
+  const xOf = t => L + (w - L - R) * (t - t0) / (t1 - t0);
+  const surface = col('--surface');
 
   groups.forEach((gr, gi) => {
     // Отступ сверху: без него верхняя подпись шкалы срезается краем канвы
-    const top = gi * rowH + 10, bot = gi * rowH + rowH - 14;
+    const top = gi * rowH + 12, bot = gi * rowH + rowH - 16;
 
     let lo = Infinity, hi = -Infinity;
     gr.data.forEach(a => a.forEach(pt => {
@@ -253,42 +355,54 @@ function chart(){
     if (!isFinite(lo)){ lo = 0; hi = 1; }
     if (hi - lo < 1e-6){ hi += .5; lo -= .5; }
     const pad = (hi - lo) * .12; lo -= pad; hi += pad;
+    // Целимся в четыре деления; если круглый шаг дал меньше трёх (узкая
+    // полоса вроде «царга и отбор» с размахом в градус), берём мельче:
+    // шкала с единственной подписью не шкала.
+    let step = niceStep(hi - lo, 4);
+    if (Math.floor(hi / step) - Math.ceil(lo / step) < 2) step = niceStep(hi - lo, 8);
     const yOf = v => bot - (bot - top) * (v - lo) / (hi - lo);
+    gr.top = top; gr.bot = bot; gr.yOf = yOf;
 
-    // Сетка и подписи шкалы этой полосы
+    // Сетка и подписи шкалы этой полосы. Сетка — тонкая и приглушённая:
+    // это фон для чтения значений, а не рисунок.
     g.strokeStyle = col('--grid'); g.lineWidth = 1;
+    g.setLineDash([]);
     g.fillStyle = col('--ink-3');
     g.font = '11px "IBM Plex Mono", ui-monospace, monospace';
     g.textAlign = 'right'; g.textBaseline = 'middle';
-    const dec = (hi - lo) > 20 ? 0 : (hi - lo) > 2 ? 1 : 2;
-    for (let i = 0; i <= 3; i++){
-      const y = Math.round(top + (bot - top) * i / 3) + .5;
-      g.beginPath(); g.moveTo(L, y); g.lineTo(w, y); g.stroke();
-      g.fillText((hi - (hi - lo) * i / 3).toFixed(dec), L - 7, y);
+    const dec = step >= 1 ? 0 : step >= 0.1 ? 1 : step >= 0.01 ? 2 : 3;
+    for (let v = Math.ceil(lo / step) * step; v <= hi; v += step){
+      const y = Math.round(yOf(v)) + .5;
+      if (y < top - 1 || y > bot + 1) continue;
+      g.beginPath(); g.moveTo(L, y); g.lineTo(w - R, y); g.stroke();
+      g.fillText(v.toFixed(dec), L - 8, y);
     }
 
     // Ярлык величины — чтобы полоса читалась без сверки с легендой
     if (gr.u){
       g.textAlign = 'left'; g.textBaseline = 'top';
-      g.font = '10px "IBM Plex Sans", system-ui, sans-serif';
+      g.font = '600 10px "IBM Plex Sans", system-ui, sans-serif';
       g.fillStyle = col('--ink-3');
-      g.fillText(gr.u, L + 6, top + 3);
+      g.fillText(gr.u, L + 6, top + 2);
     }
 
     // Разделитель между полосами
     if (gi){
       g.strokeStyle = col('--line');
       g.beginPath();
-      g.moveTo(0, Math.round(top - 7) + .5);
-      g.lineTo(w, Math.round(top - 7) + .5);
+      g.moveTo(0, Math.round(top - 8) + .5);
+      g.lineTo(w, Math.round(top - 8) + .5);
       g.stroke();
     }
 
+    // Сами линии
     gr.data.forEach((a, i) => {
       if (!a.length) return;
-      const c = lineColor(gr.keys[i]);
+      const k = gr.keys[i];
+      const c = lineColor(k);
       if (a.length > 1){
-        g.strokeStyle = c; g.lineWidth = 1.9;
+        g.strokeStyle = c; g.lineWidth = 2;
+        g.setLineDash(PULT.dashOf(k));
         g.lineJoin = 'round'; g.lineCap = 'round';
         g.beginPath();
         a.forEach((pt, j) => {
@@ -296,27 +410,164 @@ function chart(){
           j ? g.lineTo(x, y) : g.moveTo(x, y);
         });
         g.stroke();
+        g.setLineDash([]);
       }
+    });
+
+    /* Подписи последних значений у правого края. Цифра рядом с линией
+       читается без сверки с легендой и без наведения мышью — а заодно
+       закрывает требование к светлым оттенкам, которые сами по себе
+       контрастны к белому фону недостаточно.
+       Наезжающие друг на друга подписи не раздвигаем: оторванная от своей
+       линии цифра врёт сильнее, чем её отсутствие. Такую просто не пишем,
+       значение остаётся в легенде, в панели справа и во всплывающей
+       подсказке. */
+    const ends = [];
+    gr.data.forEach((a, i) => {
+      if (!a.length) return;
       const last = a[a.length - 1];
-      g.fillStyle = c;
-      g.beginPath();
-      g.arc(xOf(last[0]), yOf(last[1]), 3, 0, 6.2832);
-      g.fill();
+      ends.push({k: gr.keys[i], x: xOf(last[0]), y: yOf(last[1]), v: last[1]});
+    });
+    ends.sort((p, q) => p.y - q.y);
+    let prevY = -1e9;
+    ends.forEach(e => {
+      const c = lineColor(e.k);
+      // Точка конца ряда с обводкой цветом фона: там, где два ряда
+      // сходятся, точки не сливаются в кляксу.
+      g.beginPath(); g.arc(e.x, e.y, 4, 0, 6.2832);
+      g.fillStyle = c; g.fill();
+      g.lineWidth = 2; g.strokeStyle = surface; g.stroke();
+
+      if (e.y - prevY < 13) return;             // подпись бы налезла
+      prevY = e.y;
+      g.font = '600 11px "IBM Plex Mono", ui-monospace, monospace';
+      g.textAlign = 'left'; g.textBaseline = 'middle';
+      g.fillStyle = col('--ink-2');             // цифра не носит цвет линии
+      g.fillText(e.v.toFixed(byKey[e.k].d), e.x + 8, e.y);
     });
   });
 
   // Отметки времени внизу: сетка без времени врёт про темп процесса
-  const two = n => String(n).padStart(2, '0');
   g.fillStyle = col('--ink-3');
   g.font = '11px "IBM Plex Mono", ui-monospace, monospace';
   g.textBaseline = 'bottom';
   const marks = 4;
   for (let i = 0; i <= marks; i++){
-    const x = L + (w - L) * i / marks;
-    const d = new Date(t0 + (t1 - t0) * i / marks);
+    const x = L + (w - L - R) * i / marks;
     g.textAlign = i === 0 ? 'left' : i === marks ? 'right' : 'center';
-    g.fillText(two(d.getHours()) + ':' + two(d.getMinutes()), x, h);
+    g.fillText(hhmm(t0 + (t1 - t0) * i / marks), x, h);
   }
+
+  GEO = {groups: groups, t0: t0, t1: t1, L: L, R: R, w: w, h: h, xOf: xOf};
+
+  // График перерисовался — если нить стояла, вернуть её и подсказку
+  if (hoverX !== null) showHover(hoverX, true);
+}
+
+/* ============================================================
+   НАВЕДЕНИЕ
+   Вертикальная нить ищет момент времени, а не линию: попасть указателем
+   в двухпиксельную кривую нельзя, а в минуту — можно. Подсказка при этом
+   показывает СРАЗУ ВСЕ показанные ряды на этот момент, иначе пришлось бы
+   водить мышью по очереди над каждой линией.
+   ============================================================ */
+function hideTip(){
+  hoverX = null;
+  const t = document.getElementById('tip');
+  if (t) t.hidden = true;
+  const ov = document.getElementById('hover');
+  if (ov && ov.getContext) ov.getContext('2d').clearRect(0, 0, ov.width, ov.height);
+}
+
+/* Ближайшая точка ряда к моменту времени. */
+function nearest(a, t){
+  if (!a || !a.length) return null;
+  let lo = 0, hi = a.length - 1;
+  while (lo < hi){
+    const mid = (lo + hi) >> 1;
+    if (a[mid][0] < t) lo = mid + 1; else hi = mid;
+  }
+  const p = a[lo], q = a[lo - 1];
+  if (q && Math.abs(q[0] - t) < Math.abs(p[0] - t)) return q;
+  return p;
+}
+
+function showHover(px, keep){
+  if (!GEO){ if (!keep) hoverX = null; return; }
+  hoverX = px;
+  const ov = document.getElementById('hover');
+  const g = ov.getContext('2d');
+  const dpr = devicePixelRatio || 1;
+  g.clearRect(0, 0, ov.width / dpr, ov.height / dpr);
+
+  const x = Math.max(GEO.L, Math.min(GEO.w - GEO.R, px));
+  const t = GEO.t0 + (GEO.t1 - GEO.t0) * (x - GEO.L) / (GEO.w - GEO.L - GEO.R);
+
+  // Нить
+  g.strokeStyle = col('--ink-3');
+  g.globalAlpha = .55;
+  g.lineWidth = 1;
+  g.beginPath();
+  g.moveTo(Math.round(x) + .5, 0);
+  g.lineTo(Math.round(x) + .5, GEO.h - 18);
+  g.stroke();
+  g.globalAlpha = 1;
+
+  const rows = [];
+  GEO.groups.forEach(gr => {
+    const band = [];
+    gr.data.forEach((a, i) => {
+      const p = nearest(a, t);
+      if (!p) return;
+      band.push({k: gr.keys[i], v: p[1], ts: p[0], y: gr.yOf(p[1])});
+      // Точка ряда в этот момент, чтобы глаз связал цифру с линией
+      const px2 = GEO.xOf(p[0]), py = gr.yOf(p[1]);
+      g.beginPath(); g.arc(px2, py, 4, 0, 6.2832);
+      g.fillStyle = lineColor(gr.keys[i]); g.fill();
+      g.lineWidth = 2; g.strokeStyle = col('--surface'); g.stroke();
+    });
+    // Внутри полосы — сверху вниз, как линии лежат на экране
+    band.sort((p, q) => p.y - q.y);
+    band.forEach(r => rows.push(r));
+  });
+  if (!rows.length){ document.getElementById('tip').hidden = true; return; }
+
+  // Подсказка: значение — главное, имя ряда — вторично.
+  const tip = document.getElementById('tip');
+  tip.textContent = '';
+  const head = document.createElement('div');
+  head.className = 'tiph';
+  head.textContent = hhmm(rows[0].ts);
+  tip.appendChild(head);
+
+  rows.forEach(r => {
+    const c = byKey[r.k];
+    const row = document.createElement('div');
+    row.className = 'tipr';
+
+    const key = document.createElement('i');
+    key.style.background = lineColor(r.k);
+    if (PULT.dashOf(r.k).length) key.classList.add('dash');
+    row.appendChild(key);
+
+    const val = document.createElement('b');
+    val.textContent = r.v.toFixed(c.d) + (c.u ? ' ' + c.u : '');
+    row.appendChild(val);
+
+    const nm = document.createElement('span');
+    nm.textContent = c.n;                       // имя ряда — как данные, не как разметка
+    row.appendChild(nm);
+
+    tip.appendChild(row);
+  });
+
+  tip.hidden = false;
+  const box = ov.getBoundingClientRect();
+  const tw = tip.offsetWidth;
+  // Подсказка не должна вылезать за график и не должна закрывать нить
+  tip.style.left = (x + 14 + tw > GEO.w ? x - 14 - tw : x + 14) + 'px';
+  tip.style.top = Math.min(GEO.h - tip.offsetHeight - 6, 8) + 'px';
+  void box;
 }
 
 function draw(){ paintLegend(); paintPanels(); chart(); paintLogBtn(); }
@@ -326,6 +577,66 @@ document.getElementById('leg').addEventListener('click', e => {
   const sp = e.target.closest('[data-k]');
   if (sp) PULT.editor(sp.dataset.k);
 });
+
+/* Наведение мышью и с клавиатуры. Клавиатура — не формальность: во время
+   погона руки заняты, ноутбук стоит боком, и стрелками попасть в момент
+   времени проще, чем мышью. */
+(function(){
+  const wrap = document.querySelector('.cwrap');
+  const ov = document.getElementById('hover');
+  let raf = 0, lastX = null;
+
+  const at = px => {
+    lastX = px;
+    if (raf) return;
+    raf = requestAnimationFrame(() => { raf = 0; showHover(lastX); });
+  };
+
+  wrap.addEventListener('pointermove', e => {
+    at(e.clientX - ov.getBoundingClientRect().left);
+  });
+  wrap.addEventListener('pointerleave', hideTip);
+  wrap.addEventListener('pointerdown', e => {
+    at(e.clientX - ov.getBoundingClientRect().left);
+  });
+
+  ov.tabIndex = 0;
+  ov.setAttribute('aria-label', 'График: стрелками влево и вправо — просмотр значений по времени');
+  ov.addEventListener('keydown', e => {
+    if (!GEO) return;
+    const stepPx = e.shiftKey ? 20 : 4;
+    if (e.key === 'ArrowLeft')       at((lastX === null ? GEO.w - GEO.R : lastX) - stepPx);
+    else if (e.key === 'ArrowRight') at((lastX === null ? GEO.L : lastX) + stepPx);
+    else if (e.key === 'Home')       at(GEO.L);
+    else if (e.key === 'End')        at(GEO.w - GEO.R);
+    else if (e.key === 'Escape')     { hideTip(); lastX = null; }
+    else return;
+    e.preventDefault();
+  });
+  ov.addEventListener('blur', hideTip);
+})();
+
+/* Дотянуть графики с платы. Плата пишет каждые 30 секунд независимо от
+   браузера, поэтому дыру за закрытую вкладку можно закрыть задним числом:
+   забираем её журнал и вкладываем точки в ту же историю. */
+document.getElementById('fill').onclick = async () => {
+  const b = document.getElementById('fill');
+  const was = b.textContent;
+  b.disabled = true;
+  try {
+    const r = await PULT.sdPullHist(p => { b.textContent = p; });
+    draw();
+    PULT.toast(r.points
+      ? 'С платы: ' + r.rows + ' строк, ' + r.points + ' точек' +
+        (r.card ? ' (карта)' : ' (память платы)')
+      : 'Плата не дала точек за последние 12 часов');
+  } catch(e){
+    PULT.toast('Плата: ' + e.message);
+  } finally {
+    b.disabled = false;
+    b.textContent = was;
+  }
+};
 
 document.querySelectorAll('#range button').forEach(b => b.onclick = () => {
   winMin = +b.dataset.m;

@@ -67,12 +67,22 @@ const AL = {
    царга всегда одного цвета, на каком бы графике ни оказалась.
    Значение — имя токена темы; пользователь может подменить его
    своим hex в настройках. */
+/* Цвет закреплён за каналом намертво. Раньше шестнадцать каналов делили
+   четыре цвета, и «Куб», «Царга» и «Вода» рисовались одной и той же
+   краской: на графике три линии одного цвета — это не график.
+   Восемь оттенков идут сплошной линией, ещё восемь — теми же оттенками,
+   но пунктиром. Пунктир здесь не украшение, а второй признак: он делает
+   пары различимыми даже при дальтонизме и на чёрно-белой печати.
+   Пары подобраны по смыслу: мощность по току и по воде — один цвет,
+   разный штрих; отбор и его скорость — тоже. */
 const CLR = {
-  carga:'--trace', otbor:'--trace-2', delta:'--trace',  trend:'--trace-2',
-  kub:'--trace',   pwr:'--warn',      flow:'--alarm',   voda:'--trace',
-  vodaIn:'--trace-2', pwrW:'--trace-2', wtot:'--trace', rate:'--trace-2',
-  volt:'--trace',  press:'--trace-2', amp:'--warn', vol:'--trace'
+  voda:'--s1',  otbor:'--s2', vodaIn:'--s3', carga:'--s4',
+  press:'--s5', flow:'--s6',  pwr:'--s7',    kub:'--s8',
+  wtot:'--s1',  rate:'--s2',  volt:'--s3',   trend:'--s4',
+  vol:'--s5',   amp:'--s6',   pwrW:'--s7',   delta:'--s8'
 };
+const DASHED = {wtot:1, rate:1, volt:1, trend:1, vol:1, amp:1, pwrW:1, delta:1};
+function dashOf(k){ return DASHED[k] ? [6, 4] : []; }
 
 /* Уставки в КОНТРОЛЛЕРЕ — те, по которым орёт сирена.
    Живут в прошивке (number: с restore_value), а не в браузере:
@@ -707,7 +717,17 @@ function setHaCfg(url, token){
    Отдаётся кусками: у веб-сервера ESP-IDF нет потоковой выдачи, ответ
    собирается в памяти целиком, поэтому просим по 16 КБ за раз.
    ============================================================ */
+// Колонки журнала платы, которые нужны СТРОКЕ ЖУРНАЛА.
 const SD_COL = {kub: 1, otbor: 3, carga: 2, voda: 13, volt: 10, rate: 16};
+
+/* Для ГРАФИКОВ берём всё, что плата пишет: журнал строится по колонкам
+   бумажного бланка, а на графике полезно и давление, и проток, и обе
+   мощности. Номера — позиции в CSV, шапка описана в kolonna_log.h. */
+const SD_ALL = {
+  kub: 1, carga: 2, otbor: 3, delta: 4, trend: 5,
+  pwr: 7, pwrW: 8, amp: 9, volt: 10, flow: 11, wtot: 12,
+  voda: 13, vodaIn: 14, press: 15, rate: 16, vol: 17
+};
 
 function sdUrl(path){
   // Адрес берём из живого подключения, а если его ещё нет — из памяти
@@ -786,7 +806,8 @@ async function sdRingText(onStep){
 
 /* CSV с платы: точка с запятой, запятая как разделитель дробной части
    (иначе русский Excel читает числа как текст), дата ДД.ММ.ГГГГ ЧЧ:ММ:СС. */
-function sdParse(text){
+function sdParse(text, cols){
+  const map = cols || SD_COL;
   const out = [];
   text.split('\n').forEach(raw => {
     const line = raw.replace(/\r$/, '');
@@ -796,8 +817,8 @@ function sdParse(text){
     if (!m) return;                      // шапка или строка без времени
     const d = new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5], +m[6]);
     const row = {ts: Math.round(d.getTime() / 1000)};
-    Object.keys(SD_COL).forEach(k => {
-      const v = parseFloat((c[SD_COL[k]] || '').replace(',', '.'));
+    Object.keys(map).forEach(k => {
+      const v = parseFloat((c[map[k]] || '').replace(',', '.'));
       if (isFinite(v)) row[k] = v;
     });
     out.push(row);
@@ -836,6 +857,59 @@ async function sdText(onStep){
     : await sdRingText(onStep);
   return {text: text, card: fromCard, name: fromCard ? info.current : 'kolonna_memory.csv',
           rows: info ? info.rows : 0};
+}
+
+/* ============================================================
+   ДОТЯЖКА ГРАФИКОВ С ПЛАТЫ
+   Графики рисуются из истории браузера, а она копится только пока
+   вкладка открыта. Плата же пишет каждые 30 секунд независимо ни от
+   чего. Значит дыру за закрытый браузер можно закрыть: забираем журнал
+   платы и вкладываем его точки в ту же историю.
+   ============================================================ */
+function histMerge(rows){
+  if (!Array.isArray(rows) || !rows.length) return 0;
+  const from = Date.now() - KEEP;
+  const touched = {};
+  let added = 0;
+
+  rows.forEach(r => {
+    const t = r.ts * 1000;
+    if (t < from) return;                 // старше глубины истории — не держим
+    for (const k in r){
+      if (k === 'ts') continue;
+      (H[k] = H[k] || []).push([t, r[k]]);
+      touched[k] = true;
+      added++;
+    }
+  });
+
+  Object.keys(touched).forEach(k => {
+    const a = H[k];
+    a.sort((x, y) => x[0] - y[0]);
+    // Точки платы и браузера могут попасть в один шаг сетки. Оставляем
+    // последнюю: после сортировки это значение с платы, а плата мерила
+    // сама, без пропусков на переключение вкладки.
+    const out = [];
+    a.forEach(p => {
+      const last = out[out.length - 1];
+      if (last && p[0] - last[0] < STEP){ last[1] = p[1]; return; }
+      if (p[0] >= from) out.push(p);
+    });
+    H[k] = out;
+  });
+
+  saveHist(true);
+  subs.forEach(f => f('hist'));
+  return added;
+}
+
+/* Забрать журнал платы целиком и влить его в историю графиков. */
+async function sdPullHist(onStep){
+  const got = await sdText(onStep);
+  if (onStep) onStep('раскладываю');
+  const rows = sdParse(got.text, SD_ALL);
+  const pts = histMerge(rows);
+  return {rows: rows.length, points: pts, card: got.card, name: got.name};
 }
 
 async function sdPull(startTs, endTs, onStep){
@@ -1427,12 +1501,12 @@ window.PULT = {
   start, connect, ack, toast, wake, applyTheme, theme,
   push, slice, severity, col, saveHist, clearHist, histInfo, kubAbv,
   lim, setLim, resetLim, limUser, thrKind, editor, armEditors, NUMOF, toHexColor,
-  lineColor, setPal, resetPal, palUser, setNumber,
+  lineColor, dashOf, setPal, resetPal, palUser, setNumber,
   ROLES, SEL, SLOT, BIND, setSelect,
   jrnLoad, jrnSave, jrnRow, jrnAdd, jrnMark, jrnInfo, jrnEvery,
   jrnMergeRows, jrnSrcName, jrnBucket, jrnHHMM, jrnFmtVal, jrnHasData, JREAL,
   haCfg, setHaCfg, haEntities, haPull, haConnect, haBucketize,
-  sdInfo, sdPull, sdText, sdParse, jrnDownsample,
+  sdInfo, sdPull, sdText, sdParse, sdPullHist, histMerge, jrnDownsample,
   soundOn, setSound, testSound, stopBuzz, muteHere, askNotify, notifyState,
   get ip(){ return ip; },
   get state(){ return state; },
