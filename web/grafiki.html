@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260910a">
+<link rel="stylesheet" href="pult.css?v=20260910b">
 </head>
 <body>
 
@@ -43,7 +43,7 @@
       <button data-p="kub">Куб и мощность</button>
       <button data-p="cool">Охлаждение</button>
     </div>
-    <button class="btn" id="fill">Дотянуть с платы</button>
+    <button class="btn" id="fill" title="Забрать пропущенное с платы и из Home Assistant">Дотянуть историю</button>
     <button class="btn" id="csv">История браузера</button>
     <button class="btn prim" id="log">Журнал контроллера</button>
   </div>
@@ -72,7 +72,7 @@
   то время, что она была закрыта.
 </footer>
 
-<script src="pult.js?v=20260910a"></script>
+<script src="pult.js?v=20260910b"></script>
 <script>
 "use strict";
 const {slice, col, lineColor, V, CH} = PULT;
@@ -305,7 +305,12 @@ function chart(){
             mid: isFinite(lo) ? (lo + hi) / 2 : 0};
   });
 
-  const groups = makeBands(items).map(b => ({
+  /* Канал без единой точки полосу не получает: пустая шкала с делениями
+     0.0 / 0.5 / 1.0 выглядит как данные, которых нет. В легенде он
+     остаётся — видно, что линия включена, просто прибор молчит. */
+  const withData = items.filter(s => s.a.length);
+
+  const groups = makeBands(withData).map(b => ({
     u: b.u,
     keys: b.items.map(s => s.k),
     data: b.items.map(s => s.a)
@@ -616,26 +621,39 @@ document.getElementById('leg').addEventListener('click', e => {
   ov.addEventListener('blur', hideTip);
 })();
 
-/* Дотянуть графики с платы. Плата пишет каждые 30 секунд независимо от
-   браузера, поэтому дыру за закрытую вкладку можно закрыть задним числом:
-   забираем её журнал и вкладываем точки в ту же историю. */
+/* Дотянуть историю. Два источника, и они дополняют друг друга:
+   — плата пишет каждые 30 секунд независимо от браузера, но её кольцо
+     живёт только с последней загрузки: выключил питание — чисто;
+   — Home Assistant писал те же датчики всё время, пока плата была в сети,
+     и держит пять суток, поэтому переживает перезагрузку платы.
+   Поэтому берём оба и складываем в одну историю: точки одного момента
+   схлопываются по шагу сетки, дважды нарисовано не будет. */
 document.getElementById('fill').onclick = async () => {
   const b = document.getElementById('fill');
   const was = b.textContent;
   b.disabled = true;
+  const said = [];
+  let failed = null;
+
   try {
-    const r = await PULT.sdPullHist(p => { b.textContent = p; });
-    draw();
-    PULT.toast(r.points
-      ? 'С платы: ' + r.rows + ' строк, ' + r.points + ' точек' +
-        (r.card ? ' (карта)' : ' (память платы)')
-      : 'Плата не дала точек за последние 12 часов');
-  } catch(e){
-    PULT.toast('Плата: ' + e.message);
-  } finally {
-    b.disabled = false;
-    b.textContent = was;
+    const r = await PULT.sdPullHist(p => { b.textContent = 'плата: ' + p; });
+    said.push('плата +' + r.points + (r.card ? ' (карта)' : ''));
+  } catch(e){ failed = 'плата: ' + e.message; }
+
+  const ha = PULT.haCfg();
+  if (ha.url && ha.token){
+    try {
+      const r = await PULT.haPullHist(p => { b.textContent = 'HA: ' + p; });
+      said.push('Home Assistant +' + r.points);
+    } catch(e){ failed = (failed ? failed + '; ' : '') + 'HA: ' + e.message; }
   }
+
+  draw();
+  b.disabled = false;
+  b.textContent = was;
+
+  if (said.length) PULT.toast('Точек добавлено — ' + said.join(', '));
+  else PULT.toast(failed || 'Ни один источник ничего не дал');
 };
 
 document.querySelectorAll('#range button').forEach(b => b.onclick = () => {

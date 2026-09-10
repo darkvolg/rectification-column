@@ -866,21 +866,23 @@ async function sdText(onStep){
    чего. Значит дыру за закрытый браузер можно закрыть: забираем журнал
    платы и вкладываем его точки в ту же историю.
    ============================================================ */
-function histMerge(rows){
-  if (!Array.isArray(rows) || !rows.length) return 0;
+/* Вложить готовые ряды точек: {ключ: [[время, значение], ...]}.
+   Отсюда работают оба источника — и журнал платы, и история HA. */
+function histMergePoints(series){
   const from = Date.now() - KEEP;
   const touched = {};
   let added = 0;
 
-  rows.forEach(r => {
-    const t = r.ts * 1000;
-    if (t < from) return;                 // старше глубины истории — не держим
-    for (const k in r){
-      if (k === 'ts') continue;
-      (H[k] = H[k] || []).push([t, r[k]]);
+  Object.keys(series).forEach(k => {
+    const src = series[k];
+    if (!src || !src.length) return;
+    const a = H[k] = H[k] || [];
+    src.forEach(p => {
+      if (!p || p[0] < from || !isFinite(p[1])) return;
+      a.push([p[0], p[1]]);
       touched[k] = true;
       added++;
-    }
+    });
   });
 
   Object.keys(touched).forEach(k => {
@@ -901,6 +903,20 @@ function histMerge(rows){
   saveHist(true);
   subs.forEach(f => f('hist'));
   return added;
+}
+
+/* Строки журнала платы ({ts, kub, press, ...}) — в те же ряды точек. */
+function histMerge(rows){
+  if (!Array.isArray(rows) || !rows.length) return 0;
+  const series = {};
+  rows.forEach(r => {
+    const t = r.ts * 1000;
+    for (const k in r){
+      if (k === 'ts') continue;
+      (series[k] = series[k] || []).push([t, r[k]]);
+    }
+  });
+  return histMergePoints(series);
 }
 
 /* Забрать журнал платы целиком и влить его в историю графиков. */
@@ -1084,6 +1100,46 @@ function haBucketize(hist, map, first, last, step){
     if (jrnHasData(row)) rows.push(row);   // см. jrnHasData: пустое не пишем
   }
   return rows;
+}
+
+/* История графиков из Home Assistant.
+   Плата держит в памяти только то, что накопила с последней загрузки:
+   выключил питание — кольцо чистое. HA при этом писал те же датчики всё
+   время, пока плата была в сети, и хранит их пять суток. Поэтому дыру
+   можно закрыть даже после перезагрузки платы — что и произошло
+   10.09.2026, когда десять часов кольца ушли вместе с перезагрузкой. */
+async function haPullHist(onStep){
+  const ha = await haConnect();
+  try {
+    if (onStep) onStep('ищу датчики');
+    const map = haMapStates(await ha.ask('get_states'));
+    const keys = Object.keys(map);
+    if (!keys.length) throw new Error('в Home Assistant не видно датчиков колонны');
+
+    if (onStep) onStep('тяну историю');
+    const now = Date.now();
+    const hist = await ha.ask('history/history_during_period', {
+      start_time: new Date(now - KEEP).toISOString(),
+      end_time:   new Date(now).toISOString(),
+      entity_ids: keys.map(k => map[k]),
+      minimal_response: true,
+      no_attributes: true
+    });
+
+    if (onStep) onStep('раскладываю');
+    // В сжатом ответе точка это {s: значение, lu: время в секундах}.
+    const series = {};
+    keys.forEach(k => {
+      const arr = (hist && hist[map[k]]) || [];
+      const out = [];
+      arr.forEach(p => {
+        const v = parseFloat(p && p.s);
+        if (isFinite(v) && p.lu) out.push([Math.round(p.lu * 1000), v]);
+      });
+      if (out.length) series[k] = out;
+    });
+    return {points: histMergePoints(series), keys: Object.keys(series).length};
+  } finally { ha.close(); }
 }
 
 async function haPull(startTs, endTs, onStep){
@@ -1505,7 +1561,7 @@ window.PULT = {
   ROLES, SEL, SLOT, BIND, setSelect,
   jrnLoad, jrnSave, jrnRow, jrnAdd, jrnMark, jrnInfo, jrnEvery,
   jrnMergeRows, jrnSrcName, jrnBucket, jrnHHMM, jrnFmtVal, jrnHasData, JREAL,
-  haCfg, setHaCfg, haEntities, haPull, haConnect, haBucketize,
+  haCfg, setHaCfg, haEntities, haPull, haPullHist, haConnect, haBucketize,
   sdInfo, sdPull, sdText, sdParse, sdPullHist, histMerge, jrnDownsample,
   soundOn, setSound, testSound, stopBuzz, muteHere, askNotify, notifyState,
   get ip(){ return ip; },
