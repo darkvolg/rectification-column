@@ -273,6 +273,20 @@ function palUser(k){ return PAL[k] || ''; }
 function severity(c, v){
   if (v === undefined || !isFinite(v)) return '';
   const L = lim(c);
+
+  /* Проток ниже порога — авария только когда куб горячий. На холодной
+     колонне вода и не должна течь: ноль там не беда, а нормальное
+     состояние. Красная плашка на ровном месте приучает не смотреть на
+     красное — и настоящую аварию потом тоже не заметят.
+     Плата рассуждает так же: её ALARM No Flow взведён от уставки
+     «куб горячий», здесь берём ту же цифру. */
+  if (c.k === 'flow'){
+    const kub = V.kub, arm = N.kubArm;
+    if (!(isFinite(kub) && isFinite(arm) && kub >= arm)){
+      return (L.hiWarn !== undefined && v >= L.hiWarn) ? 'w' : '';
+    }
+  }
+
   if (L.hiAlarm !== undefined && v >= L.hiAlarm) return 'a';
   if (L.loAlarm !== undefined && v <= L.loAlarm) return 'a';
   if (L.hiWarn  !== undefined && v >= L.hiWarn)  return 'w';

@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260910b">
+<link rel="stylesheet" href="pult.css?v=20260911a">
 </head>
 <body>
 
@@ -72,7 +72,7 @@
   то время, что она была закрыта.
 </footer>
 
-<script src="pult.js?v=20260910b"></script>
+<script src="pult.js?v=20260911a"></script>
 <script>
 "use strict";
 const {slice, col, lineColor, V, CH} = PULT;
@@ -288,18 +288,33 @@ function chart(){
   const ov = document.getElementById('hover');
   const ser = SHOW.filter(k => byKey[k]);
 
+  /* Ось времени — это ВЫБРАННОЕ окно, а не размах имеющихся точек.
+     Раньше границы брались из данных, и при редкой истории получалось
+     враньё: кнопка «3 часа» нажата, а по оси 23:04 → 09:37. Так выходит
+     всегда, когда браузер был закрыт: в истории осталась пара старых
+     точек, и одна из них — та, что рисуется левее окна, чтобы линия
+     входила в край, — растягивала шкалу на полсуток. */
+  const t1 = Date.now();
+  const t0 = t1 - winMin * 60000;
+
   // Ряд со своей статистикой: по ней и раскладываются полосы
-  let any = false, t0 = Infinity, t1 = -Infinity;
+  let any = false;
   const items = ser.map(k => {
     const a = slice(k, winMin);
-    let lo = Infinity, hi = -Infinity;
+    let lo = Infinity, hi = -Infinity, seed = null, inside = false;
     a.forEach(pt => {
-      any = true;
+      if (pt[0] < t0){ seed = pt; return; }   // затравка левее окна
+      inside = any = true;
       if (pt[1] < lo) lo = pt[1];
       if (pt[1] > hi) hi = pt[1];
-      if (pt[0] < t0) t0 = pt[0];
-      if (pt[0] > t1) t1 = pt[0];
     });
+    // Отрезок от затравки до первой точки окна виден в поле графика,
+    // поэтому её значение тоже участвует в масштабе — иначе линия уходит
+    // за край полосы.
+    if (inside && seed){
+      if (seed[1] < lo) lo = seed[1];
+      if (seed[1] > hi) hi = seed[1];
+    }
     return {k: k, a: a, u: byKey[k].u || '',
             lo: lo, hi: hi, span: isFinite(lo) ? hi - lo : 0,
             mid: isFinite(lo) ? (lo + hi) / 2 : 0};
@@ -337,12 +352,11 @@ function chart(){
     g.fillStyle = col('--ink-3');
     g.font = '13px "IBM Plex Sans", system-ui, sans-serif';
     g.textAlign = 'center';
-    g.fillText(ser.length ? 'данных пока нет' : 'ни одной линии не выбрано',
-               w / 2, h / 2);
+    g.fillText(ser.length
+      ? 'за выбранное время данных нет — нажми «Дотянуть историю»'
+      : 'ни одной линии не выбрано', w / 2, h / 2);
     return;
   }
-  if (t1 - t0 < 1000) t1 = t0 + 1000;
-
   // Справа оставляем поле под подписи последних значений
   const L = 54, R = 62;
   const xOf = t => L + (w - L - R) * (t - t0) / (t1 - t0);
@@ -400,7 +414,12 @@ function chart(){
       g.stroke();
     }
 
-    // Сами линии
+    // Сами линии. Обрезаем по полю графика: затравочная точка лежит левее
+    // окна, и без обрезки линия перечеркнула бы подписи шкалы.
+    g.save();
+    g.beginPath();
+    g.rect(L, top - 6, w - L - R, (bot - top) + 12);
+    g.clip();
     gr.data.forEach((a, i) => {
       if (!a.length) return;
       const k = gr.keys[i];
@@ -418,6 +437,7 @@ function chart(){
         g.setLineDash([]);
       }
     });
+    g.restore();
 
     /* Подписи последних значений у правого края. Цифра рядом с линией
        читается без сверки с легендой и без наведения мышью — а заодно
