@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260911b">
+<link rel="stylesheet" href="pult.css?v=20260911c">
 </head>
 <body>
 
@@ -175,8 +175,8 @@
   на странице <a href="grafiki.html">Графики</a>.
 </footer>
 
-<script src="pult.js?v=20260911b"></script>
-<script src="xlsx.js?v=20260911b"></script>
+<script src="pult.js?v=20260911c"></script>
+<script src="xlsx.js?v=20260911c"></script>
 <script>
 "use strict";
 const {V} = PULT;
@@ -310,6 +310,16 @@ const CELLS = [
   {k:'ml',    w:'72px'}
 ];
 
+/* Значение в атрибут value="…". Таблица перерисовывается при каждой правке
+   соседней клетки, поэтому текст проходит через разметку десятки раз за
+   погон — и обязан возвращаться из неё ровно таким, каким его набрали. */
+function att(v){
+  return (v === undefined || v === null ? '' : String(v))
+    .replace(/&/g, '&amp;')      // первым, иначе экранирует собственный вывод
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;');
+}
+
 function render(){
   const tb = $('#j_body');
   const tboil = tBoil(hv('press'));
@@ -322,8 +332,8 @@ function render(){
           PHASES.map(p => '<option' + (p === r.ph ? ' selected' : '') + '>' + p + '</option>').join('') +
         '</select></td>'
       : '<td style="width:' + c.w + '"><input data-i="' + i + '" data-k="' + c.k +
-        '" value="' + (r[c.k] === undefined ? '' : r[c.k]) + '"></td>').join('');
-    return '<tr data-ph="' + r.ph + '">' +
+        '" value="' + att(r[c.k]) + '"></td>').join('');
+    return '<tr data-ph="' + att(r.ph) + '">' +
       // Источник показываем у КАЖДОЙ строки, включая свои: иначе строка
       // без метки читается как «неизвестно откуда».
       '<td class="num">' + (i + 1) +
@@ -332,16 +342,20 @@ function render(){
             PULT.jrnSrcName(r.src) + '</span>'
           : '') +
       '</td>' +
-      '<td class="tm"><input data-i="' + i + '" data-k="t" value="' + r.t + '"></td>' +
+      '<td class="tm"><input data-i="' + i + '" data-k="t" value="' + att(r.t) + '"></td>' +
       cells +
       '<td style="width:78px"><input value="' + fmt(acc) + '" readonly tabindex="-1"></td>' +
       '<td style="width:82px"><input data-i="' + i + '" data-k="rate" value="' +
-        (r.rate || '') + '"></td>' +
+        att(r.rate) + '"></td>' +
       '<td style="width:82px"><input value="' +
         (isFinite(dt) ? (dt - tboil >= 0 ? '+' : '') + (dt - tboil).toFixed(3) : '') +
         '" readonly tabindex="-1"></td>' +
+      // Экранируем и амперсанд тоже, а не одну кавычку: заметка — это то,
+      // что человек писал руками про свой погон, и она не должна меняться
+      // сама по себе при перерисовке таблицы. Голый & браузер разбирает как
+      // начало сущности, и «соль&quot;вода» превращалось в «соль"вода».
       '<td class="note"><input data-i="' + i + '" data-k="note" value="' +
-        (r.note || '').replace(/"/g, '&quot;') + '"></td>' +
+        att(r.note) + '"></td>' +
       '<td><button class="del" data-del="' + i + '" title="Удалить строку" ' +
         'aria-label="Удалить строку ' + (i + 1) + '">×</button></td>' +
     '</tr>';

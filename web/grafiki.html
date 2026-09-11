@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260911b">
+<link rel="stylesheet" href="pult.css?v=20260911c">
 </head>
 <body>
 
@@ -75,7 +75,7 @@
   то время, что она была закрыта.
 </footer>
 
-<script src="pult.js?v=20260911b"></script>
+<script src="pult.js?v=20260911c"></script>
 <script>
 "use strict";
 const {slice, col, lineColor, V, CH} = PULT;
@@ -662,9 +662,23 @@ document.getElementById('leg').addEventListener('click', e => {
     });
   }
 
+  /* Окно не должно уезжать в пустоту: правее «сейчас» данных ещё нет,
+     левее двенадцати часов их уже нет — столько держит история.
+     Без ограничителя хватало пары резких движений мышью, чтобы оказаться
+     на чистом холсте, где не видно даже, в какую сторону возвращаться. */
+  const HIST_MS = 12 * 3600e3;
+  function clampWin(from, to){
+    const span = to - from;
+    const hi = Date.now(), lo = hi - HIST_MS;
+    if (span >= hi - lo) return [lo, hi];        // запросили шире всей истории
+    if (to > hi)   { to = hi;   from = hi - span; }
+    if (from < lo) { from = lo; to   = lo + span; }
+    return [from, to];
+  }
+
   function setZoom(from, to){
     if (!(to - from > 5000)) return;             // меньше пяти секунд не имеет смысла
-    ZOOM = [from, to];
+    ZOOM = clampWin(from, to);
     hoverX = null;
     draw();
     paintZoomState();
@@ -697,7 +711,7 @@ document.getElementById('leg').addEventListener('click', e => {
       if (drag.pan){
         const dt = (drag.x1 - x) * (GEO.t1 - GEO.t0) / (GEO.w - GEO.L - GEO.R);
         drag.x1 = x;
-        ZOOM = [ZOOM[0] + dt, ZOOM[1] + dt];
+        ZOOM = clampWin(ZOOM[0] + dt, ZOOM[1] + dt);
         draw(); paintZoomState();
       } else {
         drag.x1 = x;
@@ -726,6 +740,20 @@ document.getElementById('leg').addEventListener('click', e => {
     const a = xToTime(Math.min(d.x0, d.x1)), b = xToTime(Math.max(d.x0, d.x1));
     if (a !== null && b !== null) setZoom(a, b);
   });
+  /* Жест может кончиться не отпусканием кнопки, а отменой: системный свайп
+     с края экрана, звонок поверх окна, потеря фокуса посреди протяжки.
+     Без этого обработчика drag оставался занятым НАВСЕГДА — pointermove
+     после этого уходил в ветку перетаскивания, и наведение переставало
+     работать до перезагрузки страницы, а кисть висела поверх графика. */
+  function cancelDrag(){
+    if (!drag) return;
+    drag = null;
+    draw();                       // перерисовка заодно стирает кисть с накладки
+  }
+  wrap.addEventListener('pointercancel', cancelDrag);
+  // Окно ушло из-под пальца (Alt+Tab, свернули) — жест тоже больше не наш
+  addEventListener('blur', cancelDrag);
+
   wrap.addEventListener('dblclick', () => resetZoom());
 
   // Колесо приближает вокруг указателя. Страница при этом не прокручивается:

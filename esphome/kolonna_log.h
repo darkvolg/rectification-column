@@ -157,22 +157,38 @@ inline const Row &at(size_t i) {
 // ---------------------------------------------------------------------------
 //  Строка CSV
 // ---------------------------------------------------------------------------
+// snprintf возвращает длину, которую строка имела бы ЦЕЛИКОМ, а не сколько
+// влезло в буфер. Прибавляя её вслепую, можно получить n > max — и тогда
+// следующий вызов получит max - n, которое у size_t не отрицательное, а
+// гигантское, то есть разрешение писать далеко за буфер.
+// Сегодня недостижимо: худшая строка — около 163 байт из 256. Но буфер
+// один на весь журнал, а каналов со временем прибавляется, и цена
+// страховки — одна строка.
+inline void adv(size_t &n, size_t max, int written) {
+  if (written <= 0) return;
+  n += (size_t) written;
+  if (n > max) n = max;          // дальше snprintf получит размер 0 и смолчит
+}
+
 inline size_t render(const Row &r, char *out, size_t max) {
   size_t n = 0;
+  if (max == 0) return 0;
   if (r.ts > 0) {
     time_t t = (time_t) r.ts;
     struct tm tmv;
     localtime_r(&t, &tmv);
+    // strftime, в отличие от snprintf, при нехватке места возвращает 0 —
+    // прибавлять его безопасно и без adv().
     n += strftime(out + n, max - n, "%d.%m.%Y %H:%M:%S", &tmv);
   } else {
     // Времени ещё не было — пишем секунды с включения, чтобы строка
     // не потерялась. Пустая ячейка в этом столбце честнее нуля.
-    n += snprintf(out + n, max - n, "+%u", (unsigned) (millis() / 1000));
+    adv(n, max, snprintf(out + n, max - n, "+%u", (unsigned) (millis() / 1000)));
   }
 
   for (uint8_t i = 0; i < NCH && n < max; i++) {
     if (r.v[i] == NODATA) {
-      n += snprintf(out + n, max - n, ";");
+      adv(n, max, snprintf(out + n, max - n, ";"));
       continue;
     }
     float f = r.v[i] / SCALE[i];
@@ -184,9 +200,9 @@ inline size_t render(const Row &r, char *out, size_t max) {
     snprintf(num, sizeof(num), "%.*f", dec, f);
     for (char *p = num; *p; p++)
       if (*p == '.') *p = ',';
-    n += snprintf(out + n, max - n, ";%s", num);
+    adv(n, max, snprintf(out + n, max - n, ";%s", num));
   }
-  n += snprintf(out + n, max - n, ";%u\r\n", (unsigned) r.alarms);
+  adv(n, max, snprintf(out + n, max - n, ";%u\r\n", (unsigned) r.alarms));
   return n;
 }
 
@@ -226,8 +242,17 @@ inline bool sd_mount() {
 
   err = esp_vfs_fat_sdspi_mount(MOUNT, &host, &slot, &mcfg, &card_info);
   if (err != ESP_OK) {
-    ESP_LOGW(TAG, "карта не найдена (%s), пишу только в память",
-             esp_err_to_name(err));
+    // Попытка повторяется каждые 15 записей, то есть раз в семь с половиной
+    // минут, весь погон. Сказать об этом надо один раз и громко: дальше это
+    // не новость, а фон, в котором тонут настоящие сообщения.
+    static bool told = false;
+    if (!told) {
+      told = true;
+      ESP_LOGW(TAG, "карта не найдена (%s), пишу только в память",
+               esp_err_to_name(err));
+    } else {
+      ESP_LOGD(TAG, "карты по-прежнему нет (%s)", esp_err_to_name(err));
+    }
     card_info = nullptr;
     return false;
   }
@@ -246,8 +271,11 @@ inline std::string full_path(const char *name) {
 
 // Файл создаётся, когда стало известно время: имя с датой — это половина
 // смысла архива. Пока времени нет, копим только в кольцо и ничего не теряем.
-inline void sd_open_file(uint32_t ts) {
-  if (!sd_ok || fname[0] || ts == 0) return;
+// Возвращает true, если файл создан ПРЯМО СЕЙЧАС и уже вобрал в себя всё
+// кольцо. Вызывающему это важно: дописывать в такой файл последнюю строку
+// не нужно, она туда уже попала при сливе.
+inline bool sd_open_file(uint32_t ts) {
+  if (!sd_ok || fname[0] || ts == 0) return false;
   time_t t = (time_t) ts;
   struct tm tmv;
   localtime_r(&t, &tmv);
@@ -262,7 +290,7 @@ inline void sd_open_file(uint32_t ts) {
     ESP_LOGE(TAG, "не открыть %s", path.c_str());
     sd_ok = false;
     fname[0] = 0;
-    return;
+    return false;
   }
   fwrite(BOM, 1, strlen(BOM), f);
   fwrite(HEAD, 1, strlen(HEAD), f);
@@ -278,6 +306,7 @@ inline void sd_open_file(uint32_t ts) {
   fclose(f);
   ESP_LOGI(TAG, "журнал: %s, слито из памяти %u строк", fname,
            (unsigned) sd_rows);
+  return true;
 }
 
 inline void sd_append(const Row &r) {
@@ -323,8 +352,11 @@ inline void push(uint32_t ts, const float *vals, uint16_t alarms) {
 
   // Карту могли воткнуть уже после включения — пробуем ещё раз
   if (!sd_ok && sd_tried && (count % 15) == 0) sd_ok = sd_mount();
-  sd_open_file(ts);
-  sd_append(buf[(head + CAP - 1) % CAP]);
+
+  // Файл мог родиться прямо сейчас — тогда он уже вобрал в себя всё кольцо,
+  // включая эту самую строку. Дописывать её второй раз нельзя: раньше
+  // каждый новый файл начинался с задвоенной первой записи.
+  if (!sd_open_file(ts)) sd_append(buf[(head + CAP - 1) % CAP]);
 }
 
 // Новый погон — новый файл. Кольцо чистим, старые файлы на карте не трогаем:
@@ -499,10 +531,24 @@ class LogHandler : public AsyncWebHandler {
     j += std::to_string(sd_rows);
     j += ",\"files\":[";
     bool first = true;
+    // Список ограничен: ответ собирается в памяти целиком, а погонов на
+    // карте за пару лет накопится не одна сотня. Свободной кучи у платы
+    // около сотни килобайт, и тратить её на перечисление архива, который
+    // всё равно никто не листает целиком, нельзя.
+    static const size_t FILES_MAX = 64;
+    size_t shown = 0, total = 0;
     if (sd_ok) {
       each_csv([&](const char *nm, long size) {
+        total++;
+        if (shown >= FILES_MAX) return;
+        // Имя уезжает в JSON как есть, поэтому то, что его сломает, не
+        // берём вовсе: свои файлы называются kol_ГГГГММДД_ЧЧММ.csv, а
+        // чужие на карту мог положить кто угодно.
+        for (const char *p = nm; *p; p++)
+          if (*p == '"' || *p == '\\' || (unsigned char) *p < 0x20) return;
         if (!first) j += ',';
         first = false;
+        shown++;
         j += "{\"name\":\"";
         j += nm;
         j += "\",\"size\":";
@@ -510,7 +556,11 @@ class LogHandler : public AsyncWebHandler {
         j += '}';
       });
     }
-    j += "]}";
+    // Сколько файлов на карте всего — чтобы пульт мог честно сказать
+    // «показаны не все», а не делал вид, что архив такой и есть.
+    j += "],\"files_total\":";
+    j += std::to_string(total);
+    j += "}";
 
     auto *resp = req->beginResponse(200, "application/json; charset=utf-8", j);
     common(resp);

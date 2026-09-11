@@ -127,11 +127,25 @@ const ABV_T = [
   [85.0, 30], [84.0, 35], [83.1, 40], [82.5, 45], [82.0, 50], [81.0, 60],
   [80.2, 70], [79.3, 80], [78.5, 90], [78.15, 96]
 ];
+/* Ниже этой температуры крепость по кипению не считается вообще.
+   Держится отдельной константой, потому что о ней должен знать и тот,
+   кто рисует плашку: «нет данных» и «холодный куб» — разные вещи,
+   и написать про них надо разное. */
+const ABV_MIN_T = 70.0;
+
 function kubAbv(t, mmhg){
   if (!isFinite(t)) return NaN;
   // Точка кипения плывёт ~0.037 °C на мм рт.ст. Без поправки смена погоды
   // выглядит как изменение крепости.
   const tc = isFinite(mmhg) ? t - (mmhg - 760) * 0.037 : t;
+  // Куб холодный — считать нечего: смесь не кипит, равновесия пар-жидкость
+  // нет, переводить температуру в крепость не из чего. Без этой проверки
+  // всё, что ниже 78.15, упирается в нижний край таблицы и возвращает 96 %:
+  // холодная колонна выглядит полной готового ректификата.
+  // Прошивка этот случай ловит с 08.09.2026 («26,38 °C; 96,0 %» в её логе),
+  // а пульт считал сам, той правки не получил и продолжал врать —
+  // на кубе 25.9 °C показывал «96.0 %, ≈ 21.12 л спирта из 22 л».
+  if (tc < ABV_MIN_T) return NaN;
   if (tc >= ABV_T[0][0]) return 0;
   if (tc <= ABV_T[ABV_T.length - 1][0]) return 96;
   for (let i = 0; i < ABV_T.length - 1; i++){
@@ -783,20 +797,33 @@ async function sdInfo(){
 /* Файл текущего погона с карты. Тянем целиком: 15 часов по 30 секунд —
    около 270 КБ, это два десятка кусков по локальной сети. */
 async function sdFileText(name, onStep){
-  let off = 0, size = null, text = '';
+  /* Куски собираем БАЙТАМИ и декодируем один раз в конце.
+     Плата отсчитывает off от начала файла в байтах (fseek), а длина
+     JS-строки меряется в символах UTF-16. Шапка журнала кириллическая,
+     каждая её буква в UTF-8 занимает два байта — и на этой разнице
+     смещение сразу отставало байт на полтораста. Куски после этого
+     перехлёстывались, в скачанном файле появлялись дубли строк, а цикл
+     делал лишний проход по уже прочитанному хвосту.
+     Побочно лечится разрез многобайтового символа на границе куска:
+     декодер видит склеенный поток, а не половину буквы. */
+  let off = 0, size = null;
+  const parts = [];
   for (let guard = 0; guard < 400; guard++){
     const r = await sdGet('/logs/' + encodeURIComponent(name) + '?off=' + off + '&len=16384');
-    const part = await r.text();
+    const buf = new Uint8Array(await r.arrayBuffer());
     if (size === null){
       const h = r.headers.get('X-File-Size');
       size = h ? parseInt(h, 10) : null;
     }
-    text += part;
-    off += part.length;
+    parts.push(buf);
+    off += buf.length;                     // байты — ровно то, что считает плата
     if (onStep && size) onStep('карта ' + Math.round(off * 100 / size) + '%');
-    if (!part.length || (size !== null && off >= size)) break;
+    if (!buf.length || (size !== null && off >= size)) break;
   }
-  return text;
+  const all = new Uint8Array(off);
+  let at = 0;
+  parts.forEach(p => { all.set(p, at); at += p.length; });
+  return new TextDecoder('utf-8').decode(all);
 }
 
 /* Сколько строк данных в куске. Нужна как запасной счётчик: если плата
@@ -1103,10 +1130,23 @@ async function haEntities(){
 /* История приходит массивами точек на сущность. Раскладываем их по
    корзинам журнала: в строку идёт последнее значение, известное на её
    момент, — так же, как человек списывает показания на круглый час. */
+/* Насколько старым может быть показание, которое ещё можно списать в строку.
+
+   У журнала платы такой вопрос решается просто: она пишет раз в 30 секунд
+   всегда, поэтому «старше интервала — не наше» (см. jrnDownsample).
+   Home Assistant устроен иначе: он хранит не отсчёты, а ИЗМЕНЕНИЯ, и
+   ровное показание законно может не обновляться долго. Резать здесь по
+   интервалу журнала — выбросить честные данные.
+
+   Поэтому час, и не меньше шага журнала. Датчик, который за час не
+   изменился ни на сотую градуса, — это не стабильность, это тишина. */
+const HA_STALE = 3600;   // секунды
+
 function haBucketize(hist, map, first, last, step){
   const keys = Object.keys(map);
-  const pos = {}, cur = {};
+  const pos = {}, cur = {}, curTs = {};
   keys.forEach(k => { pos[k] = 0; });
+  const stale = Math.max(step, HA_STALE);
 
   const rows = [];
   for (let b = first; b <= last; b += step){
@@ -1115,14 +1155,28 @@ function haBucketize(hist, map, first, last, step){
       let i = pos[k];
       while (i < arr.length && (arr[i].lu || 0) <= b + 30){
         const v = parseFloat(arr[i].s);
+        // 'unavailable' и 'unknown' дают NaN. Это честное «данных нет»,
+        // и оно обязано СТИРАТЬ предыдущее значение, а не пропускаться:
+        // именно такую точку HA и пишет, когда плата уходит из сети.
         cur[k] = isFinite(v) ? v : undefined;
+        curTs[k] = arr[i].lu || 0;
         i++;
       }
       pos[k] = i;
     });
 
     const row = {ts: b};
-    keys.forEach(k => { if (cur[k] !== undefined) row[k] = cur[k]; });
+    keys.forEach(k => {
+      if (cur[k] === undefined) return;
+      /* Протухшее не тянем. Если поток точек просто кончился — упал сам HA,
+         дошли до края хранения, — то без этой проверки последнее известное
+         показание ровным столбиком копировалось во все оставшиеся строки
+         до конца окна. Ряд выглядел идеально стабильным ровно там, где
+         данных не было вообще: то же враньё, против которого сделан
+         весь остальной журнал. */
+      if (b - (curTs[k] || 0) > stale) return;
+      row[k] = cur[k];
+    });
 
     if (jrnHasData(row)) rows.push(row);   // см. jrnHasData: пустое не пишем
   }
@@ -1582,7 +1636,7 @@ addEventListener('storage', e => {
 window.PULT = {
   CH, AL, CLR, NUM, V, H, A, S, N,
   start, connect, ack, toast, wake, applyTheme, theme,
-  push, slice, range, severity, col, saveHist, clearHist, histInfo, kubAbv,
+  push, slice, range, severity, col, saveHist, clearHist, histInfo, kubAbv, ABV_MIN_T,
   lim, setLim, resetLim, limUser, thrKind, editor, armEditors, NUMOF, toHexColor,
   lineColor, dashOf, setPal, resetPal, palUser, setNumber,
   ROLES, SEL, SLOT, BIND, setSelect,
