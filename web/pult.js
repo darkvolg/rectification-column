@@ -181,6 +181,19 @@ function push(k, v){
   const from = now - KEEP;
   while (a.length && a[0][0] < from) a.shift();
 }
+/* Точки в произвольном отрезке времени плюс по одной за каждым краем:
+   крайние нужны, чтобы линия входила в кадр и выходила из него, а не
+   обрывалась на границе. Нужна для увеличения: там края произвольные. */
+function range(k, from, to){
+  const a = H[k];
+  if (!a || !a.length) return [];
+  let i = 0;
+  while (i < a.length && a[i][0] < from) i++;
+  let j = i;
+  while (j < a.length && a[j][0] <= to) j++;
+  return a.slice(Math.max(0, i - 1), Math.min(a.length, j + 1));
+}
+
 function slice(k, minutes){
   const a = H[k]; if (!a || !a.length) return [];
   const from = Date.now() - minutes * 60000;
@@ -1569,7 +1582,7 @@ addEventListener('storage', e => {
 window.PULT = {
   CH, AL, CLR, NUM, V, H, A, S, N,
   start, connect, ack, toast, wake, applyTheme, theme,
-  push, slice, severity, col, saveHist, clearHist, histInfo, kubAbv,
+  push, slice, range, severity, col, saveHist, clearHist, histInfo, kubAbv,
   lim, setLim, resetLim, limUser, thrKind, editor, armEditors, NUMOF, toHexColor,
   lineColor, dashOf, setPal, resetPal, palUser, setNumber,
   ROLES, SEL, SLOT, BIND, setSelect,

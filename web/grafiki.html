@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260911a">
+<link rel="stylesheet" href="pult.css?v=20260911b">
 </head>
 <body>
 
@@ -43,6 +43,7 @@
       <button data-p="kub">Куб и мощность</button>
       <button data-p="cool">Охлаждение</button>
     </div>
+    <button class="btn" id="unzoom" hidden>Сбросить масштаб</button>
     <button class="btn" id="fill" title="Забрать пропущенное с платы и из Home Assistant">Дотянуть историю</button>
     <button class="btn" id="csv">История браузера</button>
     <button class="btn prim" id="log">Журнал контроллера</button>
@@ -64,7 +65,9 @@
 
 <footer>
   Наведи указатель на график — вертикальная нить покажет значения всех
-  линий на этот момент. Панель справа — кнопка: щелчок открывает настройку
+  линий на этот момент. Протяни мышью по графику — этот кусок увеличится;
+  колесо приближает и отдаляет, Shift с перетаскиванием двигает по времени,
+  двойной щелчок или Escape возвращают всё как было. Панель справа — кнопка: щелчок открывает настройку
   канала, глаз убирает линию с графика. Величины разного масштаба лежат
   каждая в своей полосе со своей шкалой, поэтому давление не расплющивает
   температуры. Браузер копит точки с шагом 30 секунд на 12 часов, но пишет
@@ -72,7 +75,7 @@
   то время, что она была закрыта.
 </footer>
 
-<script src="pult.js?v=20260911a"></script>
+<script src="pult.js?v=20260911b"></script>
 <script>
 "use strict";
 const {slice, col, lineColor, V, CH} = PULT;
@@ -204,6 +207,9 @@ let GEO = null;
    гасла прямо под носом у человека, который её читает. */
 let hoverX = null;
 
+/* Увеличенный отрезок [от, до] в миллисекундах или null — живое окно. */
+let ZOOM = null;
+
 /* Круглые числа на шкале: 1, 2, 5 и их десятки. Шкала с делениями
    вида 26.37 читается медленнее, чем с 26.4 — а смотрят на неё во
    время погона, между делом. */
@@ -294,27 +300,32 @@ function chart(){
      всегда, когда браузер был закрыт: в истории осталась пара старых
      точек, и одна из них — та, что рисуется левее окна, чтобы линия
      входила в край, — растягивала шкалу на полсуток. */
-  const t1 = Date.now();
-  const t0 = t1 - winMin * 60000;
+  /* Увеличение: пока ZOOM не задан, окно живое — «сейчас минус выбранный
+     отрезок». Задан — стоим на выбранном куске и не убегаем за временем,
+     иначе разглядеть его было бы нельзя: график перерисовывается каждые
+     пять секунд. */
+  const t1 = ZOOM ? ZOOM[1] : Date.now();
+  const t0 = ZOOM ? ZOOM[0] : t1 - winMin * 60000;
 
   // Ряд со своей статистикой: по ней и раскладываются полосы
   let any = false;
   const items = ser.map(k => {
-    const a = slice(k, winMin);
-    let lo = Infinity, hi = -Infinity, seed = null, inside = false;
+    const a = PULT.range(k, t0, t1);
+    let lo = Infinity, hi = -Infinity, seedL = null, seedR = null, inside = false;
     a.forEach(pt => {
-      if (pt[0] < t0){ seed = pt; return; }   // затравка левее окна
+      if (pt[0] < t0){ seedL = pt; return; }        // затравка слева
+      if (pt[0] > t1){ if (!seedR) seedR = pt; return; }  // и справа
       inside = any = true;
       if (pt[1] < lo) lo = pt[1];
       if (pt[1] > hi) hi = pt[1];
     });
-    // Отрезок от затравки до первой точки окна виден в поле графика,
-    // поэтому её значение тоже участвует в масштабе — иначе линия уходит
-    // за край полосы.
-    if (inside && seed){
-      if (seed[1] < lo) lo = seed[1];
-      if (seed[1] > hi) hi = seed[1];
-    }
+    // Отрезки от затравок до края окна видны в поле графика, поэтому их
+    // значения тоже участвуют в масштабе — иначе линия уходит за край.
+    [seedL, seedR].forEach(pt => {
+      if (!inside || !pt) return;
+      if (pt[1] < lo) lo = pt[1];
+      if (pt[1] > hi) hi = pt[1];
+    });
     return {k: k, a: a, u: byKey[k].u || '',
             lo: lo, hi: hi, span: isFinite(lo) ? hi - lo : 0,
             mid: isFinite(lo) ? (lo + hi) / 2 : 0};
@@ -617,13 +628,122 @@ document.getElementById('leg').addEventListener('click', e => {
     raf = requestAnimationFrame(() => { raf = 0; showHover(lastX); });
   };
 
+  const xToTime = px => {
+    if (!GEO) return null;
+    const x = Math.max(GEO.L, Math.min(GEO.w - GEO.R, px));
+    return GEO.t0 + (GEO.t1 - GEO.t0) * (x - GEO.L) / (GEO.w - GEO.L - GEO.R);
+  };
+
+  /* ---------- Увеличение ----------
+     Протянул мышью по графику — увеличили этот кусок. Это основной способ
+     разглядеть, скажем, полчаса на переходе, не теряя при этом соседние
+     полосы: ось времени общая, поэтому увеличиваются все разом.
+     Колесо — плавное приближение вокруг указателя. Shift с перетаскиванием
+     — сдвиг влево-вправо. Двойной щелчок и Escape возвращают живое окно. */
+  let drag = null;            // {x0, x1, pan} — идёт выделение или сдвиг
+
+  function paintBrush(){
+    if (!GEO || !drag || drag.pan) return;
+    const g = ov.getContext('2d');
+    const dpr = devicePixelRatio || 1;
+    g.clearRect(0, 0, ov.width / dpr, ov.height / dpr);
+    const a = Math.min(drag.x0, drag.x1), b = Math.max(drag.x0, drag.x1);
+    g.fillStyle = col('--accent');
+    g.globalAlpha = .13;
+    g.fillRect(a, 0, b - a, GEO.h - 18);
+    g.globalAlpha = 1;
+    g.strokeStyle = col('--accent');
+    g.lineWidth = 1;
+    [a, b].forEach(x => {
+      g.beginPath();
+      g.moveTo(Math.round(x) + .5, 0);
+      g.lineTo(Math.round(x) + .5, GEO.h - 18);
+      g.stroke();
+    });
+  }
+
+  function setZoom(from, to){
+    if (!(to - from > 5000)) return;             // меньше пяти секунд не имеет смысла
+    ZOOM = [from, to];
+    hoverX = null;
+    draw();
+    paintZoomState();
+  }
+
+  window.resetZoom = function(){
+    if (!ZOOM) return;
+    ZOOM = null;
+    hoverX = null;
+    draw();
+    paintZoomState();
+  };
+
+  window.paintZoomState = function(){
+    const b = document.getElementById('unzoom');
+    if (!b) return;
+    b.hidden = !ZOOM;
+    if (ZOOM){
+      const f = ts => { const d = new Date(ts), p = n => String(n).padStart(2,'0');
+                        return p(d.getHours()) + ':' + p(d.getMinutes()); };
+      const mins = Math.max(1, Math.round((ZOOM[1] - ZOOM[0]) / 60000));
+      b.textContent = 'Сбросить масштаб · ' + f(ZOOM[0]) + '–' + f(ZOOM[1]) +
+                      ' (' + mins + ' мин)';
+    }
+  };
+
   wrap.addEventListener('pointermove', e => {
-    at(e.clientX - ov.getBoundingClientRect().left);
+    const x = e.clientX - ov.getBoundingClientRect().left;
+    if (drag){
+      if (drag.pan){
+        const dt = (drag.x1 - x) * (GEO.t1 - GEO.t0) / (GEO.w - GEO.L - GEO.R);
+        drag.x1 = x;
+        ZOOM = [ZOOM[0] + dt, ZOOM[1] + dt];
+        draw(); paintZoomState();
+      } else {
+        drag.x1 = x;
+        paintBrush();
+      }
+      return;
+    }
+    at(x);
   });
-  wrap.addEventListener('pointerleave', hideTip);
+  wrap.addEventListener('pointerleave', () => { if (!drag) hideTip(); });
   wrap.addEventListener('pointerdown', e => {
-    at(e.clientX - ov.getBoundingClientRect().left);
+    const x = e.clientX - ov.getBoundingClientRect().left;
+    if (!GEO) return;
+    // Сдвиг — только по увеличенному: в живом окне двигаться некуда
+    const pan = (e.shiftKey || e.button === 1) && !!ZOOM;
+    drag = {x0: x, x1: x, pan: pan};
+    ov.setPointerCapture && ov.setPointerCapture(e.pointerId);
+    if (pan) e.preventDefault(); else at(x);
   });
+  wrap.addEventListener('pointerup', e => {
+    if (!drag) return;
+    const d = drag; drag = null;
+    if (d.pan){ return; }
+    const dx = Math.abs(d.x1 - d.x0);
+    if (dx < 8){ at(d.x1); return; }             // это был щелчок, а не выделение
+    const a = xToTime(Math.min(d.x0, d.x1)), b = xToTime(Math.max(d.x0, d.x1));
+    if (a !== null && b !== null) setZoom(a, b);
+  });
+  wrap.addEventListener('dblclick', () => resetZoom());
+
+  // Колесо приближает вокруг указателя. Страница при этом не прокручивается:
+  // курсор над графиком — значит человек работает с графиком.
+  wrap.addEventListener('wheel', e => {
+    if (!GEO) return;
+    e.preventDefault();
+    const at_t = xToTime(e.clientX - ov.getBoundingClientRect().left);
+    if (at_t === null) return;
+    const from = ZOOM ? ZOOM[0] : GEO.t0, to = ZOOM ? ZOOM[1] : GEO.t1;
+    const k = e.deltaY > 0 ? 1.25 : 0.8;         // вниз — отдалить, вверх — приблизить
+    let a = at_t - (at_t - from) * k;
+    let b = at_t + (to - at_t) * k;
+    const span = b - a;
+    if (span < 30000){ const c = (a + b) / 2; a = c - 15000; b = c + 15000; }
+    if (span > 12 * 3600e3) { resetZoom(); return; }
+    setZoom(a, b);
+  }, {passive: false});
 
   ov.tabIndex = 0;
   ov.setAttribute('aria-label', 'График: стрелками влево и вправо — просмотр значений по времени');
@@ -634,7 +754,7 @@ document.getElementById('leg').addEventListener('click', e => {
     else if (e.key === 'ArrowRight') at((lastX === null ? GEO.L : lastX) + stepPx);
     else if (e.key === 'Home')       at(GEO.L);
     else if (e.key === 'End')        at(GEO.w - GEO.R);
-    else if (e.key === 'Escape')     { hideTip(); lastX = null; }
+    else if (e.key === 'Escape')     { hideTip(); lastX = null; resetZoom(); }
     else return;
     e.preventDefault();
   });
@@ -678,6 +798,8 @@ document.getElementById('fill').onclick = async () => {
 
 document.querySelectorAll('#range button').forEach(b => b.onclick = () => {
   winMin = +b.dataset.m;
+  ZOOM = null;                 // выбрали глубину — увеличение больше не в силе
+  paintZoomState();
   document.querySelectorAll('#range button').forEach(x =>
     x.setAttribute('aria-pressed', String(x === b)));
   draw();
@@ -767,6 +889,9 @@ buildPanels();
 PULT.start();
 PULT.onUpdate(draw);
 addEventListener('resize', draw);
+document.getElementById('unzoom').onclick = () => resetZoom();
+paintZoomState();
+
 setInterval(draw, 5000);
 draw();
 </script>

@@ -730,7 +730,9 @@ table.slots tr.hot td{ color:var(--warn); font-weight:700 }
 /* ---------- График: слой наведения ---------- */
 .cwrap{position:relative}
 .cwrap canvas{width:100%; display:block}
-.hover{position:absolute; inset:0; cursor:crosshair}
+/* pan-y, а не none: на телефоне вертикальная прокрутка страницы остаётся
+   за пальцем, а движение вбок достаётся графику — это выделение отрезка. */
+.hover{position:absolute; inset:0; cursor:crosshair; touch-action:pan-y}
 .hover:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:6px}
 
 /* Подсказка под нитью: значение крупно, имя ряда — следом и тише.
