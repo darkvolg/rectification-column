@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260912b">
+<link rel="stylesheet" href="pult.css?v=20260912c">
 </head>
 <body>
 
@@ -44,7 +44,8 @@
     <p class="hint" id="s_note"></p>
     <div class="btnrow">
       <button class="btn" id="refresh">Обновить список</button>
-      <button class="btn" id="dl_cur">Скачать текущий погон</button>
+      <button class="btn prim" id="dl_cur">Текущий погон в Excel</button>
+      <button class="btn" id="dl_cur_csv" title="Тот же журнал сырым текстом">CSV</button>
     </div>
   </div>
 
@@ -79,7 +80,8 @@
   страдает: стереть архив с экрана нельзя, только вынув карту.
 </footer>
 
-<script src="pult.js?v=20260912b"></script>
+<script src="pult.js?v=20260912c"></script>
+<script src="xlsx.js?v=20260912c"></script>
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
@@ -126,6 +128,105 @@ function when(d){
    чтении ответа, и файл уходил без метки. Теперь через PULT.saveCsv,
    которая ставит её сама. */
 const saveBlob = (name, text) => PULT.saveCsv(name, text);
+
+/* ============================================================
+   ЖУРНАЛ ПЛАТЫ В EXCEL
+   Голый CSV читается плохо: дата не влезает в колонку и Excel рисует
+   вместо неё решётки, длинные заголовки обрезаются соседней ячейкой,
+   а девятнадцать столбцов одинаковых цифр сливаются в кашу.
+
+   Раскладку не выдумываем: берём ту, что прислала плата, — первая
+   строка файла и есть заголовок. Так выгрузка не разъедется, когда в
+   прошивке добавится канал.
+   ============================================================ */
+
+/* Ширина и числовой формат по номеру колонки журнала платы.
+   Порядок и цена деления — как в kolonna_log.h: у тренда царги шаг
+   0.0001 °C/мин, на двух знаках он превратился бы в ноль. */
+function boardCols(){
+  const S = XLSX.S;
+  return [
+    {w:19, s:S.DATE},    // 0  Время
+    {w:11, s:S.TEMP},    // 1  Куб T1
+    {w:13, s:S.TEMP},    // 2  Температура 2/3
+    {w:13, s:S.TEMP},    // 3  Температура отбора
+    {w:12, s:S.DT},      // 4  ΔT отбор-2/3, со знаком
+    {w:13, s:S.TREND},   // 5  Скорость роста 2/3
+    {w:11, s:S.PRESS},   // 6  Спирт в кубе
+    {w:12, s:S.CELL2},   // 7  Мощность по току
+    {w:12, s:S.CELL2},   // 8  Мощность по воде
+    {w:9,  s:S.TEMP},    // 9  Ток
+    {w:12, s:S.PRESS},   // 10 Напряжение
+    {w:11, s:S.TEMP},    // 11 Проток
+    {w:12, s:S.PRESS},   // 12 Расход воды
+    {w:12, s:S.TEMP},    // 13 Вода выход
+    {w:12, s:S.TEMP},    // 14 Вода вход
+    {w:13, s:S.PRESS},   // 15 Давление
+    {w:13, s:S.CELL2},   // 16 Скорость отбора
+    {w:11, s:S.CELL2},   // 17 Отобрано
+    {w:9,  s:S.CELL2}    // 18 Аварии
+  ];
+}
+
+/* Дата-время Excel — это число: суток с 30.12.1899.
+   Считаем от компонентов через Date.UTC, иначе часовой пояс браузера
+   сдвинет весь журнал на несколько часов. */
+function xlDate(d, m, y, hh, mm, ss){
+  return Date.UTC(y, m - 1, d, hh, mm, ss) / 86400000 + 25569;
+}
+
+function boardSheet(text){
+  const SPEC = boardCols();
+  const lines = String(text).replace(/^﻿/, '').split('\n');
+  const head = (lines[0] || '').replace(/\r$/, '').split(';');
+  const rows = [];
+
+  // Строка 1 — заголовок платы как есть
+  rows.push(head.map(h => ({v: h, s: XLSX.S.HEAD})));
+
+  let n = 0;
+  for (let i = 1; i < lines.length; i++){
+    const line = lines[i].replace(/\r$/, '');
+    if (!line) continue;
+    const c = line.split(';');
+    const m = /^(\d{2})\.(\d{2})\.(\d{4}) (\d{2}):(\d{2}):(\d{2})$/.exec(c[0]);
+    if (!m) continue;                       // «+секунды с включения» и мусор
+
+    // Аварии — последняя колонка. Ненулевая красит ячейку: строку, где
+    // плата орала, нужно находить глазом, а не поиском по столбцу.
+    const alarms = parseFloat((c[18] || '').replace(',', '.'));
+    const row = [{v: xlDate(+m[1], +m[2], +m[3], +m[4], +m[5], +m[6]), s: XLSX.S.DATE}];
+
+    for (let k = 1; k < SPEC.length; k++){
+      const raw = (c[k] || '').replace(',', '.');
+      if (raw === ''){ row.push(null); continue; }   // пусто — значит датчика нет
+      const v = parseFloat(raw);
+      if (!isFinite(v)){ row.push(null); continue; }
+      const st = (k === 18 && v > 0) ? XLSX.S.ALARM : SPEC[k].s;
+      row.push({v: v, s: st});
+    }
+    rows.push(row);
+    n++;
+  }
+  return {rows: rows, count: n, cols: SPEC.map(x => x.w), width: head.length};
+}
+
+function boardXlsx(name, text){
+  const sh = boardSheet(text);
+  if (!sh.count) return 0;
+  const last = sh.rows.length;
+  XLSX.save(name.replace(/\.csv$/i, '') + '.xlsx', [{
+    name: 'Журнал платы',
+    cols: sh.cols,
+    // Закрепляем шапку И колонку времени: без времени слева девятнадцать
+    // столбцов цифр невозможно читать, уехав вправо
+    freeze: 'B2',
+    filter: 'A1:' + XLSX.col(sh.width) + last,
+    heights: {0: 30},
+    rows: sh.rows
+  }]);
+  return sh.count;
+}
 
 /* ---------- Кнопка, которая показывает ход дела ----------
    Файл погона — сотни килобайт кусками по 16 КБ, это секунды.
@@ -290,6 +391,7 @@ function paintStat(){
                                             ? i.files_total : (i.files || []).length);
   $('#stat').dataset.card = i && i.card ? '1' : '0';
   $('#dl_cur').disabled = !i;
+  $('#dl_cur_csv').disabled = !i;
 
   if (!i){ return; }
   if (i.card){
@@ -401,9 +503,16 @@ function runRow(f){
 
   const bDl = document.createElement('button');
   bDl.className = 'btn';
-  bDl.textContent = 'Скачать';
-  bDl.onclick = () => grab(bDl, f.name);
+  bDl.textContent = 'Excel';
+  bDl.onclick = () => grab(bDl, f.name, true);
   row.appendChild(bDl);
+
+  const bCsv = document.createElement('button');
+  bCsv.className = 'btn';
+  bCsv.textContent = 'CSV';
+  bCsv.title = 'Тот же файл сырым текстом, как его пишет плата';
+  bCsv.onclick = () => grab(bCsv, f.name, false);
+  row.appendChild(bCsv);
 
   const bG = document.createElement('button');
   bG.className = 'btn';
@@ -427,13 +536,21 @@ function guard(){
   busy = true; return true;
 }
 
-async function grab(btn, name){
+async function grab(btn, name, asXlsx){
   if (!guard()) return;
   const w = work(btn);
   try {
     const text = await PULT.sdFileText(name, w.step);
-    saveBlob(name, text);
-    PULT.toast('Файл сохранён');
+    if (asXlsx){
+      w.step('собираю книгу');
+      const n = boardXlsx(name, text);
+      PULT.toast(n ? 'Excel готов, строк ' + n
+                   : 'В файле нет строк с датой — сохраняю как есть');
+      if (!n) saveBlob(name, text);
+    } else {
+      saveBlob(name, text);
+      PULT.toast('Файл сохранён');
+    }
   } catch(e){ PULT.toast('Не скачать: ' + e.message); }
   w.done(); busy = false;
 }
@@ -464,16 +581,28 @@ async function toJrn(btn, name){
 
 $('#refresh').onclick = () => { if (!busy) load(); };
 
-$('#dl_cur').onclick = async () => {
+/* Текущий погон. Две кнопки на один журнал: Excel — чтобы смотреть,
+   CSV — чтобы отдать в чужую программу или положить в архив как есть. */
+async function dlCurrent(btn, asXlsx){
   if (!guard()) return;
-  const b = $('#dl_cur'), w = work(b);
+  const w = work(btn);
   try {
     const got = await PULT.sdText(w.step);
-    saveBlob(got.name, got.text);
-    PULT.toast(got.card ? 'Скачан файл с карты' : 'Скачано из памяти платы');
+    const where = got.card ? 'с карты' : 'из памяти платы';
+    if (asXlsx){
+      w.step('собираю книгу');
+      const n = boardXlsx(got.name, got.text);
+      PULT.toast(n ? 'Excel готов ' + where + ', строк ' + n
+                   : 'Плата ещё не записала ни одной строки со временем');
+    } else {
+      saveBlob(got.name, got.text);
+      PULT.toast('Скачано ' + where);
+    }
   } catch(e){ PULT.toast('Не скачать: ' + e.message); }
   w.done(); busy = false;
-};
+}
+$('#dl_cur').onclick     = () => dlCurrent($('#dl_cur'), true);
+$('#dl_cur_csv').onclick = () => dlCurrent($('#dl_cur_csv'), false);
 
 PULT.start();
 // Свои погоны рисуем сразу: они лежат в браузере и платы не ждут.

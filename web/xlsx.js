@@ -118,13 +118,25 @@ const PHASE_BG = ['E8EAED','DCE9F2','F8DDD9','FBEED5','DEEDE4','F0E2D2','D9D9D9'
    числом: добавят фазу — он поедет сам. Каждая фаза даёт ДВА стиля,
    обычный и текстовый (для колонки примечания), отсюда множитель. */
 S.PRESS = S.PHASE0 + PHASE_BG.length * 2;
+/* Ещё два формата — для выгрузки журнала самой платы.
+   DATE: настоящая дата-время Excel, а не строка. Со строкой не работают
+   ни фильтр по периоду, ни построение графика по оси времени, а именно
+   за этим журнал платы в Excel и открывают.
+   TREND: скорость роста царги, 0.0001 °C/мин — у неё цена деления мельче
+   всех остальных, на двух знаках она превращается в ноль. */
+S.DATE  = S.PRESS + 1;
+S.TREND = S.PRESS + 2;
+/* Строка, в которой у платы висела авария. Заливка добавляется В КОНЕЦ
+   списка, поэтому номера фазовых заливок не сдвигаются. */
+S.ALARM = S.PRESS + 3;
 const HDR_BG = '1F3864', CALC_BG = 'EDF3E7', IN_BG = 'FFF6D9';
+const ALARM_BG = 'F8CBC6';
 
 function styles(){
   const fills = ['<fill><patternFill patternType="none"/></fill>',
                  '<fill><patternFill patternType="gray125"/></fill>'];
   const fillId = {};
-  [HDR_BG, CALC_BG, IN_BG].concat(PHASE_BG).forEach(c => {
+  [HDR_BG, CALC_BG, IN_BG].concat(PHASE_BG).concat([ALARM_BG]).forEach(c => {
     fillId[c] = fills.length;
     fills.push('<fill><patternFill patternType="solid"><fgColor rgb="FF' + c +
                '"/><bgColor indexed="64"/></patternFill></fill>');
@@ -148,7 +160,9 @@ function styles(){
     '<numFmt numFmtId="166" formatCode="# ##0"/>',
     '<numFmt numFmtId="167" formatCode="0.0%"/>',
     '<numFmt numFmtId="168" formatCode="0.000"/>',
-    '<numFmt numFmtId="169" formatCode="0.0"/>'
+    '<numFmt numFmtId="169" formatCode="0.0"/>',
+    '<numFmt numFmtId="170" formatCode="dd.mm.yyyy hh:mm:ss"/>',
+    '<numFmt numFmtId="171" formatCode="0.0000"/>'
   ];
 
   const B = '<border><left style="thin"><color rgb="FFBFBFBF"/></left>' +
@@ -190,8 +204,12 @@ function styles(){
   PHASE_BG.forEach(c => xf.push(C(6, fillId[c], 1, 0, CEN)));
   // И текстовый вариант фазовой заливки для примечания
   PHASE_BG.forEach(c => xf.push(C(6, fillId[c], 1, 0, LEF)));
-  // S.PRESS — строго последним, см. комментарий у его объявления
-  xf.push(C(6, 0, 1, 169, CEN));
+  // S.PRESS, S.DATE и S.TREND — строго в этом порядке и последними,
+  // см. комментарий у их объявления
+  xf.push(C(6, 0, 1, 169, CEN));   // PRESS 0.0
+  xf.push(C(6, 0, 1, 170, CEN));   // DATE  дата-время
+  xf.push(C(6, 0, 1, 171, CEN));   // TREND 0.0000
+  xf.push(C(2, fillId[ALARM_BG], 1, 166, CEN));   // ALARM целое на красном
 
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
