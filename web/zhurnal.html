@@ -671,14 +671,12 @@ $('#j_csv').onclick = () => {
            .map(x => q(dec(x === undefined ? '' : x))).join(';'));
   });
 
-  const csv = '﻿' + L.join('\r\n');
+  const csv = L.join('\r\n');
   const d = new Date(), p = n => String(n).padStart(2, '0');
   const name = 'Журнал_ректификации_' + d.getFullYear() + '-' +
                p(d.getMonth() + 1) + '-' + p(d.getDate()) + '.csv';
-  const url = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
-  const a = document.createElement('a');
-  a.href = url; a.download = name; a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  // Метку BOM ставит saveCsv — все выгрузки проекта идут через неё
+  PULT.saveCsv(name, csv);
   PULT.toast('Сохранено: ' + name);
 };
 

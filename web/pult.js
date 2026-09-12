@@ -505,6 +505,33 @@ document.addEventListener('visibilitychange', () => {
 
 /* ---------- Сообщение ---------- */
 let tt;
+/* ---------- Сохранение CSV ----------
+   Одна функция на все страницы, и существует она ради одной строки —
+   метки BOM в начале файла.
+
+   Плата отдаёт её честно (первые байты ответа EF BB BF), но браузер
+   срезает BOM ещё на приёме: и Response.text(), и TextDecoder по
+   умолчанию его съедают — так написано в стандарте. В строке JS его уже
+   нет, и файл уходил на диск без метки. Русский Excel без BOM читает
+   UTF-8 как ANSI и показывает кракозябры вместо шапки.
+
+   Ставим BOM тут, в момент записи, а не при чтении: в разборе он только
+   мешает (sdParse его отдельно вычищает), а нужен ровно файлу.
+   Сначала срезаем свой, если он есть, — двойной BOM Excel покажет
+   лишним символом в первой ячейке. */
+function saveCsv(name, text){
+  const body = String(text).replace(/^﻿/, '');
+  const url = URL.createObjectURL(
+    new Blob(['﻿' + body], {type: 'text/csv;charset=utf-8'}));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
 function toast(msg){
   let t = $('#toast');
   if (!t){ t = document.createElement('div'); t.id = 'toast'; t.className = 'toast';
@@ -1804,7 +1831,7 @@ addEventListener('storage', e => {
 
 window.PULT = {
   CH, AL, CLR, NUM, V, H, A, S, N,
-  start, connect, ack, toast, wake, applyTheme, theme,
+  start, connect, ack, toast, saveCsv, wake, applyTheme, theme,
   push, slice, range, severity, col, saveHist, clearHist, histInfo, kubAbv, ABV_MIN_T,
   lim, setLim, resetLim, limUser, thrKind, editor, armEditors, NUMOF, toHexColor,
   lineColor, dashOf, setPal, resetPal, palUser, setNumber,

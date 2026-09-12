@@ -120,15 +120,12 @@ function when(d){
   return d.getDate() + ' ' + MON[d.getMonth()] + ', ' + p(d.getHours()) + ':' + p(d.getMinutes());
 }
 
-/* ---------- Сохранение файла ---------- */
-function saveBlob(name, text){
-  // BOM уже внутри текста с платы — русский Excel без него покажет кракозябры
-  const url = URL.createObjectURL(new Blob([text], {type:'text/csv;charset=utf-8'}));
-  const a = document.createElement('a');
-  a.href = url; a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
-}
+/* ---------- Сохранение файла ----------
+   Раньше здесь стоял свой Blob с комментарием «BOM уже внутри текста с
+   платы». Это было неверно: плата BOM отдаёт, но браузер срезает его при
+   чтении ответа, и файл уходил без метки. Теперь через PULT.saveCsv,
+   которая ставит её сама. */
+const saveBlob = (name, text) => PULT.saveCsv(name, text);
 
 /* ---------- Кнопка, которая показывает ход дела ----------
    Файл погона — сотни килобайт кусками по 16 КБ, это секунды.
@@ -240,8 +237,7 @@ function mineCsv(r){
   const p = n => String(n).padStart(2, '0');
   const name = 'pogon_' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) +
                '_' + p(d.getHours()) + p(d.getMinutes()) + '.csv';
-  // BOM обязателен: без него русский Excel покажет кракозябры
-  saveBlob(name, '﻿' + lines.join('\r\n') + '\r\n');
+  saveBlob(name, lines.join('\r\n') + '\r\n');   // BOM поставит saveCsv
   PULT.toast('Сохранён ' + name);
 }
 
