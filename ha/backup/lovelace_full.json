@@ -1,0 +1,1579 @@
+{
+  "title": "Home Assistant",
+  "views": [
+    {
+      "type": "sections",
+      "title": "Дом",
+      "icon": "mdi:home",
+      "path": "dom",
+      "max_columns": 3,
+      "badges": [],
+      "sections": [
+        {
+          "cards": [
+            {
+              "type": "custom:mushroom-title-card",
+              "title": "Температура"
+            },
+            {
+              "type": "custom:mini-graph-card",
+              "name": "Температура (24ч)",
+              "hours_to_show": 24,
+              "points_per_hour": 2,
+              "line_width": 2,
+              "entities": [
+                {
+                  "entity": "sensor.0xa4c1380de750d307_temperature",
+                  "name": "Зал"
+                },
+                {
+                  "entity": "sensor.spalnia_1_etazh_temperature",
+                  "name": "Спальня 1"
+                },
+                {
+                  "entity": "sensor.detskaia_2_etazh_temperature",
+                  "name": "Детская 2"
+                }
+              ],
+              "show": {
+                "labels": true,
+                "points": false
+              }
+            },
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "type": "custom:template-entity-row",
+                  "entity": "sensor.0xa4c1380de750d307_temperature",
+                  "name": "Зал",
+                  "icon": "mdi:home-thermometer",
+                  "state": "🌡 {{ states('sensor.0xa4c1380de750d307_temperature') }}°C   💧 {{ states('sensor.0xa4c1380de750d307_humidity') }}%"
+                },
+                {
+                  "type": "custom:template-entity-row",
+                  "entity": "sensor.spalnia_1_etazh_temperature",
+                  "name": "Спальня 1 эт.",
+                  "icon": "mdi:home-thermometer",
+                  "state": "🌡 {{ states('sensor.spalnia_1_etazh_temperature') }}°C   💧 {{ states('sensor.spalnia_1_etazh_humidity') }}%"
+                },
+                {
+                  "type": "custom:template-entity-row",
+                  "entity": "sensor.spalnia_2_etazh_temperature",
+                  "name": "Спальня 2 эт.",
+                  "icon": "mdi:home-thermometer",
+                  "state": "🌡 {{ states('sensor.spalnia_2_etazh_temperature') }}°C   💧 {{ states('sensor.spalnia_2_etazh_humidity') }}%"
+                },
+                {
+                  "type": "custom:template-entity-row",
+                  "entity": "sensor.detskaia_2_etazh_temperature",
+                  "name": "Детская 2 эт.",
+                  "icon": "mdi:home-thermometer",
+                  "state": "🌡 {{ states('sensor.detskaia_2_etazh_temperature') }}°C   💧 {{ states('sensor.detskaia_2_etazh_humidity') }}%"
+                },
+                {
+                  "type": "custom:template-entity-row",
+                  "entity": "sensor.tualet_temperature",
+                  "name": "Туалет",
+                  "icon": "mdi:home-thermometer",
+                  "state": "🌡 {{ states('sensor.tualet_temperature') }}°C   💧 {{ states('sensor.tualet_humidity') }}%"
+                },
+                {
+                  "type": "custom:template-entity-row",
+                  "entity": "sensor.0xa4c138909c60f8e6_temperature",
+                  "name": "Кухня",
+                  "icon": "mdi:home-thermometer",
+                  "state": "🌡 {{ states('sensor.0xa4c138909c60f8e6_temperature') }}°C   💧 {{ states('sensor.0xa4c138909c60f8e6_humidity') }}%"
+                }
+              ]
+            },
+            {
+              "type": "custom:mushroom-title-card",
+              "title": "Батарейки"
+            },
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "sensor.0xa4c138909c60f8e6_battery",
+                  "name": "Кухня",
+                  "icon": "mdi:battery"
+                },
+                {
+                  "entity": "sensor.spalnia_2_etazh_battery",
+                  "name": "Спальня 2 эт.",
+                  "icon": "mdi:battery"
+                },
+                {
+                  "entity": "sensor.tualet_battery",
+                  "name": "Туалет",
+                  "icon": "mdi:battery"
+                },
+                {
+                  "entity": "sensor.0xa4c1380de750d307_battery",
+                  "name": "Зал",
+                  "icon": "mdi:battery"
+                },
+                {
+                  "entity": "sensor.detskaia_2_etazh_battery",
+                  "name": "Детская 2 эт.",
+                  "icon": "mdi:battery"
+                },
+                {
+                  "entity": "sensor.spalnia_1_etazh_battery",
+                  "name": "Спальня 1 эт.",
+                  "icon": "mdi:battery"
+                },
+                {
+                  "entity": "sensor.infinix_x678b_battery_level",
+                  "name": "Infinix X678B",
+                  "icon": "mdi:cellphone"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "cards": [
+            {
+              "type": "custom:mushroom-title-card",
+              "title": "Котёл"
+            },
+            {
+              "type": "thermostat",
+              "entity": "climate.thermostat",
+              "name": "Котёл",
+              "features": [
+                {
+                  "type": "climate-hvac-modes",
+                  "hvac_modes": [
+                    "heat",
+                    "off"
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "history-graph",
+              "title": "Реле котла (24ч)",
+              "hours_to_show": 24,
+              "entities": [
+                {
+                  "entity": "switch.rele_kotel"
+                }
+              ]
+            },
+            {
+              "type": "custom:mushroom-title-card",
+              "title": "Нептун"
+            },
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "binary_sensor.leaksensor_vannaia",
+                  "name": "Ванная",
+                  "icon": "mdi:water-alert"
+                },
+                {
+                  "entity": "binary_sensor.leaksensor_kladovka",
+                  "name": "Кладовка",
+                  "icon": "mdi:water-alert"
+                },
+                {
+                  "entity": "binary_sensor.leaksensor_kukhnia",
+                  "name": "Кухня",
+                  "icon": "mdi:water-alert"
+                },
+                {
+                  "entity": "binary_sensor.leaksensor_podval",
+                  "name": "Подвал",
+                  "icon": "mdi:water-alert"
+                },
+                {
+                  "entity": "binary_sensor.neptun_dom",
+                  "name": "Нептун",
+                  "icon": "mdi:water-alert"
+                },
+                {
+                  "entity": "switch.washing_floors_mode",
+                  "name": "Мытьё полов",
+                  "icon": "mdi:broom"
+                },
+                {
+                  "entity": "switch.waterswitch",
+                  "name": "Кран воды",
+                  "icon": "mdi:water-pump"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "cards": [
+            {
+              "type": "custom:mushroom-title-card",
+              "title": "Погода"
+            },
+            {
+              "type": "weather-forecast",
+              "entity": "weather.openweathermap",
+              "show_forecast": false,
+              "name": "Волгоград"
+            },
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "sensor.openweathermap_temperature",
+                  "name": "Температура",
+                  "icon": "mdi:thermometer"
+                },
+                {
+                  "entity": "sensor.openweathermap_apparent_temperature",
+                  "name": "Ощущается как",
+                  "icon": "mdi:thermometer-lines"
+                },
+                {
+                  "entity": "sensor.openweathermap_humidity",
+                  "name": "Влажность",
+                  "icon": "mdi:water-percent"
+                },
+                {
+                  "entity": "sensor.openweathermap_wind_speed",
+                  "name": "Ветер",
+                  "icon": "mdi:weather-windy"
+                }
+              ]
+            },
+            {
+              "type": "custom:mushroom-title-card",
+              "title": "Медиа"
+            },
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "media_player.yandex_station_m10tte210gm8rk",
+                  "name": "Станция Мини",
+                  "icon": "mdi:speaker"
+                },
+                {
+                  "entity": "media_player.yandex_station_lp000000000000410757000093e582bb",
+                  "name": "Яндекс Лайт",
+                  "icon": "mdi:speaker"
+                }
+              ]
+            },
+            {
+              "type": "custom:mushroom-title-card",
+              "title": "Кремовалка"
+            },
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "sensor.rozetka_power",
+                  "name": "Мощность",
+                  "icon": "mdi:flash"
+                },
+                {
+                  "entity": "sensor.rozetka_voltage",
+                  "name": "Напряжение",
+                  "icon": "mdi:sine-wave"
+                },
+                {
+                  "entity": "sensor.rozetka_current",
+                  "name": "Ток",
+                  "icon": "mdi:current-ac"
+                },
+                {
+                  "entity": "switch.rozetka_socket_1",
+                  "name": "Розетка",
+                  "icon": "mdi:power-socket-eu"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sections",
+      "title": "Пчелкин дом",
+      "icon": "mdi:bee",
+      "path": "bees",
+      "max_columns": 3,
+      "badges": [],
+      "sections": [
+        {
+          "cards": [
+            {
+              "type": "custom:mushroom-title-card",
+              "title": "Омшанник"
+            },
+            {
+              "type": "custom:mini-graph-card",
+              "name": "Омшанник (24ч)",
+              "hours_to_show": 24,
+              "points_per_hour": 2,
+              "line_width": 2,
+              "entities": [
+                {
+                  "entity": "sensor.esphome_bees_1",
+                  "name": "Датчик 1"
+                },
+                {
+                  "entity": "sensor.esphome_bees_2",
+                  "name": "Датчик 2"
+                }
+              ],
+              "show": {
+                "labels": true,
+                "points": false
+              }
+            },
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "sensor.esphome_bees_1",
+                  "name": "Датчик 1",
+                  "icon": "mdi:thermometer"
+                },
+                {
+                  "entity": "sensor.esphome_bees_2",
+                  "name": "Датчик 2",
+                  "icon": "mdi:thermometer"
+                },
+                {
+                  "entity": "sensor.esphome_bees_dht",
+                  "name": "DHT темп.",
+                  "icon": "mdi:thermometer"
+                },
+                {
+                  "entity": "sensor.esphome_bees_dht_2",
+                  "name": "DHT влажн.",
+                  "icon": "mdi:water-percent"
+                }
+              ]
+            },
+            {
+              "type": "custom:mushroom-title-card",
+              "title": "Обогрев дома"
+            },
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "switch.rozetka_pchelka_socket_1",
+                  "name": "Розетка пчёлка",
+                  "icon": "mdi:power-socket-eu"
+                }
+              ]
+            },
+            {
+              "type": "history-graph",
+              "title": "Реле дом (24ч)",
+              "hours_to_show": 24,
+              "entities": [
+                {
+                  "entity": "switch.rozetka_pchelka_socket_1"
+                }
+              ]
+            },
+            {
+              "type": "custom:mushroom-title-card",
+              "title": "Розетка пчёлка"
+            },
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "sensor.rozetka_pchelka_total_energy",
+                  "name": "Энергия",
+                  "icon": "mdi:lightning-bolt"
+                },
+                {
+                  "entity": "sensor.rozetka_pchelka_power",
+                  "name": "Мощность",
+                  "icon": "mdi:flash"
+                },
+                {
+                  "entity": "sensor.rozetka_pchelka_voltage",
+                  "name": "Напряжение",
+                  "icon": "mdi:sine-wave"
+                },
+                {
+                  "entity": "sensor.rozetka_pchelka_current",
+                  "name": "Ток",
+                  "icon": "mdi:current-ac"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "cards": [
+            {
+              "type": "custom:mushroom-title-card",
+              "title": "Ульи D2"
+            },
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "sensor.obogrev_bee_new_8",
+                  "name": "Уличная",
+                  "icon": "mdi:weather-partly-cloudy"
+                },
+                {
+                  "entity": "sensor.obogrev_bee_new_1",
+                  "name": "Улей 1",
+                  "icon": "mdi:beehive-outline"
+                },
+                {
+                  "entity": "sensor.obogrev_bee_new_2",
+                  "name": "Улей 2",
+                  "icon": "mdi:beehive-outline"
+                },
+                {
+                  "entity": "sensor.obogrev_bee_new_5",
+                  "name": "Улей 5",
+                  "icon": "mdi:beehive-outline"
+                },
+                {
+                  "entity": "sensor.obogrev_bee_new_6",
+                  "name": "Улей 6",
+                  "icon": "mdi:beehive-outline"
+                },
+                {
+                  "entity": "sensor.obogrev_bee_new_7",
+                  "name": "Улей 7",
+                  "icon": "mdi:beehive-outline"
+                },
+                {
+                  "entity": "sensor.obogrev_bee_new_8_2",
+                  "name": "Улей 8",
+                  "icon": "mdi:beehive-outline"
+                },
+                {
+                  "entity": "sensor.obogrev_bee_new_9",
+                  "name": "Улей 9",
+                  "icon": "mdi:beehive-outline"
+                },
+                {
+                  "entity": "sensor.bees_obogrev_median",
+                  "name": "Медиана",
+                  "icon": "mdi:chart-line"
+                }
+              ]
+            },
+            {
+              "type": "custom:mushroom-title-card",
+              "title": "Обогрев ульев"
+            },
+            {
+              "type": "thermostat",
+              "entity": "climate.thermostat_bees",
+              "name": "Ульев",
+              "features": [
+                {
+                  "type": "climate-hvac-modes",
+                  "hvac_modes": [
+                    "heat",
+                    "off"
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "switch.obogrev_bee_new_1",
+                  "name": "Реле обогрев",
+                  "icon": "mdi:radiator"
+                }
+              ]
+            },
+            {
+              "type": "history-graph",
+              "title": "Обогрев (24ч)",
+              "hours_to_show": 24,
+              "entities": [
+                {
+                  "entity": "switch.obogrev_bee_new_1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "cards": [
+            {
+              "type": "custom:mushroom-title-card",
+              "title": "Ульи D5"
+            },
+            {
+              "type": "custom:mini-graph-card",
+              "name": "Поилка (24ч)",
+              "hours_to_show": 24,
+              "points_per_hour": 2,
+              "line_width": 2,
+              "entities": [
+                {
+                  "entity": "sensor.obogrev_bee_new",
+                  "name": "Поилка"
+                }
+              ],
+              "show": {
+                "labels": true,
+                "points": false
+              }
+            },
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "sensor.obogrev_bee_new",
+                  "name": "Поилка",
+                  "icon": "mdi:water-thermometer"
+                },
+                {
+                  "entity": "sensor.obogrev_new_temperatura_v_ule_no10",
+                  "name": "Улей 10",
+                  "icon": "mdi:beehive-outline"
+                },
+                {
+                  "entity": "sensor.obogrev_new_temperatura_v_ule_no11",
+                  "name": "Улей 11",
+                  "icon": "mdi:beehive-outline"
+                },
+                {
+                  "entity": "sensor.obogrev_new_temperatura_v_ule_no12",
+                  "name": "Улей 12",
+                  "icon": "mdi:beehive-outline"
+                },
+                {
+                  "entity": "sensor.obogrev_new_temperatura_v_ule_no14",
+                  "name": "Улей 14",
+                  "icon": "mdi:beehive-outline"
+                }
+              ]
+            },
+            {
+              "type": "custom:mushroom-title-card",
+              "title": "Обогрев поилки"
+            },
+            {
+              "type": "thermostat",
+              "entity": "climate.thermostat_bees_poilka",
+              "name": "Поилки",
+              "features": [
+                {
+                  "type": "climate-hvac-modes",
+                  "hvac_modes": [
+                    "heat",
+                    "off"
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "switch.obogrev_bee_new",
+                  "name": "Реле поилки",
+                  "icon": "mdi:radiator"
+                }
+              ]
+            },
+            {
+              "type": "history-graph",
+              "title": "Реле поилки (24ч)",
+              "hours_to_show": 24,
+              "entities": [
+                {
+                  "entity": "switch.obogrev_bee_new"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Zigbee",
+      "path": "zigbee",
+      "icon": "mdi:router-wireless",
+      "cards": [
+        {
+          "type": "entities",
+          "title": "Состояние сети",
+          "entities": [
+            {
+              "entity": "binary_sensor.zigbee2mqtt_bridge_connection_state",
+              "name": "Zigbee Bridge"
+            }
+          ]
+        },
+        {
+          "type": "custom:auto-entities",
+          "card": {
+            "type": "entities",
+            "title": "Качество сигнала (LQI)",
+            "show_header_toggle": false,
+            "state_color": false
+          },
+          "filter": {
+            "include": [
+              {
+                "entity_id": "sensor.*_linkquality",
+                "options": {
+                  "secondary_info": "last-changed"
+                }
+              }
+            ],
+            "exclude": [
+              {
+                "state": "unavailable"
+              },
+              {
+                "state": "unknown"
+              }
+            ]
+          },
+          "sort": {
+            "method": "state",
+            "numeric": true,
+            "reverse": false
+          }
+        },
+        {
+          "type": "custom:auto-entities",
+          "card": {
+            "type": "entities",
+            "title": "Батарейки Zigbee",
+            "show_header_toggle": false
+          },
+          "filter": {
+            "include": [
+              {
+                "entity_id": "sensor.*_battery",
+                "options": {
+                  "secondary_info": "last-changed"
+                }
+              }
+            ],
+            "exclude": [
+              {
+                "state": "unavailable"
+              },
+              {
+                "state": "unknown"
+              }
+            ]
+          },
+          "sort": {
+            "method": "state",
+            "numeric": true,
+            "reverse": false
+          }
+        },
+        {
+          "type": "custom:auto-entities",
+          "card": {
+            "type": "entities",
+            "title": "Недоступные Zigbee устройства",
+            "show_empty": false,
+            "show_header_toggle": false
+          },
+          "filter": {
+            "include": [
+              {
+                "entity_id": "sensor.0x*",
+                "state": "unavailable",
+                "options": {
+                  "secondary_info": "last-changed"
+                }
+              },
+              {
+                "entity_id": "binary_sensor.0x*",
+                "state": "unavailable",
+                "options": {
+                  "secondary_info": "last-changed"
+                }
+              },
+              {
+                "entity_id": "sensor.*_linkquality",
+                "state": "unavailable",
+                "options": {
+                  "secondary_info": "last-changed"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "markdown",
+          "content": "## [Открыть Zigbee2MQTT UI](/hassio/ingress/45df7312_zigbee2mqtt)\n\nНажми на ссылку чтобы открыть панель Z2M в отдельном окне."
+        }
+      ]
+    },
+    {
+      "type": "sections",
+      "title": "Камеры",
+      "icon": "mdi:cctv",
+      "path": "cameras",
+      "max_columns": 2,
+      "badges": [],
+      "sections": [
+        {
+          "cards": [
+            {
+              "type": "custom:mushroom-title-card",
+              "title": "RVi уличная"
+            },
+            {
+              "type": "picture-entity",
+              "entity": "camera.rvi_1",
+              "name": "RVi",
+              "show_state": false,
+              "show_name": true,
+              "camera_view": "auto"
+            },
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "binary_sensor.rvi_1nct2024_282_8_29_cell_motion_detection",
+                  "name": "Движение",
+                  "icon": "mdi:motion-sensor"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "cards": [
+            {
+              "type": "custom:mushroom-title-card",
+              "title": "Домофон"
+            },
+            {
+              "type": "picture-entity",
+              "entity": "camera.ip_monitor",
+              "name": "Домофон (без live stream — TCP 8883 заблокирован)",
+              "show_state": false,
+              "show_name": true,
+              "camera_view": "auto"
+            },
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "counter.doorbell_rings",
+                  "name": "Звонков",
+                  "icon": "mdi:bell-ring"
+                },
+                {
+                  "entity": "event.ip_monitor_doorbell_message",
+                  "name": "Последний звонок",
+                  "icon": "mdi:bell-alert"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sections",
+      "title": "Система",
+      "icon": "mdi:server-network",
+      "path": "system",
+      "max_columns": 3,
+      "badges": [],
+      "sections": [
+        {
+          "cards": [
+            {
+              "type": "grid",
+              "columns": 3,
+              "square": false,
+              "cards": [
+                {
+                  "type": "gauge",
+                  "entity": "sensor.system_monitor_memory_use_percent",
+                  "name": "RAM",
+                  "severity": {
+                    "green": 0,
+                    "yellow": 60,
+                    "red": 85
+                  }
+                },
+                {
+                  "type": "gauge",
+                  "entity": "sensor.system_monitor_swap_use_percent",
+                  "name": "Swap",
+                  "severity": {
+                    "green": 0,
+                    "yellow": 50,
+                    "red": 80
+                  }
+                },
+                {
+                  "type": "gauge",
+                  "entity": "sensor.system_monitor_disk_use_percent",
+                  "name": "Диск",
+                  "severity": {
+                    "green": 0,
+                    "yellow": 60,
+                    "red": 85
+                  }
+                },
+                {
+                  "type": "gauge",
+                  "entity": "sensor.system_monitor_processor_use",
+                  "name": "CPU",
+                  "severity": {
+                    "green": 0,
+                    "yellow": 60,
+                    "red": 85
+                  }
+                },
+                {
+                  "type": "gauge",
+                  "entity": "sensor.system_monitor_processor_temperature",
+                  "name": "Темп.",
+                  "severity": {
+                    "green": 0,
+                    "yellow": 60,
+                    "red": 80
+                  }
+                }
+              ]
+            },
+            {
+              "type": "custom:mushroom-title-card",
+              "title": "Действия"
+            },
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "script.system_report",
+                  "name": "Отчёт в Telegram",
+                  "icon": "mdi:send"
+                },
+                {
+                  "entity": "script.send_message_1",
+                  "name": "Тест сообщения",
+                  "icon": "mdi:message-text"
+                }
+              ]
+            },
+            {
+              "type": "custom:mini-graph-card",
+              "name": "RAM и Swap (24ч)",
+              "hours_to_show": 24,
+              "points_per_hour": 2,
+              "line_width": 2,
+              "entities": [
+                {
+                  "entity": "sensor.system_monitor_memory_use_percent",
+                  "name": "RAM %"
+                },
+                {
+                  "entity": "sensor.system_monitor_swap_use_percent",
+                  "name": "Swap %"
+                }
+              ],
+              "show": {
+                "labels": true,
+                "points": false
+              }
+            }
+          ]
+        },
+        {
+          "cards": [
+            {
+              "type": "custom:mushroom-title-card",
+              "title": "Мониторинг"
+            },
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "sensor.system_monitor_last_boot",
+                  "name": "Загрузка",
+                  "icon": "mdi:restart"
+                },
+                {
+                  "entity": "sensor.system_monitor_memory_use",
+                  "name": "RAM",
+                  "icon": "mdi:memory"
+                },
+                {
+                  "entity": "sensor.system_monitor_memory_use_percent",
+                  "name": "RAM %",
+                  "icon": "mdi:memory"
+                },
+                {
+                  "entity": "sensor.system_monitor_processor_use",
+                  "name": "CPU %",
+                  "icon": "mdi:cpu-64-bit"
+                },
+                {
+                  "entity": "sensor.system_monitor_processor_temperature",
+                  "name": "CPU темп.",
+                  "icon": "mdi:thermometer-alert"
+                },
+                {
+                  "entity": "sensor.system_monitor_swap_use_percent",
+                  "name": "Swap %",
+                  "icon": "mdi:swap-horizontal"
+                },
+                {
+                  "entity": "sensor.system_monitor_disk_free",
+                  "name": "Диск свободно",
+                  "icon": "mdi:harddisk"
+                },
+                {
+                  "entity": "sensor.system_monitor_disk_use_percent",
+                  "name": "Диск %",
+                  "icon": "mdi:chart-pie"
+                }
+              ]
+            },
+            {
+              "type": "custom:mushroom-title-card",
+              "title": "Keenetic"
+            },
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "sensor.zyxel_gateway_external_ip",
+                  "name": "Внешний IP",
+                  "icon": "mdi:ip-network"
+                },
+                {
+                  "entity": "sensor.zyxel_gateway_uptime",
+                  "name": "Аптайм",
+                  "icon": "mdi:timer-outline"
+                },
+                {
+                  "entity": "sensor.zyxel_gateway_wan_status",
+                  "name": "WAN статус",
+                  "icon": "mdi:wan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "cards": [
+            {
+              "type": "custom:mushroom-title-card",
+              "title": "Резервные копии"
+            },
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "sensor.last_google_backup",
+                  "name": "Последний бэкап",
+                  "icon": "mdi:calendar-clock"
+                },
+                {
+                  "entity": "sensor.backups_in_google_drive",
+                  "name": "Google Drive",
+                  "icon": "mdi:cloud-upload"
+                },
+                {
+                  "entity": "sensor.backups_in_home_assistant",
+                  "name": "Home Assistant",
+                  "icon": "mdi:home-assistant"
+                },
+                {
+                  "entity": "sensor.size_in_google_drive",
+                  "name": "Размер GDrive",
+                  "icon": "mdi:database"
+                },
+                {
+                  "entity": "sensor.size_in_home_assistant",
+                  "name": "Размер локально",
+                  "icon": "mdi:database"
+                },
+                {
+                  "entity": "sensor.free_space_in_google_drive",
+                  "name": "Свободно GDrive",
+                  "icon": "mdi:database-check"
+                },
+                {
+                  "entity": "sensor.system_monitor_disk_free",
+                  "name": "Свободно диск",
+                  "icon": "mdi:harddisk"
+                }
+              ]
+            },
+            {
+              "type": "custom:mini-graph-card",
+              "name": "GDrive (24ч)",
+              "hours_to_show": 24,
+              "points_per_hour": 2,
+              "line_width": 2,
+              "entities": [
+                {
+                  "entity": "sensor.size_in_google_drive",
+                  "name": "Размер GB"
+                }
+              ],
+              "show": {
+                "labels": true,
+                "points": false
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sections",
+      "title": "Весы",
+      "icon": "mdi:scale",
+      "path": "scale",
+      "max_columns": 3,
+      "badges": [],
+      "sections": [
+        {
+          "cards": [
+            {
+              "type": "entities",
+              "show_header_toggle": false,
+              "entities": [
+                {
+                  "entity": "sensor.beehivescale_beehive_weight",
+                  "name": "Вес",
+                  "icon": "mdi:scale"
+                },
+                {
+                  "entity": "sensor.beehive_weight_30m_change",
+                  "name": "Δ 30 мин",
+                  "icon": "mdi:trending-down"
+                },
+                {
+                  "entity": "sensor.beehive_weight_24h_change",
+                  "name": "Δ сутки",
+                  "icon": "mdi:calendar-today"
+                },
+                {
+                  "entity": "sensor.beehive_weight_7d_change",
+                  "name": "Δ неделя",
+                  "icon": "mdi:calendar-week"
+                },
+                {
+                  "entity": "sensor.beehivescale_beehive_temperature",
+                  "name": "Температура",
+                  "icon": "mdi:thermometer"
+                },
+                {
+                  "entity": "sensor.beehivescale_beehive_battery",
+                  "name": "Батарея",
+                  "icon": "mdi:battery"
+                },
+                {
+                  "entity": "sensor.beehivescale_beehive_rssi",
+                  "name": "WiFi",
+                  "icon": "mdi:wifi"
+                },
+                {
+                  "entity": "binary_sensor.beehive_online",
+                  "name": "Онлайн",
+                  "icon": "mdi:scale-balance"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "cards": [
+            {
+              "type": "history-graph",
+              "title": "Вес 7 дней",
+              "hours_to_show": 168,
+              "entities": [
+                {
+                  "entity": "sensor.beehivescale_beehive_weight"
+                }
+              ],
+              "min_y_axis": 0,
+              "max_y_axis": 150
+            },
+            {
+              "type": "history-graph",
+              "title": "Температура 7 дней",
+              "hours_to_show": 168,
+              "entities": [
+                {
+                  "entity": "sensor.beehivescale_beehive_temperature"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "cards": [
+            {
+              "type": "history-graph",
+              "title": "Батарея 7 дней",
+              "hours_to_show": 168,
+              "entities": [
+                {
+                  "entity": "sensor.beehivescale_beehive_battery"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Колонна",
+      "path": "kolonna",
+      "icon": "mdi:flask-outline",
+      "type": "sections",
+      "max_columns": 3,
+      "sections": [
+        {
+          "type": "grid",
+          "cards": [
+            {
+              "type": "conditional",
+              "conditions": [
+                {
+                  "entity": "binary_sensor.kolonna_alarm_no_flow",
+                  "state": "on"
+                }
+              ],
+              "card": {
+                "type": "markdown",
+                "content": "## ▲ ВОДА ВСТАЛА\nПротока нет, а куб горячий. Через несколько минут пары спирта пойдут в комнату.\n\n**Гасить ТЭН, потом искать причину.**\n"
+              }
+            },
+            {
+              "type": "conditional",
+              "conditions": [
+                {
+                  "entity": "binary_sensor.kolonna_alarm_cooling",
+                  "state": "on"
+                }
+              ],
+              "card": {
+                "type": "markdown",
+                "content": "## ▲ НЕТ ОХЛАЖДЕНИЯ\nВода на выходе выше уставки. Пары спирта пойдут в комнату.\n\n**Проверить проток немедленно.**\n"
+              }
+            },
+            {
+              "type": "conditional",
+              "conditions": [
+                {
+                  "entity": "binary_sensor.kolonna_alarm_kub_hot",
+                  "state": "on"
+                }
+              ],
+              "card": {
+                "type": "markdown",
+                "content": "## ▲ КУБ ДОШЁЛ ДО КОНЦА\nТело закончилось. Закрыть отбор, выключить ТЭН.\n"
+              }
+            },
+            {
+              "type": "conditional",
+              "conditions": [
+                {
+                  "entity": "binary_sensor.kolonna_alarm_sensor_fault",
+                  "state": "on"
+                }
+              ],
+              "card": {
+                "type": "markdown",
+                "content": "## ▲ ОБРЫВ ДАТЧИКА\nОдин из DS18B20 не отвечает. Показания недостоверны.\n"
+              }
+            },
+            {
+              "type": "conditional",
+              "conditions": [
+                {
+                  "entity": "binary_sensor.kolonna_warn_power",
+                  "state": "on"
+                }
+              ],
+              "card": {
+                "type": "markdown",
+                "content": "## ▲ МОЩНОСТЬ У ПОРОГА ЗАХЛЁБА\nВыше уставки. Расчётный порог для Ø33 РПН — около 1370 Вт.\n"
+              }
+            },
+            {
+              "type": "conditional",
+              "conditions": [
+                {
+                  "entity": "binary_sensor.kolonna_warn_front",
+                  "state": "on"
+                }
+              ],
+              "card": {
+                "type": "markdown",
+                "content": "## ▲ ФРОНТ ТРОНУЛСЯ\nСкорость роста на 2/3 пошла вверх. Тело на подходе — смотреть ΔT и срезать отбор.\n"
+              }
+            },
+            {
+              "type": "picture-elements",
+              "image": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MjAgNDcwIiB3aWR0aD0iNTIwIiBoZWlnaHQ9IjQ3MCI+CjwhLS0g0JzQvdC10LzQvtGB0YXQtdC80LAg0LrQvtC70L7QvdC90Ysg0LTQu9GPIEhvbWUgQXNzaXN0YW50LCDQutC+0LzQv9C+0L3QvtCy0LrQsCDQutCw0Log0L3QsCDRidC40YLQtSDQkNCh0KMg0KLQny4KICAgICDQkNC/0L/QsNGA0LDRgiDRgdC70LXQstCwINC+0LTQvdC+0Lkg0LLQtdGA0YLQuNC60LDQu9GM0Y4sINC/0L7QutCw0LfQsNC90LjRjyDRgdC/0YDQsNCy0LAg4oCUINC60LDQttC00L7QtSDQvdCw0L/RgNC+0YLQuNCyCiAgICAg0YHQstC+0LXQuSDRgtC+0YfQutC4LiDQlNC70LjQvdC90YvRhSDQstGL0L3QvtGB0L7QuiDRh9C10YDQtdC3INCy0YHRjiDRgdGF0LXQvNGDINC90LXRgjog0LPQu9Cw0Lcg0LjQtNGR0YIg0YHQstC10YDRhdGDCiAgICAg0LLQvdC40Lcg0L/QviDQutC+0LvQvtC90L3QtSDQuCDRh9C40YLQsNC10YIg0YfQuNGB0LvQsCDQvdCwINGC0L7QuSDQttC1INCy0YvRgdC+0YLQtS4KCiAgICAg0J/QvtC00L/QuNGB0Lgg0Lgg0YDQsNC80LrQuCDQvdCw0YDQuNGB0L7QstCw0L3RiyDQl9CU0JXQodCsLCBIb21lIEFzc2lzdGFudCDQutC70LDQtNGR0YIg0L/QvtCy0LXRgNGFINGC0L7Qu9GM0LrQvgogICAgINGH0LjRgdC70LA6INGC0LXQutGB0YIg0Y3Qu9C10LzQtdC90YLQsCDQvdC1INC80LDRgdGI0YLQsNCx0LjRgNGD0LXRgtGB0Y8g0LLQvNC10YHRgtC1INGBINC60LDRgNGC0LjQvdC60L7QuSDQuCDQsiDRg9C30LrQvtC5CiAgICAg0LrQvtC70L7QvdC60LUg0LLRi9C70LXQt9Cw0Lsg0LHRiyDQt9CwINGA0LDQvNC60YMuCgogICAgINCQ0LLQsNGA0LjQuCDQttC40LLRg9GCINC+0YLQtNC10LvRjNC90YvQvNC4INC60LDRgNGC0L7Rh9C60LDQvNC4INCd0JDQlCDRgdGF0LXQvNC+0Lkg4oCUINC30LTQtdGB0Ywg0LjQvCDRgtC10YHQvdC+LAogICAgINCwINC+0LHRgNC10LfQsNC90L3Ri9C5INGC0LXQutGB0YIg0LDQstCw0YDQuNC4INGF0YPQttC1LCDRh9C10Lwg0L3QuNC60LDQutC+0LPQvi4gLS0+CjxkZWZzPgogIDxsaW5lYXJHcmFkaWVudCBpZD0iY3UiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIwIj4KICAgIDxzdG9wIG9mZnNldD0iMCIgICAgc3RvcC1jb2xvcj0iIzhBNEExQyIvPgogICAgPHN0b3Agb2Zmc2V0PSIwLjE2IiBzdG9wLWNvbG9yPSIjRDA4QzU1Ii8+CiAgICA8c3RvcCBvZmZzZXQ9IjAuNDIiIHN0b3AtY29sb3I9IiNDOTdCM0MiLz4KICAgIDxzdG9wIG9mZnNldD0iMC43OCIgc3RvcC1jb2xvcj0iIzhBNEExQyIvPgogICAgPHN0b3Agb2Zmc2V0PSIxIiAgICBzdG9wLWNvbG9yPSIjNkIzNjEyIi8+CiAgPC9saW5lYXJHcmFkaWVudD4KICA8cmFkaWFsR3JhZGllbnQgaWQ9ImhlYXQiIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICA8c3RvcCBvZmZzZXQ9IjAiICAgc3RvcC1jb2xvcj0iI0ZGN0EyRiIgc3RvcC1vcGFjaXR5PSIwLjY2Ii8+CiAgICA8c3RvcCBvZmZzZXQ9IjAuNiIgc3RvcC1jb2xvcj0iI0UwNTIxQSIgc3RvcC1vcGFjaXR5PSIwLjE4Ii8+CiAgICA8c3RvcCBvZmZzZXQ9IjEiICAgc3RvcC1jb2xvcj0iI0UwNTIxQSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgPC9yYWRpYWxHcmFkaWVudD4KPC9kZWZzPgoKPHN0eWxlPgogIC5jYXAgIHsgZm9udDogNjAwIDkuNXB4ICJTZWdvZSBVSSIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZjsgZmlsbDogIzhFOUJBNzsgbGV0dGVyLXNwYWNpbmc6IC40cHggfQogIC5sYmwgIHsgZm9udDogNTAwIDkuNXB4ICJTZWdvZSBVSSIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZjsgZmlsbDogIzdGOEI5NjsgbGV0dGVyLXNwYWNpbmc6IC40cHggfQogIC5sYmxtIHsgZm9udDogNTAwIDEwcHggIlNlZ29lIFVJIiwgc3lzdGVtLXVpLCBzYW5zLXNlcmlmOyBmaWxsOiAjRkZGOyBvcGFjaXR5OiAuODI7IGxldHRlci1zcGFjaW5nOiAuN3B4IH0KICAuYm94ICB7IGZpbGw6ICMxNDFBMjA7IHN0cm9rZTogIzJBMzc0Mjsgc3Ryb2tlLXdpZHRoOiAxLjEgfQogIC5zZXAgIHsgc3Ryb2tlOiAjMkEzNzQyOyBzdHJva2Utd2lkdGg6IDEgfQogIC5waXBlIHsgZmlsbDogbm9uZTsgc3Ryb2tlOiAjQzk3QjNDOyBzdHJva2Utd2lkdGg6IDIuNjsgc3Ryb2tlLWxpbmVjYXA6IHJvdW5kIH0KICAud2luICB7IGZpbGw6IG5vbmU7IHN0cm9rZTogIzRFODZBODsgc3Ryb2tlLXdpZHRoOiAyLjY7IHN0cm9rZS1saW5lY2FwOiByb3VuZDsgc3Ryb2tlLWRhc2hhcnJheTogNyA1IH0KICAucHQgICB7IGZpbGw6ICMxMDE2MUI7IHN0cm9rZTogIzlBQTdCMzsgc3Ryb2tlLXdpZHRoOiAxLjYgfQogIC5wYWNrIHsgc3Ryb2tlOiAjN0E0QTIyOyBzdHJva2Utd2lkdGg6IDEuMTsgb3BhY2l0eTogLjUgfQogIC50aWUgIHsgc3Ryb2tlOiAjNTU2MzZGOyBzdHJva2Utd2lkdGg6IDE7IG9wYWNpdHk6IC40IH0KPC9zdHlsZT4KCjwhLS0gPT09PT09PT09PT09PT09PT09PT09INCQ0J/Qn9CQ0KDQkNCiID09PT09PT09PT09PT09PT09PT09PSAtLT4KCjwhLS0g0LrRg9CxIC0tPgo8ZWxsaXBzZSBjeD0iMTM1IiBjeT0iMzgwIiByeD0iODIiIHJ5PSIzMCIgZmlsbD0idXJsKCNoZWF0KSIvPgo8cGF0aCBmaWxsPSJ1cmwoI2N1KSIgZD0iTTcwIDMyMiBMNzAgMzg4IFE3MCA0MDYgODggNDA2IEwxODIgNDA2IFEyMDAgNDA2IDIwMCAzODggTDIwMCAzMjIgWiIvPgo8ZWxsaXBzZSBjeD0iMTM1IiBjeT0iMzIyIiByeD0iNjUiIHJ5PSIxMiIgZmlsbD0idXJsKCNjdSkiLz4KPHBhdGggZmlsbD0idXJsKCNjdSkiIGQ9Ik0xMTEgMzIwIEwxMTUgMzAwIEwxNTUgMzAwIEwxNTkgMzIwIFoiLz4KPHBhdGggZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZCMDY3IiBzdHJva2Utd2lkdGg9IjIuNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogICAgICBkPSJNOTcgMzgwIHE5LjUgLTEyIDE5IDAgcTkuNSAxMiAxOSAwIHE5LjUgLTEyIDE5IDAgcTkuNSAxMiAxOSAwIi8+Cjx0ZXh0IGNsYXNzPSJsYmxtIiB4PSIxMzUiIHk9IjM1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+0JrQo9CRPC90ZXh0Pgo8dGV4dCBjbGFzcz0ibGJsbSIgeD0iMTM1IiB5PSI0MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPtCi0K3QnSAzINC60JLRgjwvdGV4dD4KCjwhLS0g0YbQsNGA0LPQsCDRgSDQvdCw0YHQsNC00LrQvtC5IC0tPgo8cmVjdCB4PSIxMTUiIHk9Ijk2IiB3aWR0aD0iNDAiIGhlaWdodD0iMjA0IiBmaWxsPSJ1cmwoI2N1KSIvPgo8ZyBjbGFzcz0icGFjayI+CiAgPGxpbmUgeDE9IjExOSIgeTE9IjEyNCIgeDI9IjE1MSIgeTI9IjEzOCIvPjxsaW5lIHgxPSIxNTEiIHkxPSIxMjQiIHgyPSIxMTkiIHkyPSIxMzgiLz4KICA8bGluZSB4MT0iMTE5IiB5MT0iMTY0IiB4Mj0iMTUxIiB5Mj0iMTc4Ii8+PGxpbmUgeDE9IjE1MSIgeTE9IjE2NCIgeDI9IjExOSIgeTI9IjE3OCIvPgogIDxsaW5lIHgxPSIxMTkiIHkxPSIyMDQiIHgyPSIxNTEiIHkyPSIyMTgiLz48bGluZSB4MT0iMTUxIiB5MT0iMjA0IiB4Mj0iMTE5IiB5Mj0iMjE4Ii8+CiAgPGxpbmUgeDE9IjExOSIgeTE9IjI0NCIgeDI9IjE1MSIgeTI9IjI1OCIvPjxsaW5lIHgxPSIxNTEiIHkxPSIyNDQiIHgyPSIxMTkiIHkyPSIyNTgiLz4KICA8bGluZSB4MT0iMTE5IiB5MT0iMjc4IiB4Mj0iMTUxIiB5Mj0iMjkyIi8+PGxpbmUgeDE9IjE1MSIgeTE9IjI3OCIgeDI9IjExOSIgeTI9IjI5MiIvPgo8L2c+Cgo8IS0tINC00LXRhNC70LXQs9C80LDRgtC+0YAgLS0+CjxyZWN0IHg9IjEwNSIgeT0iNDAiIHdpZHRoPSI2MCIgaGVpZ2h0PSI1NiIgcng9IjMiIGZpbGw9InVybCgjY3UpIi8+CjxnIGNsYXNzPSJwYWNrIj4KICA8bGluZSB4MT0iMTExIiB5MT0iNTAiIHgyPSIxNTkiIHkyPSI1MCIvPjxsaW5lIHgxPSIxMTEiIHkxPSI2MiIgeDI9IjE1OSIgeTI9IjYyIi8+CiAgPGxpbmUgeDE9IjExMSIgeTE9Ijc0IiB4Mj0iMTU5IiB5Mj0iNzQiLz48bGluZSB4MT0iMTExIiB5MT0iODYiIHgyPSIxNTkiIHkyPSI4NiIvPgo8L2c+Cjx0ZXh0IGNsYXNzPSJsYmxtIiB4PSIxMzUiIHk9IjMxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7QlNCV0KTQm9CV0JPQnNCQ0KLQntCgPC90ZXh0PgoKPCEtLSDQstC+0LTQsDog0LPQvtGA0Y/Rh9Cw0Y8g0YPRhdC+0LTQuNGCINGB0LLQtdGA0YXRgywg0YXQvtC70L7QtNC90LDRjyDQv9GA0LjRhdC+0LTQuNGCINGB0L3QuNC30YMgLS0+CjxsaW5lIGNsYXNzPSJ3aW4iIHgxPSIxNjUiIHkxPSI1MiIgeDI9IjIxMiIgeTI9IjUyIi8+CjxwYXRoIGZpbGw9IiM0RTg2QTgiIGQ9Ik0yMDQgNDcgbDggNSBsLTggNSBaIi8+CjxsaW5lIGNsYXNzPSJ3aW4iIHgxPSIyMTIiIHkxPSI4MiIgeDI9IjE2NSIgeTI9IjgyIi8+CjxwYXRoIGZpbGw9IiM0RTg2QTgiIGQ9Ik0xODEgNzcgbC04IDUgbDggNSBaIi8+CjxjaXJjbGUgY3g9IjE5NCIgY3k9IjgyIiByPSI4LjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzRFODZBOCIgc3Ryb2tlLXdpZHRoPSIxLjciLz4KCjwhLS0g0YPQt9C10Lsg0L7RgtCx0L7RgNCwOiDQutGA0LDQvSDQuCDRgtGA0YPQsdC60LAg0LIg0L/RgNC40ZHQvNC90YPRjiDRkdC80LrQvtGB0YLRjCAtLT4KPGxpbmUgY2xhc3M9InBpcGUiIHgxPSIxNTUiIHkxPSIxNDAiIHgyPSIxNzYiIHkyPSIxNDAiLz4KPHBvbHlnb24gcG9pbnRzPSIxNzYsMTMyIDE3NiwxNDggMTg3LDE0MCIgZmlsbD0iI0M5N0IzQyIvPgo8cG9seWdvbiBwb2ludHM9IjE5OCwxMzIgMTk4LDE0OCAxODcsMTQwIiBmaWxsPSIjQzk3QjNDIi8+CjxsaW5lIGNsYXNzPSJwaXBlIiB4MT0iMTg3IiB5MT0iMTQwIiB4Mj0iMTg3IiB5Mj0iMTI5Ii8+CjxsaW5lIGNsYXNzPSJwaXBlIiB4MT0iMTgxIiB5MT0iMTI2IiB4Mj0iMTkzIiB5Mj0iMTI2Ii8+Cjx0ZXh0IGNsYXNzPSJsYmwiIHg9IjE4NyIgeT0iMTE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7QmtCg0JDQnTwvdGV4dD4KPGxpbmUgY2xhc3M9InBpcGUiIHgxPSIxOTgiIHkxPSIxNDAiIHgyPSIyMDciIHkyPSIxNDAiLz4KPGxpbmUgY2xhc3M9InBpcGUiIHgxPSIyMDciIHkxPSIxNDAiIHgyPSIyMDciIHkyPSIyNTIiLz4KPGNpcmNsZSBjeD0iMjA3IiBjeT0iMTU0IiByPSIzLjIiIGZpbGw9IiNDOTdCM0MiLz4KCjwhLS0g0YLQvtGH0LrQuCDQuNC30LzQtdGA0LXQvdC40Y8gLS0+CjxjaXJjbGUgY2xhc3M9InB0IiBjeD0iMTU1IiBjeT0iMTQwIiByPSI0LjYiLz4KPGNpcmNsZSBjbGFzcz0icHQiIGN4PSIxMTUiIGN5PSIyMTIiIHI9IjQuNiIvPgo8Y2lyY2xlIGNsYXNzPSJwdCIgY3g9Ijc4IiBjeT0iMzYwIiByPSI0LjYiLz4KCjwhLS0g0LrQvtGA0L7RgtC60LjQtSDRgdCy0Y/Qt9C60Lgg0Log0YHQstC+0LXQuSDRgdGC0YDQvtC60LUg0L/QvtC60LDQt9Cw0L3QuNC5IC0tPgo8ZyBjbGFzcz0idGllIj4KICA8bGluZSB4MT0iMjE0IiB5MT0iNjciICB4Mj0iMjI1IiB5Mj0iNTIiLz4KICA8bGluZSB4MT0iMTYwIiB5MT0iMTQwIiB4Mj0iMjI1IiB5Mj0iMTI0Ii8+CiAgPGxpbmUgeDE9IjEyMCIgeTE9IjIxMiIgeDI9IjIyNSIgeTI9IjE5NiIvPgogIDxsaW5lIHgxPSIyMTEiIHkxPSIyNTIiIHgyPSIyMjUiIHkyPSIyNjgiLz4KICA8bGluZSB4MT0iODMiICB5MT0iMzYwIiB4Mj0iMjI1IiB5Mj0iMzQwIi8+CiAgPGxpbmUgeDE9IjE1MCIgeTE9IjM5MiIgeDI9IjIyNSIgeTI9IjQxMiIvPgo8L2c+Cgo8IS0tID09PT09PT09PT09PT09PT09PT09PSDQn9Ce0JrQkNCX0JDQndCY0K8gPT09PT09PT09PT09PT09PT09PT09IC0tPgo8IS0tINCo0LXRgdGC0Ywg0YHRgtGA0L7QuiDQv9C+INGF0L7QtNGDINC60L7Qu9C+0L3QvdGLINGB0LLQtdGA0YXRgyDQstC90LjQty4g0KfQuNGB0LvQsCDQutC70LDQtNGR0YIgSG9tZSBBc3Npc3RhbnQuIC0tPgoKPHJlY3QgY2xhc3M9ImJveCIgeD0iMjI1IiB5PSIyNiIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI1MiIgcng9IjgiLz4KPGxpbmUgY2xhc3M9InNlcCIgeDE9IjM2NSIgeTE9IjMyIiB4Mj0iMzY1IiB5Mj0iNzIiLz4KPHRleHQgY2xhc3M9ImNhcCIgeD0iMjM3IiB5PSI0MiI+0JLQntCU0JAg0JLQq9Cl0J7QlCDCtyBUNDwvdGV4dD4KPHRleHQgY2xhc3M9ImNhcCIgeD0iMzc3IiB5PSI0MiI+0J/QoNCe0KLQntCaPC90ZXh0PgoKPHJlY3QgY2xhc3M9ImJveCIgeD0iMjI1IiB5PSI5OCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI1MiIgcng9IjgiLz4KPGxpbmUgY2xhc3M9InNlcCIgeDE9IjM2NSIgeTE9IjEwNCIgeDI9IjM2NSIgeTI9IjE0NCIvPgo8dGV4dCBjbGFzcz0iY2FwIiB4PSIyMzciIHk9IjExNCI+0J7QotCR0J7QoCDCtyBUMzwvdGV4dD4KPHRleHQgY2xhc3M9ImNhcCIgeD0iMzc3IiB5PSIxMTQiPs6UVCDQntCi0JHQntCgIOKIkiAyLzM8L3RleHQ+Cgo8cmVjdCBjbGFzcz0iYm94IiB4PSIyMjUiIHk9IjE3MCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI1MiIgcng9IjgiLz4KPGxpbmUgY2xhc3M9InNlcCIgeDE9IjM2NSIgeTE9IjE3NiIgeDI9IjM2NSIgeTI9IjIxNiIvPgo8dGV4dCBjbGFzcz0iY2FwIiB4PSIyMzciIHk9IjE4NiI+0KbQkNCg0JPQkCAyLzMgwrcgVDI8L3RleHQ+Cjx0ZXh0IGNsYXNzPSJjYXAiIHg9IjM3NyIgeT0iMTg2Ij7QoNCe0KHQoiAyLzM8L3RleHQ+Cgo8cmVjdCBjbGFzcz0iYm94IiB4PSIyMjUiIHk9IjI0MiIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI1MiIgcng9IjgiLz4KPGxpbmUgY2xhc3M9InNlcCIgeDE9IjM2NSIgeTE9IjI0OCIgeDI9IjM2NSIgeTI9IjI4OCIvPgo8dGV4dCBjbGFzcz0iY2FwIiB4PSIyMzciIHk9IjI1OCI+0J7QotCe0JHQoNCQ0J3QnjwvdGV4dD4KPHRleHQgY2xhc3M9ImNhcCIgeD0iMzc3IiB5PSIyNTgiPtCh0JrQntCg0J7QodCi0Kw8L3RleHQ+Cgo8cmVjdCBjbGFzcz0iYm94IiB4PSIyMjUiIHk9IjMxNCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI1MiIgcng9IjgiLz4KPGxpbmUgY2xhc3M9InNlcCIgeDE9IjM2NSIgeTE9IjMyMCIgeDI9IjM2NSIgeTI9IjM2MCIvPgo8dGV4dCBjbGFzcz0iY2FwIiB4PSIyMzciIHk9IjMzMCI+0JrQo9CRIMK3IFQxPC90ZXh0Pgo8dGV4dCBjbGFzcz0iY2FwIiB4PSIzNzciIHk9IjMzMCI+0KHQn9CY0KDQoiDQkiDQmtCj0JHQlTwvdGV4dD4KCjxyZWN0IGNsYXNzPSJib3giIHg9IjIyNSIgeT0iMzg2IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjUyIiByeD0iOCIvPgo8bGluZSBjbGFzcz0ic2VwIiB4MT0iMzY1IiB5MT0iMzkyIiB4Mj0iMzY1IiB5Mj0iNDMyIi8+Cjx0ZXh0IGNsYXNzPSJjYXAiIHg9IjIzNyIgeT0iNDAyIj7QotCt0J0gwrcg0JzQntCp0J3QntCh0KLQrDwvdGV4dD4KPHRleHQgY2xhc3M9ImNhcCIgeD0iMzc3IiB5PSI0MDIiPtCf0J4g0JLQntCU0JU8L3RleHQ+Cjwvc3ZnPgo=",
+              "elements": [
+                {
+                  "type": "state-label",
+                  "entity": "sensor.kolonna_t4_voda",
+                  "tap_action": {
+                    "action": "more-info"
+                  },
+                  "style": {
+                    "top": "13.6%",
+                    "left": "56.7%",
+                    "transform": "translate(-50%, -50%)",
+                    "font-size": "17px",
+                    "font-weight": 600,
+                    "color": "#E7EDF3",
+                    "white-space": "nowrap"
+                  }
+                },
+                {
+                  "type": "state-label",
+                  "entity": "sensor.kolonna_water_flow",
+                  "tap_action": {
+                    "action": "more-info"
+                  },
+                  "style": {
+                    "top": "13.6%",
+                    "left": "83.7%",
+                    "transform": "translate(-50%, -50%)",
+                    "font-size": "17px",
+                    "font-weight": 600,
+                    "color": "#E7EDF3",
+                    "white-space": "nowrap"
+                  }
+                },
+                {
+                  "type": "state-label",
+                  "entity": "sensor.kolonna_t3_otbor",
+                  "tap_action": {
+                    "action": "more-info"
+                  },
+                  "style": {
+                    "top": "28.9%",
+                    "left": "56.7%",
+                    "transform": "translate(-50%, -50%)",
+                    "font-size": "17px",
+                    "font-weight": 600,
+                    "color": "#E7EDF3",
+                    "white-space": "nowrap"
+                  }
+                },
+                {
+                  "type": "state-label",
+                  "entity": "sensor.kolonna_delta_t",
+                  "tap_action": {
+                    "action": "more-info"
+                  },
+                  "style": {
+                    "top": "28.9%",
+                    "left": "83.7%",
+                    "transform": "translate(-50%, -50%)",
+                    "font-size": "17px",
+                    "font-weight": 600,
+                    "color": "#E7EDF3",
+                    "white-space": "nowrap"
+                  }
+                },
+                {
+                  "type": "state-label",
+                  "entity": "sensor.kolonna_t2_carga",
+                  "tap_action": {
+                    "action": "more-info"
+                  },
+                  "style": {
+                    "top": "44.3%",
+                    "left": "56.7%",
+                    "transform": "translate(-50%, -50%)",
+                    "font-size": "17px",
+                    "font-weight": 600,
+                    "color": "#E7EDF3",
+                    "white-space": "nowrap"
+                  }
+                },
+                {
+                  "type": "state-label",
+                  "entity": "sensor.kolonna_trend_t2",
+                  "tap_action": {
+                    "action": "more-info"
+                  },
+                  "style": {
+                    "top": "44.3%",
+                    "left": "83.7%",
+                    "transform": "translate(-50%, -50%)",
+                    "font-size": "17px",
+                    "font-weight": 600,
+                    "color": "#E7EDF3",
+                    "white-space": "nowrap"
+                  }
+                },
+                {
+                  "type": "state-label",
+                  "entity": "sensor.kolonna_otbor_volume",
+                  "tap_action": {
+                    "action": "more-info"
+                  },
+                  "style": {
+                    "top": "59.6%",
+                    "left": "56.7%",
+                    "transform": "translate(-50%, -50%)",
+                    "font-size": "17px",
+                    "font-weight": 600,
+                    "color": "#E7EDF3",
+                    "white-space": "nowrap"
+                  }
+                },
+                {
+                  "type": "state-label",
+                  "entity": "sensor.kolonna_otbor_rate",
+                  "tap_action": {
+                    "action": "more-info"
+                  },
+                  "style": {
+                    "top": "59.6%",
+                    "left": "83.7%",
+                    "transform": "translate(-50%, -50%)",
+                    "font-size": "17px",
+                    "font-weight": 600,
+                    "color": "#E7EDF3",
+                    "white-space": "nowrap"
+                  }
+                },
+                {
+                  "type": "state-label",
+                  "entity": "sensor.kolonna_t1_kub",
+                  "tap_action": {
+                    "action": "more-info"
+                  },
+                  "style": {
+                    "top": "74.9%",
+                    "left": "56.7%",
+                    "transform": "translate(-50%, -50%)",
+                    "font-size": "17px",
+                    "font-weight": 600,
+                    "color": "#E7EDF3",
+                    "white-space": "nowrap"
+                  }
+                },
+                {
+                  "type": "state-label",
+                  "entity": "sensor.kolonna_kub_abv",
+                  "tap_action": {
+                    "action": "more-info"
+                  },
+                  "style": {
+                    "top": "74.9%",
+                    "left": "83.7%",
+                    "transform": "translate(-50%, -50%)",
+                    "font-size": "17px",
+                    "font-weight": 600,
+                    "color": "#E7EDF3",
+                    "white-space": "nowrap"
+                  }
+                },
+                {
+                  "type": "state-label",
+                  "entity": "sensor.kolonna_power",
+                  "tap_action": {
+                    "action": "more-info"
+                  },
+                  "style": {
+                    "top": "90.2%",
+                    "left": "56.7%",
+                    "transform": "translate(-50%, -50%)",
+                    "font-size": "17px",
+                    "font-weight": 600,
+                    "color": "#E7EDF3",
+                    "white-space": "nowrap"
+                  }
+                },
+                {
+                  "type": "state-label",
+                  "entity": "sensor.kolonna_power_water",
+                  "tap_action": {
+                    "action": "more-info"
+                  },
+                  "style": {
+                    "top": "90.2%",
+                    "left": "83.7%",
+                    "transform": "translate(-50%, -50%)",
+                    "font-size": "17px",
+                    "font-weight": 600,
+                    "color": "#E7EDF3",
+                    "white-space": "nowrap"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "cards": [
+            {
+              "type": "heading",
+              "heading": "Ход погона",
+              "heading_style": "title"
+            },
+            {
+              "type": "history-graph",
+              "title": "Температуры",
+              "hours_to_show": 12,
+              "refresh_interval": 10,
+              "entities": [
+                {
+                  "entity": "sensor.kolonna_t2_carga",
+                  "name": "Царга 2/3"
+                },
+                {
+                  "entity": "sensor.kolonna_t3_otbor",
+                  "name": "Отбор"
+                },
+                {
+                  "entity": "sensor.kolonna_t1_kub",
+                  "name": "Куб"
+                },
+                {
+                  "entity": "sensor.kolonna_t4_voda",
+                  "name": "Вода, выход"
+                }
+              ]
+            },
+            {
+              "type": "entities",
+              "title": "Партия",
+              "entities": [
+                {
+                  "entity": "sensor.kolonna_water_total",
+                  "name": "Расход воды за партию"
+                },
+                {
+                  "entity": "button.kolonna_reset_water",
+                  "name": "Обнулить расход"
+                },
+                {
+                  "entity": "button.kolonna_reset_otbor",
+                  "name": "Обнулить счётчик отбора"
+                },
+                {
+                  "entity": "button.kolonna_reset_energy",
+                  "name": "Обнулить энергию"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "cards": [
+            {
+              "type": "conditional",
+              "conditions": [
+                {
+                  "entity": "switch.kolonna_siren",
+                  "state": "on"
+                }
+              ],
+              "card": {
+                "type": "entities",
+                "entities": [
+                  {
+                    "entity": "button.kolonna_ack_siren",
+                    "name": "Заглушить сирену"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "entities",
+              "title": "Уставки аварий",
+              "entities": [
+                {
+                  "entity": "number.kolonna_set_voda_max",
+                  "name": "Вода на выходе, авария"
+                },
+                {
+                  "entity": "number.kolonna_set_flow_min",
+                  "name": "Проток, авария ниже"
+                },
+                {
+                  "entity": "number.kolonna_set_kub_arm",
+                  "name": "Куб горячий (взвод)"
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "entity": "number.kolonna_set_kub_max",
+                  "name": "Куб, конец тела"
+                },
+                {
+                  "entity": "number.kolonna_set_pwr_warn",
+                  "name": "Мощность, порог захлёба"
+                },
+                {
+                  "entity": "number.kolonna_set_trend_warn",
+                  "name": "Скорость роста 2/3, внимание"
+                }
+              ]
+            },
+            {
+              "type": "entities",
+              "title": "Контроллер",
+              "entities": [
+                {
+                  "entity": "sensor.kolonna_wifi_signal",
+                  "name": "WiFi"
+                },
+                {
+                  "entity": "sensor.kolonna_uptime",
+                  "name": "Время работы"
+                },
+                {
+                  "entity": "sensor.kolonna_voltage",
+                  "name": "Напряжение сети"
+                },
+                {
+                  "entity": "sensor.kolonna_current",
+                  "name": "Ток ТЭНа"
+                },
+                {
+                  "entity": "sensor.kolonna_pressure_mmhg",
+                  "name": "Давление"
+                },
+                {
+                  "entity": "button.kolonna_restart",
+                  "name": "Перезагрузка"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
