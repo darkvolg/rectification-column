@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260912c">
+<link rel="stylesheet" href="pult.css?v=20260912d">
 </head>
 <body>
 
@@ -42,10 +42,16 @@
       <div class="rs"><b id="s_files">—</b><span>погонов в архиве</span></div>
     </div>
     <p class="hint" id="s_note"></p>
+    <p class="hint">Смотреть журнал — <strong>Excel</strong>: там ширины
+    колонок, настоящая дата, знаки после запятой по каждому каналу и
+    подсветка строк с авариями. Кнопка <strong>CSV</strong> отдаёт файл
+    точно таким, каким его пишет плата, — это исходник для других программ
+    и для архива, в Excel он читается плохо и не должен.</p>
     <div class="btnrow">
       <button class="btn" id="refresh">Обновить список</button>
       <button class="btn prim" id="dl_cur">Текущий погон в Excel</button>
-      <button class="btn" id="dl_cur_csv" title="Тот же журнал сырым текстом">CSV</button>
+      <button class="btn" id="dl_cur_csv"
+              title="Тот же журнал ровно в том виде, как его пишет плата. Для других программ, а не для чтения глазами">CSV как на плате</button>
     </div>
   </div>
 
@@ -80,8 +86,8 @@
   страдает: стереть архив с экрана нельзя, только вынув карту.
 </footer>
 
-<script src="pult.js?v=20260912c"></script>
-<script src="xlsx.js?v=20260912c"></script>
+<script src="pult.js?v=20260912d"></script>
+<script src="xlsx.js?v=20260912d"></script>
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
@@ -509,8 +515,9 @@ function runRow(f){
 
   const bCsv = document.createElement('button');
   bCsv.className = 'btn';
-  bCsv.textContent = 'CSV';
-  bCsv.title = 'Тот же файл сырым текстом, как его пишет плата';
+  bCsv.textContent = 'CSV как на плате';
+  bCsv.title = 'Тот же файл ровно в том виде, как его пишет плата. ' +
+               'Для других программ, а не для чтения глазами';
   bCsv.onclick = () => grab(bCsv, f.name, false);
   row.appendChild(bCsv);
 

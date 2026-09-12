@@ -27,23 +27,23 @@ const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
    hiAlarm / loAlarm / hiWarn — пороги, при которых появляется цвет
    ============================================================ */
 const CH = {
-  'sensor/Power':        {k:'pwr',   n:'Мощность',        i:'по току',  u:'Вт',   d:0, lo:0,   hi:2000, norm:[700,1300], hiWarn:1300},
-  'sensor/T2 Carga':     {k:'carga', n:'Температура 2/3',       i:'T2',       u:'°C',   d:2, lo:60,  hi:90,   norm:[74,79]},
-  'sensor/T3 Otbor':     {k:'otbor', n:'Температура отбора',    i:'T3',       u:'°C',   d:2, lo:60,  hi:90,   norm:[77,79]},
-  'sensor/T1 Kub':       {k:'kub',   n:'Куб',             i:'T1',       u:'°C',   d:2, lo:20,  hi:100,  norm:[70,98.5], hiAlarm:98.5},
-  'sensor/Water Flow':   {k:'flow',  n:'Проток',          i:'вход',     u:'л/мин',d:2, lo:0,   hi:5,    norm:[0.8,4],   loAlarm:0.3},
-  'sensor/Delta T':      {k:'delta', n:'ΔT отбор − 2/3',   i:'',         u:'°C',   d:3, lo:0,   hi:6,    norm:[1.5,4]},
-  'sensor/Trend T2':     {k:'trend', n:'Скорость роста 2/3', i:'',      u:'°C/мин',     d:3, lo:-.05,hi:.15,  norm:[-0.01,0.01], hiWarn:0.01},
-  'sensor/T4 Voda':      {k:'voda',  n:'Вода, выход',     i:'T4',       u:'°C',   d:1, lo:10,  hi:80,   norm:[20,55],   hiAlarm:55},
-  'sensor/T5 Voda Vhod': {k:'vodaIn',n:'Вода, вход',      i:'T5',       u:'°C',   d:1, lo:0,   hi:40,   norm:[5,25]},
-  'sensor/Power Water':  {k:'pwrW',  n:'Мощность',        i:'по воде',  u:'Вт',   d:0, lo:0,   hi:2000, norm:[700,1300]},
-  'sensor/Water Total':  {k:'wtot',  n:'Расход за партию',i:'',         u:'л',    d:1, lo:0,   hi:1500, norm:[0,1500]},
-  'sensor/Voltage':      {k:'volt',  n:'Сеть',            i:'',         u:'В',    d:1, lo:180, hi:260,  norm:[205,240]},
-  'sensor/Current':      {k:'amp',   n:'Ток ТЭНа',        i:'',         u:'А',    d:2, lo:0,   hi:20,   norm:[0,16]},
-  'sensor/Pressure mmHg':{k:'press', n:'Давление',        i:'',         u:'мм',   d:1, lo:720, hi:790,  norm:[730,780]},
-  'sensor/Otbor Rate':   {k:'rate',  n:'Скорость отбора', i:'модуль 2', u:'мл/ч', d:0, lo:0,   hi:1500, norm:[100,140]},
-  'sensor/Log Rows':     {k:'logrows',n:'Журнал контроллера',i:'',u:'зап.', d:0, lo:0,   hi:2000, norm:[0,2000]},
-  'sensor/Otbor Volume': {k:'vol',   n:'Отобрано',        i:'модуль 2', u:'мл',   d:0, lo:0,   hi:1200, norm:[0,400]}
+  'sensor/Power':        {k:'pwr',   n:'Мощность',        i:'по току',  u:'Вт',   d:0, ms:50, lo:0,   hi:2000, norm:[700,1300], hiWarn:1300},
+  'sensor/T2 Carga':     {k:'carga', n:'Температура 2/3',       i:'T2',       u:'°C',   d:2, ms:0.5, lo:60,  hi:90,   norm:[74,79]},
+  'sensor/T3 Otbor':     {k:'otbor', n:'Температура отбора',    i:'T3',       u:'°C',   d:2, ms:0.5, lo:60,  hi:90,   norm:[77,79]},
+  'sensor/T1 Kub':       {k:'kub',   n:'Куб',             i:'T1',       u:'°C',   d:2, ms:0.5, lo:20,  hi:100,  norm:[70,98.5], hiAlarm:98.5},
+  'sensor/Water Flow':   {k:'flow',  n:'Проток',          i:'вход',     u:'л/мин',d:2, ms:0.3, lo:0,   hi:5,    norm:[0.8,4],   loAlarm:0.3},
+  'sensor/Delta T':      {k:'delta', n:'ΔT отбор − 2/3',   i:'',         u:'°C',   d:3, ms:0.3, lo:0,   hi:6,    norm:[1.5,4]},
+  'sensor/Trend T2':     {k:'trend', n:'Скорость роста 2/3', i:'',      u:'°C/мин',     d:3, ms:0.02, lo:-.05,hi:.15,  norm:[-0.01,0.01], hiWarn:0.01},
+  'sensor/T4 Voda':      {k:'voda',  n:'Вода, выход',     i:'T4',       u:'°C',   d:1, ms:1, lo:10,  hi:80,   norm:[20,55],   hiAlarm:55},
+  'sensor/T5 Voda Vhod': {k:'vodaIn',n:'Вода, вход',      i:'T5',       u:'°C',   d:1, ms:1, lo:0,   hi:40,   norm:[5,25]},
+  'sensor/Power Water':  {k:'pwrW',  n:'Мощность',        i:'по воде',  u:'Вт',   d:0, ms:50, lo:0,   hi:2000, norm:[700,1300]},
+  'sensor/Water Total':  {k:'wtot',  n:'Расход за партию',i:'',         u:'л',    d:1, ms:5, lo:0,   hi:1500, norm:[0,1500]},
+  'sensor/Voltage':      {k:'volt',  n:'Сеть',            i:'',         u:'В',    d:1, ms:5, lo:180, hi:260,  norm:[205,240]},
+  'sensor/Current':      {k:'amp',   n:'Ток ТЭНа',        i:'',         u:'А',    d:2, ms:0.5, lo:0,   hi:20,   norm:[0,16]},
+  'sensor/Pressure mmHg':{k:'press', n:'Давление',        i:'',         u:'мм',   d:1, ms:2, lo:720, hi:790,  norm:[730,780]},
+  'sensor/Otbor Rate':   {k:'rate',  n:'Скорость отбора', i:'модуль 2', u:'мл/ч', d:0, ms:50, lo:0,   hi:1500, norm:[100,140]},
+  'sensor/Log Rows':     {k:'logrows',n:'Журнал контроллера',i:'',u:'зап.', d:0, ms:50, lo:0,   hi:2000, norm:[0,2000]},
+  'sensor/Otbor Volume': {k:'vol',   n:'Отобрано',        i:'модуль 2', u:'мл',   d:0, ms:50, lo:0,   hi:1200, norm:[0,400]}
 };
 
 /* Порядок в объекте задаёт порядок на экране: сначала то,

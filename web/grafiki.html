@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260912c">
+<link rel="stylesheet" href="pult.css?v=20260912d">
 </head>
 <body>
 
@@ -76,7 +76,7 @@
   то время, что она была закрыта.
 </footer>
 
-<script src="pult.js?v=20260912c"></script>
+<script src="pult.js?v=20260912d"></script>
 <script>
 "use strict";
 const {slice, col, lineColor, V, CH} = PULT;
@@ -385,6 +385,25 @@ function chart(){
     }));
     if (!isFinite(lo)){ lo = 0; hi = 1; }
     if (hi - lo < 1e-6){ hi += .5; lo -= .5; }
+
+    /* Ось не сжимается теснее, чем канал вообще имеет смысл читать.
+       Без этого ограничителя на спокойной колонне происходило вот что:
+       размах данных 0.015 °C растягивался на всю высоту полосы, и шаг
+       младшего бита датчика выглядел как скачок на пол-экрана. А 0.015 —
+       это ровно он и есть: DS18B20 даёт ступень 0.0625 °C, сглаживание
+       окном на четыре делит её на 0.015625.
+       Порог берём самый крупный среди каналов полосы: если в ней лежат
+       разные величины, шкалу задаёт та, которой нужен больший размах. */
+    let ms = 0;
+    gr.keys.forEach(k => { const c = byKey[k]; if (c && c.ms > ms) ms = c.ms; });
+    gr.raw = hi - lo;              // настоящий размах, до растяжки
+    gr.pinned = false;
+    if (ms && hi - lo < ms){
+      const mid = (hi + lo) / 2;
+      lo = mid - ms / 2; hi = mid + ms / 2;
+      gr.pinned = true;            // полоса упёрлась в минимум, см. подпись
+    }
+
     const pad = (hi - lo) * .12; lo -= pad; hi += pad;
     // Целимся в четыре деления; если круглый шаг дал меньше трёх (узкая
     // полоса вроде «царга и отбор» с размахом в градус), берём мельче:
@@ -415,6 +434,17 @@ function chart(){
       g.font = '600 10px "IBM Plex Sans", system-ui, sans-serif';
       g.fillStyle = col('--ink-3');
       g.fillText(gr.u, L + 6, top + 2);
+      const uw = g.measureText(gr.u).width;   // мерим жирным, пока он активен
+
+      /* Полоса упёрлась в минимальный размах — значит настоящих изменений
+         меньше, чем шкала вообще показывает. Пишем, насколько именно
+         величина гуляла: иначе ровная линия оставляет вопрос, то ли
+         ничего не происходит, то ли график сломался. */
+      if (gr.pinned && isFinite(gr.raw)){
+        g.font = '400 10px "IBM Plex Sans", system-ui, sans-serif';
+        g.fillText('колебание ' + (gr.raw < 0.001 ? '<0.001' : gr.raw.toFixed(3)) +
+                   ' ' + gr.u, L + 6 + uw + 10, top + 2);
+      }
     }
 
     // Разделитель между полосами
