@@ -634,7 +634,7 @@ nav a svg{width:17px; height:17px; flex:none; fill:none; stroke:currentColor;
 /* Таблица журнала */
 .jwrap{overflow-x:auto; border:1px solid var(--line); border-radius:var(--r);
        background:var(--surface); box-shadow:var(--shadow)}
-table.jtab{border-collapse:collapse; width:100%; min-width:1170px;
+table.jtab{border-collapse:collapse; width:100%; min-width:1090px;
            font-variant-numeric:tabular-nums}
 .jtab th{
   position:sticky; top:0; z-index:1; background:var(--surface-2);
@@ -821,3 +821,20 @@ table.slots tr.hot td{ color:var(--warn); font-weight:700 }
   border:1px solid var(--line); border-radius:999px; padding:3px 8px;
   background:var(--surface);
 }
+
+/* ============================================================
+   ШИРОКАЯ СТРАНИЦА — для журнала
+   Обычные страницы держатся в 1180 пикселях: читать колонку текста
+   шире неудобно, глаз теряет строку. Но журнал — это таблица на
+   пятнадцать колонок, ей нужно 1170 плюс поля, и в 1180 она не влезала
+   НИКОГДА: внизу всегда висела полоса прокрутки, а погон приходилось
+   возить мышью влево-вправо.
+
+   Таблице ширина не роскошь, а смысл: значения соседних строк надо
+   сравнивать глазом, а не по памяти. Поэтому на странице журнала
+   поле раздвигается по окну, но не бесконечно — за 1700 пикселей
+   строка становится слишком длинной, чтобы вести её взглядом.
+   ============================================================ */
+body.wide .bar,
+body.wide main,
+body.wide footer{ max-width:min(1700px, 100vw - 24px) }
