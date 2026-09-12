@@ -997,6 +997,78 @@ async function sdPull(startTs, endTs, onStep){
   return res;
 }
 
+/* ============================================================
+   ОТДЕЛЬНЫЙ ПОГОН С КАРТЫ
+   Всё выше работает с ТЕКУЩИМ погоном: что плата пишет прямо сейчас.
+   Архив — другая задача. Позавчерашний погон надо уметь открыть, не
+   трогая ни текущую историю графиков, ни текущий журнал, потому что
+   чаще всего его хотят просто посмотреть или отдать файлом.
+   ============================================================ */
+
+/* Имя файла плата собирает как kol_ГГГГММДД_ЧЧММ.csv — по времени
+   ПЕРВОЙ записи. Разбираем обратно: дата в списке нужнее имени файла. */
+function sdRunDate(name){
+  const m = /^kol_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})\.csv$/i.exec(name || '');
+  if (!m) return null;
+  const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+/* Прикидка по размеру файла — на первый показ, пока не приехало точное.
+   Байт в строке зависит от того, сколько датчиков подключено: сейчас
+   заполнено три колонки из семнадцати и строка весит около 55 байт, со
+   всеми датчиками будет под 115. Поэтому это именно прикидка, и в
+   интерфейсе она подписана словом «около». */
+const SD_ROW_BYTES = 85, SD_ROW_SEC = 30;
+function sdRunGuess(size){
+  const head = 420;                       // BOM и шапка с русскими словами
+  const rows = Math.max(0, (size - head) / SD_ROW_BYTES);
+  return {rows: Math.round(rows), sec: Math.round(rows * SD_ROW_SEC)};
+}
+
+/* Точное время ПОСЛЕДНЕЙ записи погона.
+   Начало известно из имени файла, а конец — только из самого файла. Читать
+   его целиком ради одной строки незачем: просим хвост в четверть килобайта
+   и берём оттуда последнюю строку с датой. Один маленький запрос на файл
+   вместо сотен килобайт, зато длительность настоящая, а не выведенная из
+   размера — а размер врёт тем сильнее, чем меньше датчиков подключено. */
+async function sdRunEnd(name, size){
+  const TAIL = 256;
+  const off = Math.max(0, (size || 0) - TAIL);
+  const r = await sdGet('/logs/' + encodeURIComponent(name) + '?off=' + off + '&len=' + TAIL);
+  const text = new TextDecoder('utf-8').decode(new Uint8Array(await r.arrayBuffer()));
+  const rows = sdParse(text, {});         // колонки не нужны, нужно только время
+  if (!rows.length) return null;
+  return rows[rows.length - 1].ts;
+}
+
+/* Строки одного файла. cols — какой набор колонок нужен: SD_ALL для
+   графиков, SD_COL для журнала. */
+async function sdRunRows(name, cols, onStep){
+  const text = await sdFileText(name, onStep);
+  if (onStep) onStep('раскладываю');
+  return {rows: sdParse(text, cols || SD_ALL), text: text};
+}
+
+/* Показать архивный погон на графиках: его точки вливаются в ту же
+   историю, из которой рисуются графики. */
+async function sdRunToHist(name, onStep){
+  const got = await sdRunRows(name, SD_ALL, onStep);
+  return {rows: got.rows.length, points: histMerge(got.rows)};
+}
+
+/* Вписать архивный погон в журнал. Прореживается под шаг журнала так же,
+   как текущий, и метится источником «карта». */
+async function sdRunToJournal(name, onStep){
+  const got = await sdRunRows(name, SD_COL, onStep);
+  if (!got.rows.length) return {added: 0, filled: 0};
+  const every = jrnEvery();
+  const step = Math.max(60, Math.round(every * 60));
+  const first = got.rows[0].ts, last = got.rows[got.rows.length - 1].ts;
+  const rows = jrnDownsample(got.rows, jrnBucket(first, every), last, step);
+  return jrnMergeRows(rows, 'sd');
+}
+
 /* Почему WebSocket, а не обычный REST.
    HA включает CORS только тем эндпоинтам, которые сами это разрешают:
    /auth/token заголовок отдаёт, а /api/states нет — и никакая настройка
@@ -1644,6 +1716,7 @@ window.PULT = {
   jrnMergeRows, jrnSrcName, jrnBucket, jrnHHMM, jrnFmtVal, jrnHasData, JREAL,
   haCfg, setHaCfg, haEntities, haPull, haPullHist, haConnect, haBucketize,
   sdInfo, sdPull, sdText, sdParse, sdPullHist, histMerge, jrnDownsample,
+  sdFileText, sdRunDate, sdRunGuess, sdRunEnd, sdRunRows, sdRunToHist, sdRunToJournal,
   soundOn, setSound, testSound, stopBuzz, muteHere, askNotify, notifyState,
   get ip(){ return ip; },
   get state(){ return state; },

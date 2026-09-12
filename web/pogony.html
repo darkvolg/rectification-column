@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Погоны — Колонна</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="pult.css?v=20260912a">
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <span class="name">Колонна</span>
+    <nav aria-label="Разделы"><ul>
+      <li><a href="index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v4l2 2v9a3 3 0 0 1-3 3h-4a3 3 0 0 1-3-3V9l2-2z"/><path d="M9 13h6M9 17h6"/></svg><span>Пульт</span></a></li>
+      <li><a href="grafiki.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 15l4-5 3 3 5-7"/></svg><span>Графики</span></a></li>
+      <li><a href="zhurnal.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>Журнал</span></a></li>
+      <li><a href="pogony.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Погоны</span></a></li>
+      <li><a href="nastroyki.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.4"/><circle cx="9" cy="17" r="2.4"/></svg><span>Настройки</span></a></li>
+      <li><a href="doc/index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h6v18H6a2 2 0 0 1-2-2z"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg><span>Документация</span></a></li>
+    </ul></nav>
+    <div class="spacer"></div>
+    <div class="link" id="link" data-s="idle" role="status" aria-live="polite">
+      <span class="dot" aria-hidden="true"></span><span id="linktxt">нет адреса</span>
+    </div>
+    <button class="iconbtn" id="themeBtn" aria-label="Оформление"></button>
+  </div>
+</header>
+
+<main>
+
+  <div class="card wide" style="max-width:none">
+    <h3>Что пишет контроллер</h3>
+    <div class="runstat" id="stat">
+      <div class="rs"><b id="s_card">—</b><span>карта</span></div>
+      <div class="rs"><b id="s_ring">—</b><span>в памяти платы</span></div>
+      <div class="rs"><b id="s_sd">—</b><span>ушло на карту</span></div>
+      <div class="rs"><b id="s_files">—</b><span>погонов в архиве</span></div>
+    </div>
+    <p class="hint" id="s_note"></p>
+    <div class="btnrow">
+      <button class="btn" id="refresh">Обновить список</button>
+      <button class="btn" id="dl_cur">Скачать текущий погон</button>
+    </div>
+  </div>
+
+  <div class="card wide" style="max-width:none">
+    <h3>Архив на карте</h3>
+    <p>Каждый погон — свой файл, имя по времени первой записи. Файл пишется
+    построчно и закрывается после каждой строки: выдернули питание — потеряна
+    последняя запись, а не весь погон.</p>
+    <div class="runwrap">
+      <div id="runs" class="runs"></div>
+    </div>
+    <p class="hint" id="runs_note"></p>
+  </div>
+
+</main>
+
+<footer>
+  «В графики» и «В журнал» <strong>добавляют</strong>, а не замещают: точки
+  архивного погона вливаются в ту же историю и тот же журнал, что и текущие,
+  а пометки, вписанные рукой, не трогаются никогда. Хочешь смотреть архив
+  начисто — сначала «Новый погон» в журнале. Файл на карте при этом не
+  страдает: стереть архив с экрана нельзя, только вынув карту.
+</footer>
+
+<script src="pult.js?v=20260912a"></script>
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+
+let INFO = null, busy = false;
+
+/* ---------- Человеческие единицы ---------- */
+function mb(n){
+  if (!isFinite(n)) return '—';
+  if (n < 1024) return n + ' Б';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(0) + ' КБ';
+  return (n / 1024 / 1024).toFixed(1) + ' МБ';
+}
+function dur(sec){
+  if (!isFinite(sec) || sec < 60) return 'меньше минуты';
+  // Минуты округляем ПЕРВЫМИ и только потом раскладываем на часы, иначе
+  // вылезает «5 ч 60 мин»: остаток 3570 секунд округляется ровно в 60.
+  const mins = Math.round(sec / 60);
+  const h = Math.floor(mins / 60), m = mins % 60;
+  if (!h) return m + ' мин';
+  return h + ' ч ' + String(m).padStart(2, '0') + ' мин';
+}
+const MON = ['января','февраля','марта','апреля','мая','июня',
+             'июля','августа','сентября','октября','ноября','декабря'];
+function when(d){
+  if (!d) return '';
+  const p = n => String(n).padStart(2, '0');
+  return d.getDate() + ' ' + MON[d.getMonth()] + ', ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
+/* ---------- Сохранение файла ---------- */
+function saveBlob(name, text){
+  // BOM уже внутри текста с платы — русский Excel без него покажет кракозябры
+  const url = URL.createObjectURL(new Blob([text], {type:'text/csv;charset=utf-8'}));
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+/* ---------- Кнопка, которая показывает ход дела ----------
+   Файл погона — сотни килобайт кусками по 16 КБ, это секунды.
+   Молчащая кнопка в такой момент выглядит как сломанная. */
+function work(btn, txt){
+  const was = btn.textContent;
+  btn.disabled = true;
+  return {
+    step(s){ btn.textContent = s; },
+    done(){ btn.disabled = false; btn.textContent = was; }
+  };
+}
+
+/* ---------- Состояние ---------- */
+async function load(){
+  const b = $('#refresh'), w = work(b);
+  w.step('спрашиваю плату');
+  try {
+    INFO = await PULT.sdInfo();
+    paintStat();
+    paintRuns();
+  } catch(e){
+    INFO = null;
+    $('#s_note').textContent = 'Не спросить плату: ' + e.message;
+    $('#runs').innerHTML = '';
+    $('#runs_note').textContent = '';
+    paintStat();
+  }
+  w.done();
+}
+
+function paintStat(){
+  const i = INFO;
+  $('#s_card').textContent  = !i ? '—' : (i.card ? 'есть' : 'нет');
+  $('#s_ring').textContent  = !i ? '—' : (i.rows || 0) + ' зап.';
+  $('#s_sd').textContent    = !i ? '—' : (i.rows_sd || 0) + ' зап.';
+  $('#s_files').textContent = !i ? '—' : (i.files_total !== undefined
+                                            ? i.files_total : (i.files || []).length);
+  $('#stat').dataset.card = i && i.card ? '1' : '0';
+  $('#dl_cur').disabled = !i;
+
+  if (!i){ return; }
+  if (i.card){
+    $('#s_note').textContent = i.current
+      ? 'Текущий погон пишется в ' + i.current + '.'
+      : 'Карта на месте, но файл ещё не заведён: он создаётся первой записью, ' +
+        'когда плата узнает время.';
+  } else {
+    // Ровно тот случай, который сейчас и есть: карты нет, и это надо
+    // сказать прямо, вместе с последствием, а не просто показать «нет».
+    const h = Math.round((i.rows || 0) * 30 / 360) / 10;
+    $('#s_note').textContent =
+      'Карты нет — журнал живёт только в памяти платы и пропадёт при ' +
+      'перезагрузке. В кольце помещается 10 часов, сейчас в нём около ' +
+      h + ' ч. Погон идёт 8–12 часов, поэтому без карты конец затрёт начало.';
+  }
+}
+
+function paintRuns(){
+  const box = $('#runs');
+  box.textContent = '';
+  const i = INFO;
+  if (!i){ return; }
+
+  if (!i.card){
+    $('#runs_note').textContent = 'Архив появится, когда будет вставлена карта.';
+    return;
+  }
+  const files = (i.files || []).slice();
+  if (!files.length){
+    $('#runs_note').textContent =
+      'На карте пока ни одного файла. Первый появится с первой записью.';
+    return;
+  }
+
+  // Новые сверху: архив смотрят с конца
+  files.sort((a, b) => String(b.name).localeCompare(String(a.name)));
+
+  files.forEach(f => box.appendChild(runRow(f)));
+
+  const total = i.files_total !== undefined ? i.files_total : files.length;
+  $('#runs_note').textContent = total > files.length
+    ? 'Показаны ' + files.length + ' из ' + total + '. Плата отдаёт список ' +
+      'не целиком: он собирается у неё в памяти, а её немного.'
+    : '';
+
+  exact();
+}
+
+/* Точная длительность каждого погона.
+   Идём по одному файлу за раз и намеренно не параллелим: у платы один
+   поток на веб-сервер, и десяток одновременных запросов она переживает
+   хуже, чем десяток последовательных. Каждый запрос — четверть килобайта,
+   так что весь список уточняется за секунду. Не получилось — строка
+   остаётся с прикидкой, это не повод показывать ошибку. */
+async function exact(){
+  const rows = Array.prototype.slice.call($('#runs').children);
+  for (const el of rows){
+    if (!el._file || !el._start) continue;
+    let end = null;
+    try { end = await PULT.sdRunEnd(el._file.name, el._file.size); }
+    catch(_){ continue; }
+    if (!end) continue;
+    const sec = end - Math.round(el._start.getTime() / 1000);
+    if (!(sec > 0)) continue;
+    const p = n => String(n).padStart(2, '0');
+    const e = new Date(end * 1000);
+    el._sub.textContent = mb(el._file.size || 0) + ' · ' + dur(sec) +
+      ' · до ' + p(e.getHours()) + ':' + p(e.getMinutes()) +
+      ' · ' + el._file.name;
+    el._sub.dataset.exact = '1';
+  }
+}
+
+/* Одна строка архива. Собирается узлами, а не строкой разметки:
+   имя файла приходит с карты, куда его мог положить кто угодно. */
+function runRow(f){
+  const el = document.createElement('div');
+  el.className = 'run';
+  if (INFO && f.name === INFO.current) el.dataset.cur = '1';
+
+  const d = PULT.sdRunDate(f.name);
+  const g = PULT.sdRunGuess(f.size || 0);
+
+  const head = document.createElement('div');
+  head.className = 'rhead';
+  const t = document.createElement('b');
+  t.textContent = d ? when(d) : f.name;
+  head.appendChild(t);
+  if (INFO && f.name === INFO.current){
+    const tag = document.createElement('span');
+    tag.className = 'cur';
+    tag.textContent = 'пишется сейчас';
+    head.appendChild(tag);
+  }
+  el.appendChild(head);
+
+  const sub = document.createElement('div');
+  sub.className = 'rsub';
+  // Сразу — прикидка по размеру, чтобы список не был пустым. Точная
+  // длительность приедет следом, отдельным маленьким запросом (см. exact).
+  sub.textContent = mb(f.size || 0) + ' · около ' + dur(g.sec) +
+                    ' · ' + g.rows + ' записей' + (d ? ' · ' + f.name : '');
+  el.appendChild(sub);
+  el._sub = sub; el._file = f; el._start = d;
+
+  const row = document.createElement('div');
+  row.className = 'ract';
+
+  const bDl = document.createElement('button');
+  bDl.className = 'btn';
+  bDl.textContent = 'Скачать';
+  bDl.onclick = () => grab(bDl, f.name);
+  row.appendChild(bDl);
+
+  const bG = document.createElement('button');
+  bG.className = 'btn';
+  bG.textContent = 'В графики';
+  bG.onclick = () => toHist(bG, f.name);
+  row.appendChild(bG);
+
+  const bJ = document.createElement('button');
+  bJ.className = 'btn';
+  bJ.textContent = 'В журнал';
+  bJ.onclick = () => toJrn(bJ, f.name);
+  row.appendChild(bJ);
+
+  el.appendChild(row);
+  return el;
+}
+
+/* ---------- Действия ---------- */
+function guard(){
+  if (busy){ PULT.toast('Подожди, идёт чтение с карты'); return false; }
+  busy = true; return true;
+}
+
+async function grab(btn, name){
+  if (!guard()) return;
+  const w = work(btn);
+  try {
+    const text = await PULT.sdFileText(name, w.step);
+    saveBlob(name, text);
+    PULT.toast('Файл сохранён');
+  } catch(e){ PULT.toast('Не скачать: ' + e.message); }
+  w.done(); busy = false;
+}
+
+async function toHist(btn, name){
+  if (!guard()) return;
+  const w = work(btn);
+  try {
+    const r = await PULT.sdRunToHist(name, w.step);
+    PULT.toast(r.points
+      ? 'В графики добавлено ' + r.points + ' точек из ' + r.rows + ' строк'
+      : 'Новых точек нет — этот погон уже в истории');
+  } catch(e){ PULT.toast('Не вышло: ' + e.message); }
+  w.done(); busy = false;
+}
+
+async function toJrn(btn, name){
+  if (!guard()) return;
+  const w = work(btn);
+  try {
+    const r = await PULT.sdRunToJournal(name, w.step);
+    PULT.toast(r.added || r.filled
+      ? 'В журнал: добавлено ' + r.added + ', дополнено ' + r.filled
+      : 'Журнал уже содержит эти строки');
+  } catch(e){ PULT.toast('Не вышло: ' + e.message); }
+  w.done(); busy = false;
+}
+
+$('#refresh').onclick = () => { if (!busy) load(); };
+
+$('#dl_cur').onclick = async () => {
+  if (!guard()) return;
+  const b = $('#dl_cur'), w = work(b);
+  try {
+    const got = await PULT.sdText(w.step);
+    saveBlob(got.name, got.text);
+    PULT.toast(got.card ? 'Скачан файл с карты' : 'Скачано из памяти платы');
+  } catch(e){ PULT.toast('Не скачать: ' + e.message); }
+  w.done(); busy = false;
+};
+
+PULT.start();
+load();
+</script>
+</body>
+</html>

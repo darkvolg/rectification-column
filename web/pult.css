@@ -757,3 +757,59 @@ table.slots tr.hot td{ color:var(--warn); font-weight:700 }
   -webkit-mask-image:repeating-linear-gradient(90deg,#000 0 6px,transparent 6px 10px);
           mask-image:repeating-linear-gradient(90deg,#000 0 6px,transparent 6px 10px);
 }
+
+/* ============================================================
+   ПОГОНЫ — архив на карте
+   Список, который читают глазами сверху вниз: сначала «когда это было»,
+   потом сколько это весит, и только потом кнопки. Дата крупнее имени
+   файла намеренно — kol_20260912_1840.csv человеку ничего не говорит,
+   «12 сентября, 18:40» говорит всё.
+   ============================================================ */
+.runstat{
+  display:flex; flex-wrap:wrap; gap:10px; margin:12px 0 4px;
+}
+.runstat .rs{
+  flex:1 1 120px; min-width:110px; padding:10px 12px;
+  border:1px solid var(--line-2); border-radius:10px;
+  background:var(--surface-2);
+}
+.runstat .rs b{
+  display:block; font:600 17px/1.2 var(--mono); color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+.runstat .rs span{
+  display:block; margin-top:3px; font-size:11.5px; color:var(--ink-3);
+}
+/* Нет карты — это не авария, но и не норма: жёлтым, чтобы взгляд
+   зацепился, потому что от этого зависит, переживёт ли журнал ночь. */
+.runstat[data-card="0"] .rs:first-child b{color:var(--warn)}
+.runstat[data-card="1"] .rs:first-child b{color:var(--ok)}
+
+.runwrap{margin-top:12px}
+.runs{display:flex; flex-direction:column; gap:8px}
+
+.run{
+  padding:12px 14px; border:1px solid var(--line-2); border-radius:10px;
+  background:var(--surface-2);
+}
+/* Файл, в который пишут прямо сейчас, выделен рамкой: он один такой,
+   и чаще всего нужен именно он. */
+.run[data-cur="1"]{border-color:var(--accent); background:var(--accent-soft)}
+
+.run .rhead{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
+.run .rhead b{font-size:15px; font-weight:600; color:var(--ink)}
+.run .rhead .cur{
+  font:500 11px/1 var(--sans); color:var(--accent);
+  border:1px solid var(--accent); border-radius:999px; padding:3px 8px;
+}
+.run .rsub{
+  margin-top:4px; font:400 12px/1.5 var(--mono); color:var(--ink-3);
+  font-variant-numeric:tabular-nums; word-break:break-all;
+}
+.run .ract{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
+.run .ract .btn{padding:7px 12px; font-size:13px}
+
+@media (max-width:560px){
+  .runstat .rs{flex:1 1 calc(50% - 5px)}
+  .run .ract .btn{flex:1 1 auto}
+}
