@@ -731,6 +731,103 @@ function jrnInfo(){
 }
 
 /* ============================================================
+   АРХИВ СВОИХ ПОГОНОВ
+   «Новый погон» раньше просто стирал таблицу, и вместе с ней исчезал
+   сам факт, что погон был. Через месяц уже не вспомнить, какими числами
+   гнал, — а это первое, что хочется знать, глядя на полку.
+
+   Живёт в браузере и не зависит от карты: карта пишет секундный лог
+   железа, а здесь остаётся журнал в том виде, в каком его вёл человек,
+   вместе с фазами, объёмами и примечаниями.
+   ============================================================ */
+const POGKEY = 'kol_pogony_v1';
+const POG_MAX = 50;        // больше полусотни погонов в памяти браузера незачем
+
+function pogLoad(){
+  let a = null;
+  try { a = JSON.parse(localStorage.getItem(POGKEY)); } catch(_){}
+  return Array.isArray(a) ? a : [];
+}
+function pogSave(a){
+  try { localStorage.setItem(POGKEY, JSON.stringify(a)); }
+  catch(_){
+    // Место кончилось — режем самые старые, свежие погоны важнее
+    try { localStorage.setItem(POGKEY, JSON.stringify(a.slice(0, Math.floor(a.length / 2)))); }
+    catch(_){}
+  }
+}
+
+/* Итоги погона, которые видно в списке без раскрытия таблицы. */
+function pogSummary(J){
+  const rows = (J.rows || []).filter(r => r && r.ts);
+  const n = v => { const x = parseFloat(String(v).replace(',', '.')); return isFinite(x) ? x : 0; };
+  let ml = 0;
+  (J.rows || []).forEach(r => { ml += n(r.ml); });
+  const phases = [];
+  (J.rows || []).forEach(r => {
+    if (r.ph && phases.indexOf(r.ph) < 0) phases.push(r.ph);
+  });
+  return {
+    start: rows.length ? rows[0].ts : 0,
+    end:   rows.length ? rows[rows.length - 1].ts : 0,
+    rows:  (J.rows || []).length,
+    ml:    Math.round(ml),
+    phases: phases,
+    head:  Object.assign({}, J.head || {})
+  };
+}
+
+/* Убрать текущий журнал в архив. Возвращает запись или null, если
+   убирать нечего: пустой журнал в архиве — мусор, а не история. */
+function pogArchive(J){
+  J = J || jrnLoad();
+  if (!J.rows || !J.rows.length) return null;
+  const s = pogSummary(J);
+  // Без единой строки со временем погон не датировать, а список
+  // держится именно на датах — такой записи в архиве делать нечего.
+  if (!s.start) return null;
+
+  const rec = Object.assign({
+    id: 'p' + s.start + '_' + Math.random().toString(36).slice(2, 7),
+    saved: Math.round(Date.now() / 1000),
+    data: {head: J.head || {}, rows: J.rows}
+  }, s);
+
+  const a = pogLoad();
+  a.unshift(rec);                       // новые сверху
+  pogSave(a.slice(0, POG_MAX));
+  subs.forEach(f => f('pog'));
+  return rec;
+}
+
+function pogList(){
+  // На всякий случай сортируем сами: записи могли лечь из разных вкладок
+  return pogLoad().sort((x, y) => (y.start || 0) - (x.start || 0));
+}
+
+function pogDel(id){
+  const a = pogLoad().filter(r => r.id !== id);
+  pogSave(a);
+  subs.forEach(f => f('pog'));
+  return a.length;
+}
+
+/* Вернуть архивный погон в журнал. Нужен, когда погон закрыли по ошибке
+   или хочется дописать примечание задним числом. Текущий журнал при этом
+   сам уходит в архив, чтобы его не потерять. */
+function pogRestore(id){
+  const rec = pogLoad().filter(r => r.id === id)[0];
+  if (!rec || !rec.data) return false;
+  pogArchive();                          // то, что открыто сейчас, не теряем
+  const J = {head: rec.data.head || {}, rows: rec.data.rows || []};
+  jrnSave(J);
+  jrnMark(0);                            // автозапись начнёт отсчёт заново
+  pogDel(id);                            // погон снова «текущий», в архиве не нужен
+  subs.forEach(f => f('jrn'));
+  return true;
+}
+
+/* ============================================================
    HOME ASSISTANT — запасной источник журнала
    Карта платы главнее, но её может не быть: не куплена, не вставлена,
    отвалилась. HA при этом пишет те же датчики к себе сам, без единой
@@ -1714,6 +1811,7 @@ window.PULT = {
   ROLES, SEL, SLOT, BIND, setSelect,
   jrnLoad, jrnSave, jrnRow, jrnAdd, jrnMark, jrnInfo, jrnEvery,
   jrnMergeRows, jrnSrcName, jrnBucket, jrnHHMM, jrnFmtVal, jrnHasData, JREAL,
+  pogArchive, pogList, pogDel, pogRestore, pogSummary,
   haCfg, setHaCfg, haEntities, haPull, haPullHist, haConnect, haBucketize,
   sdInfo, sdPull, sdText, sdParse, sdPullHist, histMerge, jrnDownsample,
   sdFileText, sdRunDate, sdRunGuess, sdRunEnd, sdRunRows, sdRunToHist, sdRunToJournal,

@@ -49,6 +49,16 @@
   </div>
 
   <div class="card wide" style="max-width:none">
+    <h3>Мои погоны</h3>
+    <p>Журналы законченных погонов. Складываются сюда сами, когда жмёшь
+    «Новый погон» на странице журнала. Живут в этом браузере и от карты
+    не зависят: карта хранит секундный лог железа, а здесь журнал в том
+    виде, в каком ты его вёл — с фазами, объёмами и примечаниями.</p>
+    <div class="runs" id="mine"></div>
+    <p class="hint" id="mine_note"></p>
+  </div>
+
+  <div class="card wide" style="max-width:none">
     <h3>Архив на карте</h3>
     <p>Каждый погон — свой файл, имя по времени первой записи. Файл пишется
     построчно и закрывается после каждой строки: выдернули питание — потеряна
@@ -94,6 +104,16 @@ function dur(sec){
 }
 const MON = ['января','февраля','марта','апреля','мая','июня',
              'июля','августа','сентября','октября','ноября','декабря'];
+
+/* Русское склонение после числа: 1 строка, 2 строки, 5 строк.
+   Мелочь, но «22 строк» в своём же журнале читается как опечатка. */
+function plural(n, one, few, many){
+  const a = Math.abs(n) % 100, b = a % 10;
+  if (a > 10 && a < 20) return many;
+  if (b > 1 && b < 5) return few;
+  if (b === 1) return one;
+  return many;
+}
 function when(d){
   if (!d) return '';
   const p = n => String(n).padStart(2, '0');
@@ -120,6 +140,129 @@ function work(btn, txt){
     step(s){ btn.textContent = s; },
     done(){ btn.disabled = false; btn.textContent = was; }
   };
+}
+
+/* ============================================================
+   МОИ ПОГОНЫ — журналы из браузера
+   Не зависят от карты и от связи с платой, поэтому рисуются первыми
+   и всегда: это ответ на вопрос «какими числами я вообще гнал».
+   ============================================================ */
+function paintMine(){
+  const box = $('#mine');
+  box.textContent = '';
+  const list = PULT.pogList();
+
+  if (!list.length){
+    $('#mine_note').textContent =
+      'Пока пусто. Первый погон появится здесь, когда закончишь текущий ' +
+      'кнопкой «Новый погон» в журнале.';
+    return;
+  }
+  $('#mine_note').textContent = 'В архиве ' + list.length + ' ' +
+    plural(list.length, 'погон', 'погона', 'погонов') + '.';
+
+  list.forEach(r => box.appendChild(mineRow(r)));
+}
+
+function mineRow(r){
+  const el = document.createElement('div');
+  el.className = 'run';
+
+  const d = r.start ? new Date(r.start * 1000) : null;
+  const head = document.createElement('div');
+  head.className = 'rhead';
+  const t = document.createElement('b');
+  t.textContent = d ? when(d) : 'без даты';
+  head.appendChild(t);
+  // Фазы — самая говорящая метка: по ним видно, дошёл ли погон до тела
+  (r.phases || []).forEach(p => {
+    if (!p) return;
+    const tag = document.createElement('span');
+    tag.className = 'ph';
+    tag.textContent = p;
+    head.appendChild(tag);
+  });
+  el.appendChild(head);
+
+  const bits = [];
+  if (r.start && r.end && r.end > r.start) bits.push(dur(r.end - r.start));
+  bits.push(r.rows + ' ' + plural(r.rows, 'строка', 'строки', 'строк'));
+  if (r.ml) bits.push('отобрано ' + r.ml + ' мл');
+  if (r.head && r.head.vol) bits.push('залито ' + r.head.vol + ' мл');
+  if (r.head && r.head.abv) bits.push(r.head.abv + ' %');
+
+  const sub = document.createElement('div');
+  sub.className = 'rsub';
+  sub.textContent = bits.join(' · ');
+  el.appendChild(sub);
+
+  const act = document.createElement('div');
+  act.className = 'ract';
+
+  const bCsv = document.createElement('button');
+  bCsv.className = 'btn';
+  bCsv.textContent = 'Скачать CSV';
+  bCsv.onclick = () => mineCsv(r);
+  act.appendChild(bCsv);
+
+  const bOpen = document.createElement('button');
+  bOpen.className = 'btn';
+  bOpen.textContent = 'Вернуть в журнал';
+  bOpen.title = 'Сделать текущим, чтобы дописать или поправить';
+  bOpen.onclick = () => mineRestore(r);
+  act.appendChild(bOpen);
+
+  const bDel = document.createElement('button');
+  bDel.className = 'btn bad';
+  bDel.textContent = 'Удалить';
+  bDel.onclick = () => mineDel(r);
+  act.appendChild(bDel);
+
+  el.appendChild(act);
+  return el;
+}
+
+/* Тот же набор колонок, что и в выгрузке журнала: файл должен открываться
+   в Excel так же, как выгруженный сразу после погона. */
+function mineCsv(r){
+  const HEAD = ['№','Время','Фаза','t куба T1, C','t верх отбора, C','t 2/3, C',
+                't воды вых, C','Напряжение, В','Отбор, мл','Скорость, мл/ч','Примечание'];
+  const q = v => {
+    const s = (v === undefined || v === null) ? '' : String(v);
+    return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const lines = [HEAD.join(';')];
+  (r.data && r.data.rows || []).forEach((row, i) => {
+    lines.push([i + 1, row.t, row.ph, row.kub, row.otbor, row.carga,
+                row.voda, row.volt, row.ml, row.rate, row.note].map(q).join(';'));
+  });
+  const d = r.start ? new Date(r.start * 1000) : new Date();
+  const p = n => String(n).padStart(2, '0');
+  const name = 'pogon_' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) +
+               '_' + p(d.getHours()) + p(d.getMinutes()) + '.csv';
+  // BOM обязателен: без него русский Excel покажет кракозябры
+  saveBlob(name, '﻿' + lines.join('\r\n') + '\r\n');
+  PULT.toast('Сохранён ' + name);
+}
+
+function mineRestore(r){
+  if (!confirm('Вернуть этот погон в журнал?\n\nОн станет текущим, а тот, ' +
+               'что открыт сейчас, уедет в архив.')) return;
+  if (PULT.pogRestore(r.id)){
+    PULT.toast('Погон снова в журнале');
+    paintMine();
+  } else {
+    PULT.toast('Не вышло вернуть погон');
+  }
+}
+
+function mineDel(r){
+  const d = r.start ? when(new Date(r.start * 1000)) : 'без даты';
+  if (!confirm('Удалить погон «' + d + '» навсегда?\n\n' +
+               'Файл на карте контроллера при этом не тронется.')) return;
+  PULT.pogDel(r.id);
+  paintMine();
+  PULT.toast('Погон удалён из архива браузера');
 }
 
 /* ---------- Состояние ---------- */
@@ -335,6 +478,8 @@ $('#dl_cur').onclick = async () => {
 };
 
 PULT.start();
+// Свои погоны рисуем сразу: они лежат в браузере и платы не ждут.
+paintMine();
 load();
 </script>
 </body>

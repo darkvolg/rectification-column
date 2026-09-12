@@ -813,3 +813,11 @@ table.slots tr.hot td{ color:var(--warn); font-weight:700 }
   .runstat .rs{flex:1 1 calc(50% - 5px)}
   .run .ract .btn{flex:1 1 auto}
 }
+
+/* Фазы погона в заголовке архивной записи: по ним с одного взгляда видно,
+   дошёл ли погон до тела или оборвался на головах. */
+.run .rhead .ph{
+  font:500 11px/1 var(--sans); color:var(--ink-2);
+  border:1px solid var(--line); border-radius:999px; padding:3px 8px;
+  background:var(--surface);
+}
