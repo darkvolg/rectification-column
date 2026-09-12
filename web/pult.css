@@ -634,7 +634,7 @@ nav a svg{width:17px; height:17px; flex:none; fill:none; stroke:currentColor;
 /* Таблица журнала */
 .jwrap{overflow-x:auto; border:1px solid var(--line); border-radius:var(--r);
        background:var(--surface); box-shadow:var(--shadow)}
-table.jtab{border-collapse:collapse; width:100%; min-width:1080px;
+table.jtab{border-collapse:collapse; width:100%; min-width:1170px;
            font-variant-numeric:tabular-nums}
 .jtab th{
   position:sticky; top:0; z-index:1; background:var(--surface-2);

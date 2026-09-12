@@ -110,6 +110,14 @@ const S = {
 };
 const PHASES = ['Прогрев','Стабилизация','Головы','Подголовники','Тело','Хвосты','Стоп'];
 const PHASE_BG = ['E8EAED','DCE9F2','F8DDD9','FBEED5','DEEDE4','F0E2D2','D9D9D9'];
+
+/* Давление — один знак после запятой. Такого формата среди готовых не было:
+   TEMP даёт 0.00, CELL2 целое.
+   Стиль кладётся ПОСЛЕ всех фазовых, иначе сдвинулся бы PHASE0 и фазы
+   перекрасились бы. Индекс поэтому считается от их числа, а не пишется
+   числом: добавят фазу — он поедет сам. Каждая фаза даёт ДВА стиля,
+   обычный и текстовый (для колонки примечания), отсюда множитель. */
+S.PRESS = S.PHASE0 + PHASE_BG.length * 2;
 const HDR_BG = '1F3864', CALC_BG = 'EDF3E7', IN_BG = 'FFF6D9';
 
 function styles(){
@@ -139,7 +147,8 @@ function styles(){
     '<numFmt numFmtId="165" formatCode="+0.000;-0.000;0.000"/>',
     '<numFmt numFmtId="166" formatCode="# ##0"/>',
     '<numFmt numFmtId="167" formatCode="0.0%"/>',
-    '<numFmt numFmtId="168" formatCode="0.000"/>'
+    '<numFmt numFmtId="168" formatCode="0.000"/>',
+    '<numFmt numFmtId="169" formatCode="0.0"/>'
   ];
 
   const B = '<border><left style="thin"><color rgb="FFBFBFBF"/></left>' +
@@ -181,6 +190,8 @@ function styles(){
   PHASE_BG.forEach(c => xf.push(C(6, fillId[c], 1, 0, CEN)));
   // И текстовый вариант фазовой заливки для примечания
   PHASE_BG.forEach(c => xf.push(C(6, fillId[c], 1, 0, LEF)));
+  // S.PRESS — строго последним, см. комментарий у его объявления
+  xf.push(C(6, 0, 1, 169, CEN));
 
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +

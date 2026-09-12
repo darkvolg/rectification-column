@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260912a">
+<link rel="stylesheet" href="pult.css?v=20260912b">
 </head>
 <body>
 
@@ -79,7 +79,7 @@
   страдает: стереть архив с экрана нельзя, только вынув карту.
 </footer>
 
-<script src="pult.js?v=20260912a"></script>
+<script src="pult.js?v=20260912b"></script>
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
@@ -223,7 +223,8 @@ function mineRow(r){
    в Excel так же, как выгруженный сразу после погона. */
 function mineCsv(r){
   const HEAD = ['№','Время','Фаза','t куба T1, C','t верх отбора, C','t 2/3, C',
-                't воды вых, C','Напряжение, В','Отбор, мл','Скорость, мл/ч','Примечание'];
+                't воды вых, C','Напряжение, В','Отбор, мл','Скорость, мл/ч',
+                'Давление, мм рт.ст.','Примечание'];
   const q = v => {
     const s = (v === undefined || v === null) ? '' : String(v);
     return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
@@ -231,7 +232,8 @@ function mineCsv(r){
   const lines = [HEAD.join(';')];
   (r.data && r.data.rows || []).forEach((row, i) => {
     lines.push([i + 1, row.t, row.ph, row.kub, row.otbor, row.carga,
-                row.voda, row.volt, row.ml, row.rate, row.note].map(q).join(';'));
+                row.voda, row.volt, row.ml, row.rate, row.press,
+                row.note].map(q).join(';'));
   });
   const d = r.start ? new Date(r.start * 1000) : new Date();
   const p = n => String(n).padStart(2, '0');

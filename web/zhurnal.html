@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="pult.css?v=20260912a">
+<link rel="stylesheet" href="pult.css?v=20260912b">
 </head>
 <body>
 
@@ -152,7 +152,8 @@
           <th>t° верх<br>отбора, °C</th><th>t° 2/3<br>кол., °C</th>
           <th>t° воды<br>вых., °C</th><th>Напр.<br>рег., В</th>
           <th>Отбор,<br>мл</th><th>Накоп.,<br>мл</th>
-          <th>Скорость,<br>мл/ч</th><th>ΔT° от<br>кипения</th>
+          <th>Скорость,<br>мл/ч</th>
+          <th>Давление,<br>мм рт.ст.</th><th>ΔT° от<br>кипения</th>
           <th>Примечание</th><th></th>
         </tr>
       </thead>
@@ -176,8 +177,8 @@
   на странице <a href="grafiki.html">Графики</a>.
 </footer>
 
-<script src="pult.js?v=20260912a"></script>
-<script src="xlsx.js?v=20260912a"></script>
+<script src="pult.js?v=20260912b"></script>
+<script src="xlsx.js?v=20260912b"></script>
 <script>
 "use strict";
 const {V} = PULT;
@@ -208,6 +209,24 @@ function tBoil(mm){
   const p = isFinite(mm) ? mm : 760;
   return 78.15 + (p - 760) * 0.037;
 }
+
+/* Точка кипения ДЛЯ КОНКРЕТНОЙ СТРОКИ.
+   Раньше ΔT во всей таблице считалась по одному числу из шапки — тому,
+   что было в начале погона. За десять часов давление уезжает на
+   несколько миллиметров, а это по 0.037 °C на каждый: набегает больше,
+   чем та разница, по которой ловят переход на хвосты.
+   Теперь у строки своё давление, а шапка остаётся запасным вариантом:
+   для старых журналов, записанных до этой правки, и для тех, у кого
+   барометра нет вовсе. Возвращаем и температуру, и само давление —
+   второе идёт в подсказку поля, чтобы было видно, что подставилось. */
+function tboilOf(r){
+  const own = num(r && r.press);
+  if (isFinite(own)) return {t: tBoil(own), mm: own, own: true};
+  const head = hv('press');
+  return {t: tBoil(head), mm: isFinite(head) ? head : 760, own: false};
+}
+
+const fmtP = mm => isFinite(mm) ? (+mm).toFixed(1) : '760.0';
 
 /* Пустое поле — это не ноль, а «как обычно»: берём то, что написано
    серым в самом поле. Иначе журнал уезжает с нулевыми фракциями,
@@ -323,7 +342,6 @@ function att(v){
 
 function render(){
   const tb = $('#j_body');
-  const tboil = tBoil(hv('press'));
   let acc = 0;
   tb.innerHTML = J.rows.map((r, i) => {
     acc += num(r.ml) || 0;
@@ -348,8 +366,13 @@ function render(){
       '<td style="width:78px"><input value="' + fmt(acc) + '" readonly tabindex="-1"></td>' +
       '<td style="width:82px"><input data-i="' + i + '" data-k="rate" value="' +
         att(r.rate) + '"></td>' +
+      // Давление правится руками: у кого нет барометра, тот вписывает
+      // показание со своего или с прогноза, и ΔT всё равно считается.
+      '<td style="width:86px"><input data-i="' + i + '" data-k="press" value="' +
+        att(r.press) + '" placeholder="' + fmtP(tboilOf(r).mm) + '"></td>' +
       '<td style="width:82px"><input value="' +
-        (isFinite(dt) ? (dt - tboil >= 0 ? '+' : '') + (dt - tboil).toFixed(3) : '') +
+        (isFinite(dt) ? (dt - tboilOf(r).t >= 0 ? '+' : '') +
+                        (dt - tboilOf(r).t).toFixed(3) : '') +
         '" readonly tabindex="-1"></td>' +
       // Экранируем и амперсанд тоже, а не одну кавычку: заметка — это то,
       // что человек писал руками про свой погон, и она не должна меняться
@@ -370,7 +393,8 @@ $('#j_body').addEventListener('input', e => {
   J.rows[+el.dataset.i][el.dataset.k] = el.value;
   save();
   // Накопленное и ΔT зависят от соседних строк — перерисовываем целиком
-  if (el.dataset.k === 'ml' || el.dataset.k === 'otbor' || el.dataset.k === 'ph') render();
+  // press тоже: от него зависит точка кипения, а значит и ΔT строки
+  if (['ml','otbor','ph','press'].indexOf(el.dataset.k) >= 0) render();
 });
 
 $('#j_body').addEventListener('click', e => {
@@ -559,8 +583,8 @@ function sheetRows(){
 
   const HEAD = ['№','Время','Фаза','t° куба T1, °C','t° верх отбора, °C',
                 't° 2/3 кол., °C','t° воды вых., °C','Напр. рег., В',
-                'Отбор, мл','Накоп., мл','Скорость, мл/ч','ΔT° от кипения',
-                'Примечание'];
+                'Отбор, мл','Накоп., мл','Скорость, мл/ч','Давление, мм рт.ст.',
+                'ΔT° от кипения','Примечание'];
   R[11] = [null].concat(HEAD.map(h => ({v:h, s:S.HEAD})));
 
   const ph = i => {
@@ -582,9 +606,16 @@ function sheetRows(){
       {v:n('ml'),    s:S.CELL2},
       {v:'SUM($J$13:J' + xr + ')', t:'f', s:S.CELL2},
       {v:n('rate'),  s:S.CELL2},
-      // Температура отбора теперь в колонке F (куб занял E), а точка
-      // кипения по-прежнему в шапке, ячейка $E$7 — она в другой строке.
-      {v:'IF(F' + xr + '="","",F' + xr + '-$E$7)', t:'f', s:S.DT},
+      {v:n('press'), s:S.PRESS},
+      // Температура отбора в колонке F (куб занял E), давление в M.
+      // Точку кипения считаем ЖИВОЙ ФОРМУЛОЙ от давления этой строки:
+      // 78.15 °C при 760 мм, поправка 0.037 °C на миллиметр. Пустое
+      // давление — откатываемся на общее из шапки, ячейка $E$7.
+      // Раньше здесь везде стояло $E$7, то есть давление на начало
+      // погона: за десять часов оно уезжает, и ΔT врала тем сильнее,
+      // чем дольше гнал.
+      {v:'IF(F' + xr + '="","",F' + xr + '-IF(M' + xr +
+         '="",$E$7,78.15+(M' + xr + '-760)*0.037))', t:'f', s:S.DT},
       {v:r.note || '', s:S.TEXT}
     ];
   });
@@ -608,12 +639,12 @@ $('#j_xls').onclick = () => {
                p2(d.getMonth() + 1) + '-' + p2(d.getDate()) + '.xlsx';
   XLSX.save(name, [{
     name: 'Журнал',
-    cols: [2, 5, 7.5, 14, 13, 13, 12, 12, 10, 9, 10, 11, 11, 34],
-    merges: ['B1:N1', 'B3:F3', 'H3:L3'].concat(
+    cols: [2, 5, 7.5, 14, 13, 13, 12, 12, 10, 9, 10, 11, 12, 11, 34],
+    merges: ['B1:O1', 'B3:F3', 'H3:L3'].concat(
       // Подписи шапки: три колонки под каждую, иначе длинные обрезаются
       [4,5,6,7,8,9,10].reduce((a, r) => a.concat(['B'+r+':D'+r, 'H'+r+':J'+r]), [])),
     freeze: 'B13',
-    filter: J.rows.length ? 'B12:N' + (12 + J.rows.length) : null,
+    filter: J.rows.length ? 'B12:O' + (12 + J.rows.length) : null,
     heights: {0:24, 11:34},
     rows: rows
   }]);
@@ -657,17 +688,20 @@ $('#j_csv').onclick = () => {
 
   L.push(['№','Время','Фаза','t° куба T1, °C','t° верх отбора, °C',
           't° 2/3 кол., °C','t° воды вых., °C','Напр. рег., В','Отбор, мл',
-          'Накоп., мл','Скорость, мл/ч','ΔT° от кипения',
+          'Накоп., мл','Скорость, мл/ч','Давление, мм рт.ст.','ΔT° от кипения',
           'Примечание'].map(q).join(';'));
 
-  const tboil = tBoil(num(h.press));
+
   let acc = 0;
   J.rows.forEach((r, i) => {
     acc += num(r.ml) || 0;
     const d = num(r.otbor);
+    // Точка кипения своя на каждую строку: за долгий погон давление
+    // уезжает, и одно число на весь журнал врёт тем сильнее, чем дольше гнал
+    const tb = tboilOf(r);
     L.push([i + 1, r.t, r.ph, r.kub, r.otbor, r.carga, r.voda, r.volt, r.ml,
-            acc.toFixed(0), r.rate,
-            isFinite(d) ? (d - tboil).toFixed(3) : '', r.note || '']
+            acc.toFixed(0), r.rate, r.press,
+            isFinite(d) ? (d - tb.t).toFixed(3) : '', r.note || '']
            .map(x => q(dec(x === undefined ? '' : x))).join(';'));
   });
 
