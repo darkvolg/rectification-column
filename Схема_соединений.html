@@ -112,6 +112,25 @@
   </div>
 
   <section>
+    <h2>Куда подключаются датчики</h2>
+    <p class="sub">Датчики и всё, что снаружи, приходят кабелями в зелёные винтовые клеммники. Клеммники стоят в ряд по нижнему краю платы. На большой схеме ниже это зелёные блоки у пунктирной черты.</p>
+    <div class="fig">
+      <svg id="terms-fig" viewBox="0 0 1180 400" role="img" aria-label="Пять клеммников платы и какой кабель на какой винт" style="min-width:900px"></svg>
+    </div>
+    <ul style="margin-top:10px">
+      <li>Каждая жила кабеля зажимается под свой винт. Что написано под винтом — та жила туда и идёт.</li>
+      <li>Пять датчиков температуры идут на одни и те же три винта: все красные жилы вместе, все жёлтые вместе, все чёрные вместе.</li>
+      <li>Экран и кнопка стоят на крышке и в клеммники не идут: их провода паяются прямо к плате.</li>
+      <li>Барометр и карта microSD припаяны на самой плате, кабелей у них нет.</li>
+    </ul>
+    <h2 style="margin-top:16px">Как выглядит сама плата</h2>
+    <p class="sub">Твой чертёж макетки из проекта: где лежит каждая деталь. На нём барометр подписан BMP280, стоит BMP180 — подключается так же.</p>
+    <div class="fig">
+      <img src="P0_Монтажная_плата.svg" alt="Чертёж монтажной платы: ESP32, карта, барометр, резисторы и пять клеммников по нижнему краю" style="display:block;width:100%;min-width:800px;max-width:1000px;height:auto;border:1px solid var(--line);border-radius:8px">
+    </div>
+  </section>
+
+  <section>
     <div class="steps" id="steps"></div>
     <div class="fig" id="fig"></div>
   </section>
@@ -405,6 +424,39 @@
   wire(PNK, 'tp.txv', 'pz.tx', null, 1);
   wire(V5, 'tp.pv', 'pz.p', null, 1);
   wire(GND, 'tp.gv', 'pz.g', null, 1);
+
+  // Рисунок «куда подключаются датчики»: пять клеммников в том порядке, как они стоят на плате
+  (function () {
+    var blocks = [
+      { t: 'ПИТАНИЕ', dev: ['Блок питания', '5 В, 2 А'], s: [['+5 В', V5, 'плюс'], ['GND', GND, 'минус']] },
+      { t: 'ДАТЧИКИ', dev: ['Пять датчиков', 'DS18B20'], s: [['3,3 В', V33, 'красная'], ['DATA', YEL, 'жёлтая'], ['GND', GND, 'чёрная']] },
+      { t: 'PZEM', dev: ['PZEM-004T', 'разъём TTL'], s: [['5 В', V5, '5V'], ['от TX', PNK, 'TX'], ['на RX', PUR, 'RX'], ['GND', GND, 'GND']] },
+      { t: 'ПРОТОК', dev: ['Датчик протока', 'YF-S201C'], s: [['5 В', V5, 'красная'], ['сигнал', YEL, 'жёлтая'], ['GND', GND, 'чёрная']] },
+      { t: 'СИРЕНА', dev: ['Зуммер', '5 В'], s: [['+', V5, 'плюс'], ['−', GRY, 'минус']] }
+    ];
+    var s = '<rect x="10" y="10" width="1160" height="150" rx="10" fill="#fbf6e6" stroke="#8d9691" stroke-width="2"/>' +
+            '<text x="26" y="36" font-size="15" font-weight="700" fill="#1c2321">Нижний край платы</text>';
+    var x = 40, P = 62;
+    blocks.forEach(function (b) {
+      var w = b.s.length * P + 16, cx = x + w / 2;
+      s += '<rect x="' + x + '" y="60" width="' + w + '" height="86" rx="6" fill="#3fa35a" stroke="#2a7340" stroke-width="2"/>';
+      s += '<text x="' + cx + '" y="137" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">' + b.t + '</text>';
+      b.s.forEach(function (p, i) {
+        var px = x + 8 + P / 2 + i * P;
+        s += '<path d="M' + px + ' 146 V268" stroke="#ffffff" stroke-width="10"/><path d="M' + px + ' 146 V268" stroke="' + p[1] + '" stroke-width="5"/>';
+        s += '<circle cx="' + px + '" cy="84" r="13" fill="#eef0ec" stroke="#4a524e" stroke-width="1.5"/><path d="M' + (px - 8) + ' 84 h16" stroke="#4a524e" stroke-width="2"/>';
+        s += '<text x="' + px + '" y="116" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff" stroke="#3fa35a" stroke-width="4" paint-order="stroke">' + p[0] + '</text>';
+        s += '<text x="' + px + '" y="218" text-anchor="middle" font-size="12" fill="#1c2321" stroke="#ffffff" stroke-width="5" paint-order="stroke">' + p[2] + '</text>';
+      });
+      s += '<rect x="' + (x - 6) + '" y="268" width="' + (w + 12) + '" height="64" rx="8" fill="#f6f2e7" stroke="#8d9691" stroke-width="2"/>';
+      s += '<text x="' + cx + '" y="295" text-anchor="middle" font-size="13" font-weight="700" fill="#1c2321">' + b.dev[0] + '</text>';
+      s += '<text x="' + cx + '" y="313" text-anchor="middle" font-size="13" font-weight="700" fill="#1c2321">' + b.dev[1] + '</text>';
+      x += w + 34;
+    });
+    s += '<text x="26" y="368" font-size="13" fill="#5d6763">Сверху — винты клеммника и что под ними написано. Снизу — прибор и какая его жила идёт под этот винт.</text>';
+    s += '<text x="26" y="388" font-size="13" fill="#5d6763">У PZEM подписи на плате: «от TX» — сюда провод с контакта TX модуля, «на RX» — сюда провод с контакта RX.</text>';
+    document.getElementById('terms-fig').innerHTML = s;
+  })();
 
   // Что проверить после каждого шага
   var CHECK = [
