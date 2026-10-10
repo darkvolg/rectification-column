@@ -123,6 +123,54 @@
       <li>Экран и кнопка стоят на крышке и в клеммники не идут: их провода паяются прямо к плате.</li>
       <li>Барометр и карта microSD припаяны на самой плате, кабелей у них нет.</li>
     </ul>
+    <h2 style="margin-top:16px">Шины +5 В, GND и +3,3 В: отдельная плата не нужна</h2>
+    <p class="sub">Здесь шина — это кусок голой медной жилы, уложенный вдоль ряда отверстий на той же макетке и припаянный к ней. К этой жиле и паяются все провода, которым нужна земля или питание.</p>
+    <div class="fig">
+      <svg viewBox="0 0 1180 330" role="img" aria-label="Как сделана шина на макетной плате и где лежат три шины" style="min-width:900px">
+        <!-- слева: как сделана шина -->
+        <text x="20" y="24" font-size="15" font-weight="700" fill="#1c2321">Как сделана шина</text>
+        <rect x="20" y="40" width="520" height="210" rx="8" fill="#dcae54" stroke="#a9792b" stroke-width="2"/>
+        <g id="bus-holes" fill="#8a6420"></g>
+        <path d="M60 145 H500" stroke="#8d9691" stroke-width="11" stroke-linecap="round"/>
+        <path d="M60 145 H500" stroke="#eef0ec" stroke-width="6" stroke-linecap="round"/>
+        <g fill="#d7dbd6" stroke="#8d9691" stroke-width="1.5">
+          <circle cx="60" cy="145" r="8"/><circle cx="170" cy="145" r="8"/><circle cx="280" cy="145" r="8"/><circle cx="390" cy="145" r="8"/><circle cx="500" cy="145" r="8"/>
+        </g>
+        <g fill="none" stroke-linecap="round">
+          <path d="M126 145 V70" stroke="#ffffff" stroke-width="9"/><path d="M126 145 V70" stroke="#1b1b1b" stroke-width="5"/>
+          <path d="M236 145 V225" stroke="#ffffff" stroke-width="9"/><path d="M236 145 V225" stroke="#1b1b1b" stroke-width="5"/>
+          <path d="M346 145 V70" stroke="#ffffff" stroke-width="9"/><path d="M346 145 V70" stroke="#1b1b1b" stroke-width="5"/>
+          <path d="M456 145 V225" stroke="#ffffff" stroke-width="9"/><path d="M456 145 V225" stroke="#1b1b1b" stroke-width="5"/>
+        </g>
+        <g fill="#ffffff" stroke="#1b1b1b" stroke-width="2">
+          <circle cx="126" cy="145" r="10"/><circle cx="236" cy="145" r="10"/><circle cx="346" cy="145" r="10"/><circle cx="456" cy="145" r="10"/>
+        </g>
+        <g font-size="11" font-weight="700" fill="#1c2321" text-anchor="middle">
+          <text x="126" y="149">1</text><text x="236" y="149">2</text><text x="346" y="149">3</text><text x="456" y="149">4</text>
+        </g>
+        <text x="20" y="274" font-size="13" fill="#1c2321">Светлая полоса — голая жила, прихвачена припоем к плате через каждые несколько отверстий.</text>
+        <text x="20" y="293" font-size="13" fill="#1c2321">Кружок с цифрой — сюда припаян провод. Это и есть «точка 1, 2, 3…» из списка проводов.</text>
+        <text x="20" y="312" font-size="13" fill="#1c2321">Цифра — просто счёт: паять можно в любом удобном месте жилы.</text>
+        <!-- справа: где лежат три шины -->
+        <text x="620" y="24" font-size="15" font-weight="700" fill="#1c2321">Где они лежат на плате</text>
+        <rect x="620" y="40" width="540" height="210" rx="8" fill="#fbf6e6" stroke="#8d9691" stroke-width="2"/>
+        <rect x="700" y="56" width="330" height="58" rx="6" fill="#1f6f54"/>
+        <text x="865" y="90" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">плата ESP32</text>
+        <path d="M640 132 H1140" stroke="#1b1b1b" stroke-width="6" stroke-linecap="round"/>
+        <path d="M640 156 H1060" stroke="#fb8c00" stroke-width="6" stroke-linecap="round"/>
+        <g fill="#3fa35a" stroke="#2a7340" stroke-width="2">
+          <rect x="650" y="178" width="78" height="34" rx="4"/><rect x="742" y="178" width="100" height="34" rx="4"/><rect x="856" y="178" width="118" height="34" rx="4"/><rect x="988" y="178" width="88" height="34" rx="4"/><rect x="1090" y="178" width="58" height="34" rx="4"/>
+        </g>
+        <path d="M640 232 H1140" stroke="#e53935" stroke-width="6" stroke-linecap="round"/>
+        <g font-size="12.5" font-weight="700">
+          <text x="1146" y="126" text-anchor="end" fill="#1b1b1b">GND — над клеммниками</text>
+          <text x="1066" y="150" text-anchor="end" fill="#b35f00" stroke="#fbf6e6" stroke-width="4" paint-order="stroke">+3,3 В — от ноги 3V3 платы</text>
+          <text x="1146" y="248" text-anchor="end" fill="#b71c1c" stroke="#fbf6e6" stroke-width="4" paint-order="stroke">+5 В — по нижнему краю</text>
+        </g>
+        <text x="620" y="274" font-size="13" fill="#1c2321">Зелёное — клеммники. GND и +5 В — голые жилы, +3,3 В — обычный провод.</text>
+        <text x="620" y="293" font-size="13" fill="#1c2321">На большой схеме шины нарисованы стоя и рядом — только чтобы провода шли ровно.</text>
+      </svg>
+    </div>
     <h2 style="margin-top:16px">Как выглядит сама плата</h2>
     <p class="sub">Твой чертёж макетки из проекта: где лежит каждая деталь. На нём барометр подписан BMP280, стоит BMP180 — подключается так же.</p>
     <div class="fig">
@@ -456,6 +504,11 @@
     s += '<text x="26" y="368" font-size="13" fill="#5d6763">Сверху — винты клеммника и что под ними написано. Снизу — прибор и какая его жила идёт под этот винт.</text>';
     s += '<text x="26" y="388" font-size="13" fill="#5d6763">У PZEM подписи на плате: «от TX» — сюда провод с контакта TX модуля, «на RX» — сюда провод с контакта RX.</text>';
     document.getElementById('terms-fig').innerHTML = s;
+
+    // отверстия макетки на рисунке «как сделана шина»
+    var holes = '', hx, hy;
+    for (hx = 60; hx <= 500; hx += 22) for (hy = 79; hy <= 211; hy += 22) holes += '<circle cx="' + hx + '" cy="' + hy + '" r="3"/>';
+    document.getElementById('bus-holes').innerHTML = holes;
   })();
 
   // Что проверить после каждого шага
