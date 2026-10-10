@@ -1,0 +1,501 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Колонна: схема соединений прибора</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f3f4f1;
+    --card: #ffffff;
+    --ink: #1c2321;
+    --muted: #5d6763;
+    --line: #d6dad5;
+    --warn-bg: #fff4d6;
+    --warn-edge: #e0a400;
+    --pick: #fff1b8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 16px;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  h1 { font-size: 23px; line-height: 1.25; margin: 0 0 4px; }
+  h2 { font-size: 18px; margin: 0 0 8px; }
+  .sub { color: var(--muted); margin: 0 0 14px; }
+  section {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin-bottom: 14px; }
+  .cols section { margin-bottom: 0; }
+  .fig { overflow-x: auto; }
+  .fig svg { display: block; width: 100%; min-width: 1250px; height: auto; }
+  svg text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+  #svg .w { cursor: pointer; }
+  #svg.dim .w { opacity: .1; }
+  #svg.dim .w.hl { opacity: 1; }
+  ul { margin: 0; padding-left: 20px; }
+  li { margin-bottom: 5px; }
+  .warn { background: var(--warn-bg); border-color: var(--warn-edge); }
+  .leg { display: flex; flex-wrap: wrap; gap: 6px 18px; list-style: none; padding: 0; }
+  .leg li { margin: 0; white-space: nowrap; }
+  .sw { display: inline-block; width: 26px; height: 6px; border-radius: 3px; vertical-align: middle; margin-right: 7px; border: 1px solid rgba(0,0,0,.2); }
+  .steps { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  button { font: inherit; padding: 7px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); cursor: pointer; }
+  button.on { background: #1f6f54; border-color: #1f6f54; color: #ffffff; }
+  .tbl-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 15px; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 13px; color: var(--muted); font-weight: 600; }
+  tr.step td { background: #eef1ed; font-weight: 700; font-size: 16px; }
+  .chk { font-weight: 400; font-size: 14px; margin-top: 3px; }
+  tr.row { cursor: pointer; }
+  tr.row:hover td { background: #f6f7f4; }
+  tr.row.hl td { background: var(--pick); }
+  tr.row.done td { color: #8d9691; }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td input { width: 18px; height: 18px; vertical-align: middle; margin-right: 6px; }
+</style>
+</head>
+<body>
+  <h1>Колонна: схема соединений прибора на ESP32</h1>
+  <p class="sub">Каждый провод идёт от одного контакта к другому. Собрано по документу «P0 — Закупка и сборка» (раздел «Схема подключения»).</p>
+
+  <section class="warn">
+    <h2>Главное правило безопасности</h2>
+    <ul>
+      <li>PZEM и всё, что связано с 220 В, — в отдельной закрытой коробке, не в корпусе с датчиками.</li>
+      <li>Прошивать плату по USB только при колонне, полностью отключённой от сети.</li>
+      <li>На ноги ESP32 нельзя подавать 5 В. Сигналы от датчика протока и от PZEM идут только через свои резисторы-делители.</li>
+      <li>Экран питать от 3,3 В, не от 5 В.</li>
+    </ul>
+  </section>
+
+  <div class="cols">
+    <section class="warn">
+      <h2>Как собирать по этой схеме</h2>
+      <ul>
+        <li>Собирать по шагам. Кнопки над картинкой оставляют на ней только провода одного шага.</li>
+        <li>Под картинкой — список проводов. Берёшь строку, соединяешь два контакта, ставишь галочку.</li>
+        <li>Нажми на строку — провод подсветится на картинке. Можно нажать и на сам провод.</li>
+        <li>На плате всё паяется. Под винт идут только кабели снаружи — в клеммники у края платы.</li>
+        <li>Провод подключён только там, где кончается кружком. Идёт поверх шины без кружка — проходит мимо.</li>
+        <li>Если на одном контакте кончаются два провода — они паяются в одну точку.</li>
+        <li>Подключать по надписи у контакта: на твоей плате ноги могут стоять в другом порядке.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Что стоит на плате</h2>
+      <ul>
+        <li>Три шины из голой жилы: +5 В, GND и +3,3 В. К ним припаиваются провода в точках с номерами.</li>
+        <li>Клеммники у края: «Сирена» и «Питание» на 2 винта, «Проток» и «Датчики» на 3, «PZEM» на 4.</li>
+        <li>Резисторы: 100 Ом, 10 кОм — 2 штуки, 20 кОм, 1 кОм, 2 кОм, 4,7 кОм.</li>
+        <li>Транзистор Q1 для сирены.</li>
+        <li>Модули: барометр BMP180 и карта microSD. Экран и кнопка — на крышке, на проводах.</li>
+      </ul>
+      <h2 style="margin-top:14px">Цвета на рисунке</h2>
+      <ul class="leg">
+        <li><span class="sw" style="background:#e53935"></span>+5 В</li>
+        <li><span class="sw" style="background:#fb8c00"></span>+3,3 В</li>
+        <li><span class="sw" style="background:#1b1b1b"></span>GND</li>
+        <li><span class="sw" style="background:#1e63d0"></span>остальные — сигналы</li>
+      </ul>
+    </section>
+  </div>
+
+  <section>
+    <div class="steps" id="steps"></div>
+    <div class="fig" id="fig"></div>
+  </section>
+
+  <section>
+    <h2>Список проводов по шагам</h2>
+    <p class="sub">«Кабель» — провод снаружи, под винт клеммника. Остальное паяется на плате. Галочки запоминаются на этом компьютере. <button id="reset" type="button">Снять все галочки</button></p>
+    <div class="tbl-wrap" id="list"></div>
+  </section>
+
+  <div class="cols">
+    <section class="warn">
+      <h2>Что сверить</h2>
+      <ul>
+        <li>Не занимать ноги 0, 2, 12, 15 — они мешают загрузке платы. Ноги 6–11 не трогать совсем.</li>
+        <li>Нога 18 оставлена под счётчик капель. На схеме его нет: он необязателен.</li>
+        <li>Цвета жил у датчиков температуры на рисунке условные — сверить со своими датчиками.</li>
+        <li>Транзистор куплен IRFZ44N. Если зуммер молчит — заменить на BC337 или 2N2222: база через 1 кОм на ногу 23, эмиттер на GND, коллектор на минус зуммера.</li>
+        <li>Если от датчика протока нет импульсов — добавить резистор 10 кОм с жёлтого провода на +5 В.</li>
+        <li>Расположение деталей на самой макетке — в файле «P0_Монтажная_плата.svg». Здесь показано, что с чем соединено, а не где что лежит.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Порядок пайки на плате</h2>
+      <ul>
+        <li>Сначала шины из голой жилы, потом клеммники.</li>
+        <li>Резисторы и транзистор — каждый рядом со своим клеммником.</li>
+        <li>Колодки под ESP32 паять без вставленной платы.</li>
+        <li>Потом барометр и карта, потом провода.</li>
+        <li>ESP32 вставляется последней.</li>
+      </ul>
+    </section>
+  </div>
+
+<script>
+(function () {
+  var W = 1680, H = 930;
+  var P = {};                       // координаты контактов: 'деталь.контакт' -> [x, y]
+  var NAME = {};                    // название контакта для списка проводов
+  var WIRES = [], STEPS = [];
+  var gBar = '', gBox = '', gText = '', step = '';
+
+  var KIND = {
+    mcu:  { fill: '#1f6f54', stroke: '#164f3c', ink: '#ffffff', dim: '#8fc3ae' },
+    mod:  { fill: '#23508f', stroke: '#183a69', ink: '#ffffff', dim: '#9db6da' },
+    pwr:  { fill: '#f6f2e7', stroke: '#8d9691', ink: '#1c2321', dim: '#8d9691' },
+    term: { fill: '#3fa35a', stroke: '#2a7340', ink: '#ffffff', dim: '#cfe9d6' },
+    res:  { fill: '#e8d4a8', stroke: '#8a6f33', ink: '#1c2321', dim: '#1c2321' }
+  };
+  var V5 = '#e53935', V33 = '#fb8c00', GND = '#1b1b1b';
+  var YEL = '#e6b800', GRY = '#90a4ae', PUR = '#8e44ad', GRN = '#2e9d4f', BLU = '#1e63d0',
+      TEA = '#00a3b4', PNK = '#c2185b', BRN = '#6d4c41';
+  var CNAME = {};
+  CNAME[V5] = 'красный'; CNAME[V33] = 'оранжевый'; CNAME[GND] = 'чёрный';
+  CNAME[YEL] = 'жёлтый'; CNAME[GRY] = 'серый'; CNAME[PUR] = 'фиолетовый'; CNAME[GRN] = 'зелёный';
+  CNAME[BLU] = 'синий'; CNAME[TEA] = 'бирюзовый'; CNAME[PNK] = 'малиновый'; CNAME[BRN] = 'коричневый';
+
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function pad(x, y) { return '<circle cx="' + x + '" cy="' + y + '" r="5" fill="#e3e6e1" stroke="#4a524e" stroke-width="1.5"/>'; }
+
+  // Деталь: прямоугольник с названием. o.ty — высота названия от верха, o.vt — название боком у правого края,
+  // o.full — полное название для списка проводов.
+  function comp(id, kind, x, y, w, h, title, o) {
+    o = o || {};
+    var k = KIND[kind];
+    comp[id] = { x: x, y: y, w: w, h: h, k: k, full: o.full || title };
+    gBox += '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="6" fill="' + k.fill + '" stroke="' + k.stroke + '" stroke-width="2"/>';
+    if (!title) return;
+    if (o.vt) {
+      var tx = x + w - 15, tyv = y + h / 2;
+      gBox += '<text x="' + tx + '" y="' + tyv + '" text-anchor="middle" font-size="11.5" font-weight="700" fill="' + k.ink + '" transform="rotate(-90 ' + tx + ' ' + tyv + ')">' + esc(title) + '</text>';
+    } else {
+      gBox += '<text x="' + (x + w / 2 + (o.dx || 0)) + '" y="' + (y + (o.ty || h / 2 + 4)) + '" text-anchor="middle" font-size="12.5" font-weight="700" fill="' + k.ink + '">' + esc(title) + '</text>';
+    }
+  }
+
+  // Контакт на краю детали. side: L, R, T, B; pos — координата вдоль края (абсолютная).
+  function pin(id, name, side, pos, label, dim) {
+    var c = comp[id], px, py, tx, ty, anchor;
+    if (label === undefined) label = name;
+    if (side === 'L') { px = c.x; py = pos; tx = px + 10; ty = py + 4; anchor = 'start'; }
+    if (side === 'R') { px = c.x + c.w; py = pos; tx = px - 10; ty = py + 4; anchor = 'end'; }
+    if (side === 'T') { px = pos; py = c.y; tx = px; ty = py + 20; anchor = 'middle'; }
+    if (side === 'B') { px = pos; py = c.y + c.h; tx = px; ty = py - 12; anchor = 'middle'; }
+    P[id + '.' + name] = [px, py];
+    NAME[id + '.' + name] = c.full + (label ? ', ' + label : '');
+    gBox += pad(px, py);
+    if (label) gBox += '<text x="' + tx + '" y="' + ty + '" text-anchor="' + anchor + '" font-size="11.5" font-weight="' + (dim ? 400 : 700) + '" fill="' + (dim ? c.k.dim : c.k.ink) + '">' + esc(label) + '</text>';
+  }
+
+  function column(id, side, y0, names, used) {
+    names.forEach(function (n, i) { pin(id, n, side, y0 + i * 26, n, used.indexOf(n) < 0); });
+  }
+
+  // Клеммник: слева точки пайки (сторона платы), справа винты (сторона кабеля). rows: [[имя, подпись, y], ...]
+  function term(id, title, rows) {
+    var y1 = rows[0][2] - 11, y2 = rows[rows.length - 1][2] + 11;
+    comp(id, 'term', 1300, y1, 110, y2 - y1, title, { vt: true, full: 'Клеммник «' + title + '»' });
+    rows.forEach(function (r) {
+      pin(id, r[0], 'L', r[2], r[1]);
+      pin(id, r[0] + 'v', 'R', r[2], '');
+      NAME[id + '.' + r[0]] = 'Клеммник «' + title + '», ' + r[1] + ' — пайка';
+      NAME[id + '.' + r[0] + 'v'] = 'Клеммник «' + title + '», ' + r[1] + ' — винт';
+    });
+  }
+
+  // Резистор на плате: два вывода слева и справа.
+  function res(id, x, y, value) {
+    comp(id, 'res', x, y - 15, 60, 30, value, { full: 'Резистор ' + value });
+    pin(id, 'L', 'L', y, ''); pin(id, 'R', 'R', y, '');
+    NAME[id + '.L'] = 'Резистор ' + value + ', левый вывод';
+    NAME[id + '.R'] = 'Резистор ' + value + ', правый вывод';
+  }
+
+  // Шина: вертикальная голая жила с точками пайки. screws: [[имя, y], ...], номер точки — по порядку сверху вниз.
+  function bar(id, x, color, title, anchor, screws) {
+    var y1 = screws[0][1] - 16, y2 = screws[screws.length - 1][1] + 16;
+    gBar += '<rect x="' + (x - 9) + '" y="' + y1 + '" width="18" height="' + (y2 - y1) + '" rx="5" fill="#e9e3d0" stroke="' + color + '" stroke-width="3"/>';
+    var lx = anchor === 'end' ? x - 14 : anchor === 'start' ? x + 14 : x;
+    gText += '<text x="' + lx + '" y="' + (y1 - 6 + (anchor === 'middle' ? 0 : 14)) + '" text-anchor="' + anchor + '" font-size="12.5" font-weight="700" fill="' + color + '" stroke="#ffffff" stroke-width="3" paint-order="stroke">' + esc(title) + '</text>';
+    screws.forEach(function (s, i) {
+      P[id + '.' + s[0]] = [x, s[1]];
+      NAME[id + '.' + s[0]] = 'Шина ' + title + ', точка ' + (i + 1);
+      gBox += '<circle cx="' + x + '" cy="' + s[1] + '" r="7.5" fill="#ffffff" stroke="' + color + '" stroke-width="2"/>';
+      gBox += '<text x="' + x + '" y="' + (s[1] + 3.5) + '" text-anchor="middle" font-size="9.5" font-weight="700" fill="#1c2321">' + (i + 1) + '</text>';
+    });
+  }
+
+  // Провод из a в b под прямыми углами. mv: ['x', 600, 'y', 800] — промежуточные ходы. cable — кабель снаружи.
+  function wire(color, a, b, mv, cable) {
+    var A = P[a], B = P[b], x = A[0], y = A[1], d = 'M' + x + ' ' + y, last = null, i;
+    mv = mv || [];
+    for (i = 0; i < mv.length; i += 2) {
+      if (mv[i] === 'x') x = mv[i + 1]; else y = mv[i + 1];
+      d += ' L' + x + ' ' + y;
+      last = mv[i];
+    }
+    if (x !== B[0] && y !== B[1]) d += (last === 'x') ? ' L' + x + ' ' + B[1] : ' L' + B[0] + ' ' + y;
+    d += ' L' + B[0] + ' ' + B[1];
+    if (STEPS.indexOf(step) < 0) STEPS.push(step);
+    WIRES.push({ d: d, color: color, a: a, b: b, cable: !!cable, step: STEPS.indexOf(step) });
+  }
+
+  // ───── Граница платы ─────
+  gText += '<line x1="1450" y1="50" x2="1450" y2="905" stroke="#8d9691" stroke-width="2" stroke-dasharray="8 7"/>';
+  gText += '<text x="760" y="36" text-anchor="middle" font-size="16" font-weight="700" fill="#1c2321">НА ПЛАТЕ — всё паяется</text>';
+  gText += '<text x="1565" y="36" text-anchor="middle" font-size="16" font-weight="700" fill="#1c2321">СНАРУЖИ — кабели</text>';
+
+  // ───── Шины ─────
+  bar('b3', 1130, V33, '+3,3 В', 'end', [['bmp', 342], ['esp', 654], ['tw', 680], ['sd', 850]]);
+  bar('bg', 1160, GND, 'GND', 'middle', [['q1', 164], ['r10k', 225], ['bmp', 368], ['r20', 454], ['tf', 476], ['r2k', 558],
+    ['tp', 576], ['esp', 628], ['tw', 706], ['pw', 798], ['sd', 866], ['btn', 882]]);
+  bar('b5', 1190, V5, '+5 В', 'middle', [['ts', 102], ['tf', 448], ['tp', 550], ['esp', 740], ['pw', 772]]);
+
+  // ───── Плата ESP32 ─────
+  comp('esp', 'mcu', 655, 250, 190, 454, 'ESP32 DevKit', { ty: 22, full: 'Плата ESP32' });
+  column('esp', 'L', 290, ['EN', 'VP 36', 'VN 39', '34', '35', '32', '33', '25', '26', '27', '14', '12', '13', 'GND', 'VIN'],
+    ['32', '26', '27', '14', '13', 'VIN']);
+  column('esp', 'R', 290, ['23', '22', 'TX0', 'RX0', '21', '19', '18', '5', 'TX2 17', 'RX2 16', '4', '2', '15', 'GND ', '3V3'],
+    ['23', '22', '21', '19', 'TX2 17', 'RX2 16', '4', 'GND ', '3V3']);
+  NAME['esp.GND '] = 'Плата ESP32, GND (правый ряд)';
+  gBox += '<rect x="720" y="682" width="60" height="30" rx="4" fill="#b9bdb7" stroke="#7d827c" stroke-width="2"/>';
+  gBox += '<text x="750" y="670" text-anchor="middle" font-size="11" fill="#8fc3ae">USB</text>';
+
+  // ───── Слева: кнопка и карта ─────
+  comp('btn', 'pwr', 400, 392, 140, 56, 'Кнопка на крышке');
+  pin('btn', 'a', 'R', 420, ''); pin('btn', 'b', 'L', 420, '');
+  NAME['btn.a'] = 'Кнопка, первый контакт'; NAME['btn.b'] = 'Кнопка, второй контакт';
+  comp('sd', 'mod', 400, 480, 140, 140, 'microSD', { ty: 106, full: 'Модуль microSD' });
+  pin('sd', 'CS', 'R', 498); pin('sd', 'MISO', 'R', 524); pin('sd', 'SCK', 'R', 550); pin('sd', 'MOSI', 'R', 602);
+  pin('sd', 'VCC', 'L', 511); pin('sd', 'GND', 'L', 563);
+
+  // ───── Сирена ─────
+  res('R1', 970, 146, '100 Ом');
+  comp('q1', 'mod', 1050, 105, 62, 90, 'Q1', { ty: 80, full: 'Транзистор Q1' });
+  pin('q1', 'G', 'L', 146, 'З'); pin('q1', 'D', 'R', 128, 'С'); pin('q1', 'S', 'R', 164, 'И');
+  NAME['q1.G'] = 'Транзистор Q1, затвор'; NAME['q1.D'] = 'Транзистор Q1, сток'; NAME['q1.S'] = 'Транзистор Q1, исток';
+  res('R2', 970, 200, '10 кОм');
+  term('ts', 'Сирена', [['p', '+', 102], ['m', '−', 128]]);
+  comp('bz', 'pwr', 1490, 91, 150, 48, 'Зуммер 5 В', { dx: 18, full: 'Зуммер' });
+  pin('bz', 'p', 'L', 102, '+'); pin('bz', 'm', 'L', 128, '−');
+
+  // ───── Барометр и экран ─────
+  comp('bmp', 'mod', 1300, 305, 110, 100, 'BMP180', { vt: true, full: 'Барометр BMP180' });
+  [['SCL', 316], ['VCC', 342], ['GND', 368], ['SDA', 394]].forEach(function (r) {
+    pin('bmp', r[0], 'L', r[1]); pin('bmp', r[0] + 'o', 'R', r[1], '');
+    NAME['bmp.' + r[0] + 'o'] = 'Барометр BMP180, ' + r[0];
+  });
+  comp('ol', 'mod', 1490, 305, 150, 100, 'Экран', { vt: true, full: 'Экран OLED на крышке' });
+  pin('ol', 'SCL', 'L', 316); pin('ol', 'VCC', 'L', 342); pin('ol', 'GND', 'L', 368); pin('ol', 'SDA', 'L', 394);
+
+  // ───── Датчик протока ─────
+  res('R3', 970, 420, '10 кОм');
+  res('R4', 970, 454, '20 кОм');
+  term('tf', 'Проток', [['s', 'сигнал', 420], ['p', '+5 В', 448], ['g', 'GND', 476]]);
+  comp('yf', 'pwr', 1490, 409, 150, 78, 'YF-S201C', { vt: true, full: 'Датчик протока YF-S201C' });
+  pin('yf', 's', 'L', 420, 'жёлтый'); pin('yf', 'p', 'L', 448, 'красный'); pin('yf', 'g', 'L', 476, 'чёрный');
+
+  // ───── PZEM ─────
+  res('R5', 970, 524, '1 кОм');
+  res('R6', 970, 558, '2 кОм');
+  term('tp', 'PZEM', [['rx', 'RX', 498], ['tx', 'TX', 524], ['p', '+5 В', 550], ['g', 'GND', 576]]);
+  comp('pz', 'pwr', 1490, 487, 150, 100, 'PZEM-004T', { vt: true });
+  pin('pz', 'rx', 'L', 498, 'RX'); pin('pz', 'tx', 'L', 524, 'TX'); pin('pz', 'p', 'L', 550, '5V'); pin('pz', 'g', 'L', 576, 'GND');
+
+  // ───── Датчики температуры ─────
+  comp('R7', 'res', 1255, 622, 30, 48, '', { full: 'Резистор 4,7 кОм' });
+  pin('R7', 'T', 'T', 1270, ''); pin('R7', 'B', 'B', 1270, '');
+  NAME['R7.T'] = 'Резистор 4,7 кОм, верхний вывод'; NAME['R7.B'] = 'Резистор 4,7 кОм, нижний вывод';
+  gText += '<text x="1270" y="650" text-anchor="middle" font-size="11" font-weight="700" fill="#1c2321" transform="rotate(-90 1270 650)">4,7к</text>';
+  term('tw', 'Датчики', [['d', 'DATA', 612], ['p', '+3,3 В', 680], ['g', 'GND', 706]]);
+  comp('ds', 'pwr', 1490, 601, 150, 116, 'DS18B20 × 5', { vt: true, full: 'Датчики температуры DS18B20 (все пять параллельно)' });
+  pin('ds', 'd', 'L', 612, 'DATA жёлт.'); pin('ds', 'p', 'L', 680, '+ красн.'); pin('ds', 'g', 'L', 706, 'GND чёрн.');
+
+  // ───── Питание ─────
+  term('tv', 'Питание', [['p', '+', 772], ['m', '−', 798]]);
+  comp('psu', 'pwr', 1490, 761, 150, 48, 'БП 5 В 2 А', { dx: 18, full: 'Блок питания 5 В' });
+  pin('psu', 'p', 'L', 772, '+'); pin('psu', 'm', 'L', 798, '−');
+
+  // ═════ ПРОВОДА ═════
+  step = 'Шаг 1. Питание и шины';
+  wire(V5, 'tv.p', 'b5.pw');
+  wire(GND, 'tv.m', 'bg.pw');
+  wire(V5, 'esp.VIN', 'b5.esp', ['x', 620, 'y', 740]);
+  wire(GND, 'esp.GND ', 'bg.esp');
+  wire(V33, 'esp.3V3', 'b3.esp');
+  wire(V5, 'tv.pv', 'psu.p', null, 1);
+  wire(GND, 'tv.mv', 'psu.m', null, 1);
+
+  step = 'Шаг 2. Карта microSD и кнопка';
+  wire(PNK, 'esp.26', 'sd.CS');
+  wire(GRN, 'esp.27', 'sd.MISO');
+  wire(YEL, 'esp.14', 'sd.SCK');
+  wire(BLU, 'esp.13', 'sd.MOSI');
+  wire(V33, 'sd.VCC', 'b3.sd', ['x', 370, 'y', 850]);
+  wire(GND, 'sd.GND', 'bg.sd', ['x', 355, 'y', 866]);
+  wire(PUR, 'esp.32', 'btn.a');
+  wire(GND, 'btn.b', 'bg.btn', ['x', 340, 'y', 882]);
+
+  step = 'Шаг 3. Барометр и экран';
+  wire(YEL, 'esp.22', 'bmp.SCL');
+  wire(GRN, 'esp.21', 'bmp.SDA');
+  wire(V33, 'bmp.VCC', 'b3.bmp');
+  wire(GND, 'bmp.GND', 'bg.bmp');
+  wire(YEL, 'bmp.SCLo', 'ol.SCL', null, 1);
+  wire(V33, 'bmp.VCCo', 'ol.VCC', null, 1);
+  wire(GND, 'bmp.GNDo', 'ol.GND', null, 1);
+  wire(GRN, 'bmp.SDAo', 'ol.SDA', null, 1);
+
+  step = 'Шаг 4. Датчики температуры';
+  wire(TEA, 'esp.4', 'tw.d', ['x', 870, 'y', 612]);
+  wire(TEA, 'R7.T', 'tw.d', ['y', 612]);
+  wire(V33, 'R7.B', 'tw.p', ['y', 680]);
+  wire(V33, 'tw.p', 'b3.tw');
+  wire(GND, 'tw.g', 'bg.tw');
+  wire(TEA, 'tw.dv', 'ds.d', null, 1);
+  wire(V33, 'tw.pv', 'ds.p', null, 1);
+  wire(GND, 'tw.gv', 'ds.g', null, 1);
+
+  step = 'Шаг 5. Сирена';
+  wire(BRN, 'esp.23', 'R1.L', ['x', 900]);
+  wire(BRN, 'R1.R', 'q1.G');
+  wire(BRN, 'R1.R', 'R2.R', ['x', 1040]);
+  wire(GND, 'R2.L', 'bg.r10k', ['x', 960, 'y', 225]);
+  wire(GND, 'q1.S', 'bg.q1');
+  wire(GRY, 'q1.D', 'ts.m');
+  wire(V5, 'ts.p', 'b5.ts');
+  wire(V5, 'ts.pv', 'bz.p', null, 1);
+  wire(GRY, 'ts.mv', 'bz.m', null, 1);
+
+  step = 'Шаг 6. Датчик протока';
+  wire(BLU, 'esp.19', 'R3.L');
+  wire(BLU, 'R3.R', 'tf.s');
+  wire(BLU, 'R3.L', 'R4.L', ['x', 955]);
+  wire(GND, 'R4.R', 'bg.r20');
+  wire(V5, 'tf.p', 'b5.tf');
+  wire(GND, 'tf.g', 'bg.tf');
+  wire(YEL, 'tf.sv', 'yf.s', null, 1);
+  wire(V5, 'tf.pv', 'yf.p', null, 1);
+  wire(GND, 'tf.gv', 'yf.g', null, 1);
+
+  step = 'Шаг 7. PZEM';
+  wire(PUR, 'esp.TX2 17', 'tp.rx');
+  wire(PNK, 'esp.RX2 16', 'R5.L');
+  wire(PNK, 'R5.R', 'tp.tx');
+  wire(PNK, 'R5.L', 'R6.L', ['x', 955]);
+  wire(GND, 'R6.R', 'bg.r2k');
+  wire(V5, 'tp.p', 'b5.tp');
+  wire(GND, 'tp.g', 'bg.tp');
+  wire(PUR, 'tp.rxv', 'pz.rx', null, 1);
+  wire(PNK, 'tp.txv', 'pz.tx', null, 1);
+  wire(V5, 'tp.pv', 'pz.p', null, 1);
+  wire(GND, 'tp.gv', 'pz.g', null, 1);
+
+  // Что проверить после каждого шага
+  var CHECK = [
+    'Пока ESP32 не вставлена, прозвонить шины +5 В и GND: короткого быть не должно. Блок питания отдельный, не связанный с ТЭНом.',
+    'Карта питается от 3,3 В. Кнопка стоит между ногой 32 и GND, резистор ей не нужен.',
+    'Экран — только от 3,3 В. В журнале платы поиск по шине должен найти два адреса: 0x77 (барометр) и 0x3C (экран).',
+    'Резистор 4,7 кОм стоит между DATA и +3,3 В. Все пять датчиков идут на одни и те же три винта. Зажать датчик в кулаке — его температура должна пойти вверх.',
+    'Включить Siren из Home Assistant: зуммер должен запищать. Молчит — транзистор не открылся, см. «Что сверить».',
+    'Подать 5 В на точку «сигнал» клеммника и измерить на ноге 19: должно быть 3,3 В, не 5. Подуть в датчик — в журнале платы дёрнется Water Flow.',
+    'Подать 5 В на точку TX клеммника и измерить на ноге 16: должно быть 3,3 В, не 5. Без сети 220 В PZEM молчит — это нормально.'
+  ];
+
+  // ═════ Рисунок ═════
+  var gWire = '';
+  WIRES.forEach(function (w, i) {
+    gWire += '<g class="w" data-i="' + i + '"><path d="' + w.d + '" stroke="#ffffff" stroke-width="9"/><path d="' + w.d + '" stroke="' + w.color + '" stroke-width="4"' + (w.cable ? ' stroke-dasharray="10 4"' : '') + '/></g>';
+  });
+  document.getElementById('fig').innerHTML =
+    '<svg id="svg" viewBox="300 0 ' + (W - 300) + ' ' + H + '" role="img" aria-label="Схема соединений прибора колонны">' + gBar +
+    '<g fill="none" stroke-linejoin="round" stroke-linecap="round">' + gWire + '</g>' + gBox + gText + '</svg>';
+
+  // ═════ Список проводов ═════
+  var done = {};
+  try { done = JSON.parse(localStorage.getItem('kolonna-wires') || '{}'); } catch (e) { done = {}; }
+  function save() { try { localStorage.setItem('kolonna-wires', JSON.stringify(done)); } catch (e) { /* без памяти тоже работает */ } }
+
+  var h = '<table><thead><tr><th>№</th><th>Провод на рисунке</th><th>Откуда</th><th>Куда</th></tr></thead><tbody>', cur = -1;
+  WIRES.forEach(function (w, i) {
+    if (w.step !== cur) { cur = w.step; h += '<tr class="step"><td colspan="4">' + esc(STEPS[cur]) + '<div class="chk">Проверка после шага: ' + esc(CHECK[cur] || '') + '</div></td></tr>'; }
+    h += '<tr class="row' + (done[i] ? ' done' : '') + '" data-i="' + i + '"><td class="num"><input type="checkbox" aria-label="Провод ' + (i + 1) + ' готов"' + (done[i] ? ' checked' : '') + '>' + (i + 1) + '</td>' +
+      '<td><span class="sw" style="background:' + w.color + '"></span>' + CNAME[w.color] + (w.cable ? ', кабель' : '') + '</td>' +
+      '<td>' + esc(NAME[w.a]) + '</td><td>' + esc(NAME[w.b]) + '</td></tr>';
+  });
+  document.getElementById('list').innerHTML = h + '</tbody></table>';
+
+  // ═════ Подсветка: один провод или один шаг ═════
+  var svg = document.getElementById('svg'), stepsBox = document.getElementById('steps');
+  var sb = '<button type="button" class="on" data-s="-1">Все провода</button>';
+  STEPS.forEach(function (s, i) { sb += '<button type="button" data-s="' + i + '">' + esc(s.split('.')[0]) + '</button>'; });
+  stepsBox.innerHTML = sb;
+
+  function clear() {
+    var old = document.querySelectorAll('.hl');
+    for (var k = 0; k < old.length; k++) old[k].classList.remove('hl');
+    svg.classList.remove('dim');
+  }
+  function setButton(s) {
+    var bs = stepsBox.querySelectorAll('button');
+    for (var k = 0; k < bs.length; k++) bs[k].classList.toggle('on', +bs[k].getAttribute('data-s') === s);
+  }
+  function showStep(s) {
+    clear(); setButton(s);
+    if (s < 0) return;
+    svg.classList.add('dim');
+    WIRES.forEach(function (w, i) { if (w.step === s) svg.querySelector('.w[data-i="' + i + '"]').classList.add('hl'); });
+  }
+  var picked = -1;
+  function pick(i, scrollTo) {
+    clear(); setButton(-2);
+    if (i === picked || i < 0) { picked = -1; setButton(-1); return; }
+    picked = i;
+    svg.classList.add('dim');
+    var g = svg.querySelector('.w[data-i="' + i + '"]'), r = document.querySelector('tr.row[data-i="' + i + '"]');
+    g.classList.add('hl'); r.classList.add('hl');
+    (scrollTo === 'row' ? r : g).scrollIntoView({ block: 'center', inline: 'center' });
+  }
+  stepsBox.addEventListener('click', function (e) {
+    if (e.target.tagName !== 'BUTTON') return;
+    picked = -1;
+    showStep(+e.target.getAttribute('data-s'));
+  });
+  document.getElementById('list').addEventListener('click', function (e) {
+    var r = e.target.closest('tr.row');
+    if (!r) return;
+    var i = +r.getAttribute('data-i');
+    if (e.target.tagName === 'INPUT') {
+      done[i] = e.target.checked; r.classList.toggle('done', e.target.checked); save();
+      return;
+    }
+    pick(i, 'wire');
+  });
+  svg.addEventListener('click', function (e) {
+    var g = e.target.closest('.w');
+    pick(g ? +g.getAttribute('data-i') : -1, 'row');
+  });
+  document.getElementById('reset').addEventListener('click', function () {
+    done = {}; save();
+    var rows = document.querySelectorAll('tr.row');
+    for (var k = 0; k < rows.length; k++) { rows[k].classList.remove('done'); rows[k].querySelector('input').checked = false; }
+  });
+})();
+</script>
+</body>
+</html>
