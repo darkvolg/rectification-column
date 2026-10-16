@@ -49,9 +49,11 @@ CONFIG = {
             # своя шкала и своя полоса по высоте: Пар сверху, Пар 2/3 посередине, вода снизу.
             # Иначе на общей оси 57–78 Пар расплющивается в прямую, а на одинаковых осях
             # линии ложатся друг на друга. Полосы задаются запасом шкалы над/под данными.
-            {"type": "grid", "column_span": 3, "cards": [
+            # блок на всю строку: сетка 12 × 4 = 48 колонок — 40 графику, 8 узкому
+            # столбику табло справа, как в TempMeter. На узком экране табло уйдут вниз
+            {"type": "grid", "column_span": 4, "cards": [
                 {"type": "custom:apexcharts-card", "graph_span": "1h",
-                 "grid_options": {"columns": "full"},
+                 "grid_options": {"columns": 40},
                  "header": {"show": True, "title": "Колонна, последний час", "show_states": False},
                  "yaxis": [
                      {"id": "par", "min": "|-0.6|", "max": "|+0.05|", "decimals": 2,
@@ -71,13 +73,12 @@ CONFIG = {
                  ],
                  "apex_config": {"chart": {"height": 480}, "legend": {"show": True, "fontSize": "14px"},
                                  "tooltip": {"x": {"format": "HH:mm:ss"}}}},
-            ]},
-            # табло справа от графика, как в TempMeter, квадратом 2×2
-            {"type": "grid", "cards": [
-                tile("Пар", "par", "#e53935", 2, limit="par_max", ref=True),
-                tile("Пар 2/3", "par23", "#fb8c00", 2, limit="par23_max"),
-                tile("Вода", "voda", "#1e88e5", 1, limit="voda_max"),
-                tile("Атм. давление", "davl", "#fdd835", 1, unit="мм"),
+                {"type": "vertical-stack", "grid_options": {"columns": 8}, "cards": [
+                    tile("Пар", "par", "#e53935", 2, limit="par_max", ref=True),
+                    tile("Пар 2/3", "par23", "#fb8c00", 2, limit="par23_max"),
+                    tile("Вода", "voda", "#1e88e5", 1, limit="voda_max"),
+                    tile("Атм. давление", "davl", "#fdd835", 1, unit="мм"),
+                ]},
             ]},
             {"type": "grid", "cards": [
                 {"type": "entities", "grid_options": {"columns": "full"},
