@@ -29,11 +29,11 @@ def tile(name, sensor, color, digits, limit=None, unit="°C", ref=False):
     if ref:
         t += (
             "{% set r = states('sensor.kolonna_par_ref') %}"
-            "{% if r | is_number %}<center>от точки отсчёта: "
+            "{% if r | is_number %}<center>от точки: "
             "{{ ('%+.2f' | format(st.state | float - r | float)).replace('.', ',') }}</center>{% endif %}\n"
         )
     t += '{% else %}<h2><center><font color="gray">нет данных</font></center></h2>{% endif %}'
-    return {"type": "markdown", "grid_options": {"columns": "full"}, "content": t}
+    return {"type": "markdown", "grid_options": {"columns": 6}, "content": t}
 
 
 CONFIG = {
@@ -72,7 +72,7 @@ CONFIG = {
                  "apex_config": {"chart": {"height": 480}, "legend": {"show": True, "fontSize": "14px"},
                                  "tooltip": {"x": {"format": "HH:mm:ss"}}}},
             ]},
-            # столбик табло справа от графика, как в TempMeter
+            # табло справа от графика, как в TempMeter, квадратом 2×2
             {"type": "grid", "cards": [
                 tile("Пар", "par", "#e53935", 2, limit="par_max", ref=True),
                 tile("Пар 2/3", "par23", "#fb8c00", 2, limit="par23_max"),
