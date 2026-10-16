@@ -5,7 +5,7 @@
 # Запускается сам при входе в Windows (ярлык в автозагрузке, окно свёрнуто) и молча
 # ждёт, пока TempMeter начнёт писать лог. Ключ HA лежит рядом в token.txt.
 
-$Version = '1.6.0'
+$Version = '1.7.1'
 
 # ---------- настройки ----------
 $LogDir     = 'C:\Users\Dark\Desktop\колонна\tma1037.jar'
@@ -24,6 +24,9 @@ $FlatMin    = 60     # подсказка «пошло тело»: Пар сто
 $FlatTol    = 0.03   # ...меняясь не больше чем на столько °C (с поправкой на давление)
 $TailsPar   = 0.08   # подсказка «пошли хвосты»: Пар вырос за полчаса на столько °C...
 $TailsPar23 = 0.15   # ...или Пар 2/3 (он ниже, хвосты доходят до него раньше)
+$TailsMinMin = 60    # без объёма тела в журнале «хвосты» не раньше стольких минут тела
+$SettleMin  = 20     # после перехода на тело / смены отбора ждать минимум столько минут
+$PhaseOrder = @{ 'Прогрев' = 0; 'Головы' = 1; 'Тело' = 2; 'Хвосты' = 3 }
 $PushSec    = 5      # как часто отдавать показания в HA (по ним HA проверяет пороги)
 $SmoothMin  = 0.5    # в HA уходит среднее за столько минут — график без зубцов
 # --------------------------------
@@ -224,14 +227,16 @@ function Read-Journal {
         if ($vol -and $krep -and $null -ne $pct -and $null -ne $tpct) { $bodyPlan = $vol * $krep * (1 - $pct - $tpct) }
         # факт фазы — максимум «Отбор мл» по её строкам, как в «ИТОГИ ОТБОРА» журнала
         $fact = @{ 'Головы' = 0.0; 'Тело' = 0.0; 'Хвосты' = 0.0 }
+        $lastPhase = $null   # фаза последней строки, где вписаны температура или отбор
         for ($i = 14; $i -le 80; $i++) {
             $ph = "$($cell["C$i"])".Trim()
             if ($fact.ContainsKey($ph)) {
                 $h = & $num "H$i"; if ($null -ne $h -and $h -gt $fact[$ph]) { $fact[$ph] = $h }
             }
+            if ($ph -and ($null -ne (& $num "D$i") -or $null -ne (& $num "H$i"))) { $lastPhase = $ph }
         }
         return [pscustomobject]@{ Plan = $plan; Heads = $fact['Головы']; BodyPlan = $bodyPlan; Body = $fact['Тело']
-                                  Name = $f.Name; Time = $f.LastWriteTime }
+                                  LastPhase = $lastPhase; Name = $f.Name; Time = $f.LastWriteTime }
     } catch { return $null } finally { $zip.Dispose() }
 }
 
@@ -280,6 +285,14 @@ function Set-Hint($txt) {
                                                     attributes = @{ friendly_name = 'Колонна подсказка' } } } catch { }
 }
 
+# колонна перестраивается (перешли на тело, поменяли отбор): ждать, пока устоится.
+# Подсказку о хвостах, сказанную в переходе, снимаем — она была ложной
+function Start-Settle {
+    $script:settling = $true; $script:settleFrom = Get-Date
+    $script:hintSaid.tails = $false
+    if ((Get-HaState 'sensor.kolonna_hint') -like '*хвосты:*') { Set-Hint 'нет' }
+}
+
 # ---------- главный цикл ----------
 Note "Старт v$Version. Жду, когда TempMeter начнёт писать лог: $LogDir"
 $active     = $false        # идёт погон: лог свежий
@@ -296,6 +309,8 @@ $lastPush = [datetime]::MinValue
 $btnSeen = Get-HaState 'input_button.kolonna_ref'
 $fazaSeen = $null
 $journal = $null; $journalAt = [datetime]::MinValue
+$excelPhaseSeen = $null
+$settling = $false; $settleFrom = Get-Date; $bodyFrom = Get-Date
 $hintSaid = @{}; $hintPhase = $null   # какие подсказки уже сказаны в текущей фазе
 # после перезапуска не повторять то, что уже висит на странице
 $prevHint = Get-HaState 'sensor.kolonna_hint'
@@ -355,34 +370,45 @@ while ($true) {
         $refPar = $par2; $refP = $p2
         Note "Рабочий уровень Пара: $(Num $refPar 2) при $(Num $refP 1) мм"
     }
+    # кнопка «Поменял отбор — перезапомнить»: колонна перестраивается, ждём, пока
+    # устоится, и только тогда запоминаем Пар (сразу — ловили бы переходный процесс)
     $btn = Get-HaState 'input_button.kolonna_ref'
     if ($btn -and $btn -ne $btnSeen) {
         $btnSeen = $btn
-        $refPar = if ($null -ne $par2) { $par2 } else { $newest.Par }
-        $refP   = if ($null -ne $p2) { $p2 } else { $newest.P }
-        $lastParAlert = $now
-        Say "Запомнила рабочий уровень. Пар $(Num $refPar 2)."
+        Start-Settle
+        Say 'Поняла. Жду, пока колонна устоится, потом запомню Пар.'
     }
 
-    # фаза со страницы «Колонна»: на «Тело» точка отсчёта запоминается сама
+    # фаза со страницы «Колонна» (или из журнала — см. ниже)
     $faza = Get-HaState 'input_select.kolonna_faza'
     if ($faza -and $faza -ne $fazaSeen) {
-        if ($null -ne $fazaSeen) {
-            if ($faza -eq 'Тело') {
-                $refPar = if ($null -ne $par2) { $par2 } else { $newest.Par }
-                $refP   = if ($null -ne $p2) { $p2 } else { $newest.P }
-                $lastParAlert = $now; $lastDeltaAlert = $now
-                Say "Фаза тело. Запомнила Пар $(Num $refPar 2). Слежу за хвостами."
-            } else {
-                Say "Фаза: $($faza.ToLower())."
-            }
+        if ($faza -eq 'Тело') {
+            Start-Settle
+            $bodyFrom = $now
+            if ($null -ne $fazaSeen) { Say 'Фаза тело. Жду, пока колонна устоится после переключения, потом запомню Пар и буду следить за хвостами.' }
+        } elseif ($null -ne $fazaSeen) {
+            Say "Фаза: $($faza.ToLower())."
         }
         Note "Фаза: $faza"
         $fazaSeen = $faza
     }
-    # уход Пара и перепад — только на теле: на прогреве и головах Пар гуляет
-    # законно. Если HA не ответил про фазу — следим, как раньше
-    $parWatch = (-not $faza) -or ($faza -eq 'Тело')
+
+    # 16.10: через 3 минуты после перехода на тело и прибавки отбора Пар 2/3 вырос
+    # на 0,16 — и программа приняла это за хвосты. Теперь ждём: не меньше SettleMin
+    # минут и Пар 15 минут в пределах FlatTol. Пока ждём, точка отсчёта плавает за Паром
+    if ($settling -and $faza -eq 'Тело' -and $null -ne $par2) {
+        $refPar = $par2; $refP = $p2
+        $a5 = Get-BucketAvg 'Par' 5 0; $b5 = Get-BucketAvg 'Par' 15 10
+        if (($now - $settleFrom).TotalMinutes -ge $SettleMin -and $null -ne $a5 -and $null -ne $b5 -and
+            [math]::Abs($a5 - $b5) -le $FlatTol) {
+            $settling = $false
+            $lastParAlert = $now; $lastDeltaAlert = $now
+            Say "Колонна устоялась. Запомнила Пар $(Num $refPar 2). Слежу за хвостами."
+        }
+    }
+    # уход Пара и перепад — только на теле и только когда колонна устоялась: на
+    # прогреве, головах и в переходе Пар гуляет законно. HA не ответил про фазу — следим
+    $parWatch = (-not $faza) -or ($faza -eq 'Тело' -and -not $settling)
 
     # --- подсказки по фазам из температуры и журнала ---
     if (($now - $journalAt).TotalMinutes -ge 2) {
@@ -391,6 +417,18 @@ while ($true) {
         $j = Read-Journal
         if ($j) {
             $journal = $j
+            # фаза из журнала: фаза последней строки с данными. Только вперёд
+            # (Головы → Тело → Хвосты), чтобы Excel не перебил выбор на странице
+            if ($j.LastPhase -and $PhaseOrder.ContainsKey($j.LastPhase) -and $j.LastPhase -ne $excelPhaseSeen) {
+                $excelPhaseSeen = $j.LastPhase
+                $haFaza = Get-HaState 'input_select.kolonna_faza'   # не $cur: это путь к логу
+                if (-not $haFaza -or -not $PhaseOrder.ContainsKey($haFaza) -or $PhaseOrder[$j.LastPhase] -gt $PhaseOrder[$haFaza]) {
+                    try {
+                        Post '/api/services/input_select/select_option' @{ entity_id = 'input_select.kolonna_faza'; option = $j.LastPhase }
+                        Note "Фаза из журнала: $($j.LastPhase)"
+                    } catch { }
+                }
+            }
             try {
                 Post '/api/states/sensor.kolonna_golovy' @{ state = [math]::Round($j.Heads); attributes = @{
                     friendly_name = 'Колонна головы отобрано'; unit_of_measurement = 'мл'
@@ -434,9 +472,10 @@ while ($true) {
         $a = Get-BucketAvg 'Par23' 10 0; $b = Get-BucketAvg 'Par23' 40 30
         if ($null -ne $a -and $null -ne $b) { $d23 = $a - $b }
         $rise = ($null -ne $dPar -and $dPar -ge $TailsPar) -or ($null -ne $d23 -and $d23 -ge $TailsPar23)
-        # тело в журнал не вписано — решаем по одной температуре
-        $volOk = ($null -eq $frac) -or ($frac -ge 0.8)
-        if (-not $hintSaid.tails -and $rise -and $volOk) {
+        # тело в журнал не вписано — решаем по одной температуре, но не раньше часа
+        # тела: в начале тела хвостов не бывает
+        $volOk = if ($null -eq $frac) { ($now - $bodyFrom).TotalMinutes -ge $TailsMinMin } else { $frac -ge 0.8 }
+        if (-not $settling -and -not $hintSaid.tails -and $rise -and $volOk) {
             $hintSaid.tails = $true
             $what = @()
             if ($null -ne $dPar -and $dPar -ge $TailsPar) { $what += "Пар поднялся на $(Num $dPar 2)" }

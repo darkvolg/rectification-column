@@ -114,15 +114,15 @@ CONFIG = {
                       "name": "Норма тела", "suffix": " мл"},
                      {"type": "attribute", "entity": "sensor.kolonna_golovy", "attribute": "saved",
                       "name": "Журнал сохранён в"},
-                     {"entity": "sensor.kolonna_par_ref", "name": "Запомнен Пар"},
+                     {"entity": "sensor.kolonna_par_ref", "name": "Точка отсчёта Пара"},
                      # подсказок по наведению в HA нет — пояснение живёт в окне подтверждения
-                     {"type": "button", "name": "Запомнить сейчас (начал тело)", "icon": "mdi:target",
+                     {"type": "button", "name": "Поменял отбор — перезапомнить", "icon": "mdi:target",
                       "action_name": "Нажать",
                       "tap_action": {"action": "perform-action", "perform_action": "input_button.press",
                                      "target": {"entity_id": "input_button.kolonna_ref"},
-                                     "confirmation": {"text": "Запомнить Пар сейчас? Если Пар уйдёт "
-                                                              "на 0,25 от этой точки — Алиса скажет. "
-                                                              "Жми, когда перешёл на тело."}}},
+                                     "confirmation": {"text": "Поменял отбор? Подожду, пока колонна устоится "
+                                                              "(минимум 20 минут), запомню Пар и дальше буду следить "
+                                                              "за хвостами от него."}}},
                      {"type": "button", "name": "Весь погон — История HA", "icon": "mdi:chart-timeline-variant",
                       "action_name": "Открыть",
                       "tap_action": {"action": "navigate", "navigation_path":
