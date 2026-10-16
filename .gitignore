@@ -13,6 +13,8 @@ esphome/secrets.yaml
 # Долгоживущий токен Home Assistant, если он окажется в файле
 *.token
 ha_token*
+tools/kolonna_watch/token.txt
+tools/kolonna_watch/*.log
 
 # Собранная прошивка. Раздавать .bin нельзя: в нём зашиты ключи
 # того, кто собирал, — у всех получатся одинаковые.

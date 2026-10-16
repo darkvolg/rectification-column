@@ -1,0 +1,136 @@
+kolonna_pkg:
+
+  input_boolean:
+    kolonna_voice:
+      name: "Колонна — голос на станциях"
+      icon: mdi:account-voice
+      initial: true
+    kolonna_alarms:
+      name: "Колонна — тревоги по порогам"
+      icon: mdi:alarm-light
+      initial: true
+
+  input_button:
+    kolonna_ref:
+      name: "Запомнить рабочий уровень Пара"
+      icon: mdi:target
+
+  input_number:
+    kolonna_par_max:
+      name: "Порог Пар"
+      icon: mdi:thermometer-high
+      min: 0
+      max: 100
+      step: 0.05
+      mode: box
+      unit_of_measurement: "°C"
+    kolonna_par23_max:
+      name: "Порог Пар 2/3"
+      icon: mdi:thermometer-high
+      min: 0
+      max: 100
+      step: 0.05
+      mode: box
+      unit_of_measurement: "°C"
+    kolonna_voda_max:
+      name: "Порог Вода"
+      icon: mdi:water-thermometer
+      min: 0
+      max: 100
+      step: 0.5
+      mode: box
+      unit_of_measurement: "°C"
+
+  script:
+    kolonna_say:
+      alias: "Колонна — сказать"
+      description: "Голос на обе станции (если включён)"
+      mode: queued
+      max: 10
+      fields:
+        message:
+          description: "Текст"
+          example: "Пар пошёл вверх"
+        voice:
+          description: "Говорить на станциях (false = промолчать)"
+          example: true
+      sequence:
+        - if:
+            - condition: template
+              value_template: "{{ (voice | default(true) | bool) and is_state('input_boolean.kolonna_voice', 'on') }}"
+          then:
+            - action: media_player.play_media
+              continue_on_error: true
+              target:
+                entity_id:
+                  - media_player.yandex_station_m10tte210gm8rk
+                  - media_player.yandex_station_lp000000000000410757000093e582bb
+              data:
+                media_content_type: text
+                media_content_id: "{{ message }}"
+
+  automation:
+    - id: kolonna_threshold_cross
+      alias: "Колонна — порог превышен"
+      description: "Датчик колонны поднялся выше своего порога (порог 0 = выключен)"
+      mode: queued
+      triggers:
+        - trigger: numeric_state
+          entity_id: sensor.kolonna_par
+          above: input_number.kolonna_par_max
+          id: par
+        - trigger: numeric_state
+          entity_id: sensor.kolonna_par23
+          above: input_number.kolonna_par23_max
+          id: par23
+        - trigger: numeric_state
+          entity_id: sensor.kolonna_voda
+          above: input_number.kolonna_voda_max
+          id: voda
+      conditions:
+        - condition: state
+          entity_id: input_boolean.kolonna_alarms
+          state: "on"
+        - condition: template
+          value_template: "{{ states('input_number.kolonna_' ~ trigger.id ~ '_max') | float(0) > 0 }}"
+      actions:
+        - variables:
+            names: {par: "Пар", par23: "Пар 2/3", voda: "Вода"}
+            lim: "{{ states('input_number.kolonna_' ~ trigger.id ~ '_max') | float(0) }}"
+            val: "{{ trigger.to_state.state | float(0) }}"
+        - action: script.kolonna_say
+          data:
+            message: >-
+              Внимание! {{ names[trigger.id] }} выше {{ (lim | round(2) | string).replace('.', ',') }}.
+              Сейчас {{ (val | round(2) | string).replace('.', ',') }}.
+
+    - id: kolonna_threshold_remind
+      alias: "Колонна — порог, напоминание"
+      description: "Пока датчик выше порога — напоминать раз в 5 минут"
+      mode: single
+      triggers:
+        - trigger: time_pattern
+          minutes: "/5"
+      conditions:
+        - condition: state
+          entity_id: input_boolean.kolonna_alarms
+          state: "on"
+      actions:
+        - variables:
+            over: >-
+              {% set ns = namespace(t=[]) %}
+              {% for k, n in [('par','Пар'), ('par23','Пар 2/3'), ('voda','Вода')] %}
+                {% set lim = states('input_number.kolonna_' ~ k ~ '_max') | float(0) %}
+                {% set s = states.sensor['kolonna_' ~ k] %}
+                {% if lim > 0 and s is not none and s.state | is_number
+                      and s.state | float > lim
+                      and (now() - s.last_updated).total_seconds() < 300 %}
+                  {% set ns.t = ns.t + [n ~ ' ' ~ (s.state | float | round(2) | string).replace('.', ',')] %}
+                {% endif %}
+              {% endfor %}
+              {{ ns.t | join(', ') }}
+        - condition: template
+          value_template: "{{ over | trim | length > 0 }}"
+        - action: script.kolonna_say
+          data:
+            message: "Всё ещё выше порога: {{ over | trim }}."
