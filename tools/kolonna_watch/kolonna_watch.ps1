@@ -5,7 +5,7 @@
 # Запускается сам при входе в Windows (ярлык в автозагрузке, окно свёрнуто) и молча
 # ждёт, пока TempMeter начнёт писать лог. Ключ HA лежит рядом в token.txt.
 
-$Version = '1.7.1'
+$Version = '1.8.0'
 
 # ---------- настройки ----------
 $LogDir     = 'C:\Users\Dark\Desktop\колонна\tma1037.jar'
@@ -310,6 +310,7 @@ $btnSeen = Get-HaState 'input_button.kolonna_ref'
 $fazaSeen = $null
 $journal = $null; $journalAt = [datetime]::MinValue
 $excelPhaseSeen = $null
+$lastBeat = [datetime]::MinValue
 $settling = $false; $settleFrom = Get-Date; $bodyFrom = Get-Date
 $hintSaid = @{}; $hintPhase = $null   # какие подсказки уже сказаны в текущей фазе
 # после перезапуска не повторять то, что уже висит на странице
@@ -328,6 +329,14 @@ while ($true) {
     $now = Get-Date
     if ($newest -and $newest.T -ne $lastT) { $lastLine = $newest.T }
     $silent = ($now - $lastLine).TotalSeconds
+
+    # --- «программа жива»: раз в 30 с. Пропал сигнал посреди погона — HA сам скажет,
+    # что ноут не отвечает (автоматизация kolonna_watchdog)
+    if (($now - $lastBeat).TotalSeconds -ge 30) {
+        $lastBeat = $now
+        $st = if (-not $active) { 'ждёт' } elseif ($stalled) { 'лог молчит' } else { 'идёт' }
+        try { Post '/api/states/sensor.kolonna_status' @{ state = $st; attributes = @{ friendly_name = 'Колонна программа на ноуте'; version = $Version } } } catch { }
+    }
 
     # --- ждём начала погона ---
     if (-not $active) {

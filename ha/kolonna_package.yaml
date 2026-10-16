@@ -246,3 +246,20 @@ kolonna_pkg:
         - action: script.kolonna_say
           data:
             message: "Принято."
+
+    # сторож ноута: программа на ноуте раз в 30 с шлёт sensor.kolonna_status.
+    # Посреди погона сигнал пропал на 3 минуты — завис ноут или упала программа.
+    # «Лог молчит» программа объявляет сама; «ждёт» (погон закончен) — не тревожим
+    - id: kolonna_watchdog
+      alias: "Колонна — ноут не отвечает"
+      mode: single
+      triggers:
+        - trigger: template
+          value_template: >-
+            {% set s = states.sensor.kolonna_status %}
+            {{ s is not none and s.state in ['идёт', 'лог молчит']
+               and (now() - s.last_reported).total_seconds() > 180 }}
+      actions:
+        - action: script.kolonna_alarm
+          data:
+            message: "Нет связи с ноутом колонны уже 3 минуты. Проверь ноут и программу."
