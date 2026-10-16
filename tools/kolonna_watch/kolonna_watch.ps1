@@ -5,7 +5,7 @@
 # Запускается сам при входе в Windows (ярлык в автозагрузке, окно свёрнуто) и молча
 # ждёт, пока TempMeter начнёт писать лог. Ключ HA лежит рядом в token.txt.
 
-$Version = '1.5.0'
+$Version = '1.5.1'
 
 # ---------- настройки ----------
 $LogDir     = 'C:\Users\Dark\Desktop\колонна\tma1037.jar'
@@ -210,6 +210,22 @@ function Read-Journal {
     } catch { return $null } finally { $zip.Dispose() }
 }
 
+# Сохраняет открытый в Excel журнал, если в нём есть несохранённые записи — иначе
+# программа их не видит. Автосохранение Excel пишет только копию для восстановления,
+# сам файл не трогает. Пока в ячейке идёт ввод (Ready = false) — не лезем
+function Save-OpenJournal {
+    try { $xl = [Runtime.InteropServices.Marshal]::GetActiveObject('Excel.Application') } catch { return }
+    try {
+        if (-not $xl.Ready) { return }
+        foreach ($wb in $xl.Workbooks) {
+            if ($wb.Name -like 'Журнал_ректификации*' -and -not $wb.Saved -and -not $wb.ReadOnly) {
+                $wb.Save()
+                Note "Журнал сохранён: $($wb.Name)"
+            }
+        }
+    } catch { } finally { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($xl) }
+}
+
 # среднее поля за окно [now-from, now-to] минут
 function Avg($field, $from, $to) {
     $now = Get-Date; $a = $now.AddMinutes(-$from); $b = $now.AddMinutes(-$to)
@@ -329,6 +345,7 @@ while ($true) {
     }
     if (($now - $journalAt).TotalMinutes -ge 2) {
         $journalAt = $now
+        Save-OpenJournal
         $j = Read-Journal
         if ($j) {
             $journal = $j
