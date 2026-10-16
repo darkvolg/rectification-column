@@ -5,6 +5,37 @@ CRED = r"C:\Users\Dark\Desktop\Проекты\Password\credentials.md"
 tok = re.search(r"long-lived token \(192\.168\.0\.74:8123, выдан 08\.09\.2026\): (\S+)",
                 open(CRED, encoding="utf-8").read()).group(1)
 
+def tile(name, sensor, color, digits, limit=None, unit="°C", ref=False):
+    """Табло как в правой колонке TempMeter: название, крупная цифра, порог и кружок."""
+    s = f"sensor.kolonna_{sensor}"
+    t = (
+        f"{{% set st = states.{s} %}}"
+        f"{{% set fresh = st is not none and st.state | is_number"
+        f" and (now() - st.last_reported).total_seconds() < 120 %}}"
+        f'<center><b>{name}</b></center>\n\n'
+        f"{{% if fresh %}}"
+        f'<h1><center><font color="{color}">'
+        f"{{{{ ('%.{digits}f' | format(st.state | float)).replace('.', ',') }}}} {unit}"
+        f"</font></center></h1>\n"
+    )
+    if limit:
+        t += (
+            f"{{% set lim = states('input_number.kolonna_{limit}') | float(0) %}}"
+            f"<center>{{% if lim > 0 %}}"
+            f"{{{{ '🔴' if st.state | float > lim else '🟢' }}}} порог "
+            f"{{{{ ('%g' | format(lim)).replace('.', ',') }}}}"
+            f"{{% else %}}⚪ порог выключен{{% endif %}}</center>\n"
+        )
+    if ref:
+        t += (
+            "{% set r = states('sensor.kolonna_par_ref') %}"
+            "{% if r | is_number %}<center>от точки отсчёта: "
+            "{{ ('%+.2f' | format(st.state | float - r | float)).replace('.', ',') }}</center>{% endif %}\n"
+        )
+    t += '{% else %}<h2><center><font color="gray">нет данных</font></center></h2>{% endif %}'
+    return {"type": "markdown", "grid_options": {"columns": "full"}, "content": t}
+
+
 CONFIG = {
     "title": "Колонна",
     "views": [{
@@ -12,7 +43,7 @@ CONFIG = {
         "path": "main",
         "icon": "mdi:glass-mug-variant",
         "type": "sections",
-        "max_columns": 3,
+        "max_columns": 4,
         "sections": [
             # главный график на всю ширину. Одно поле, как в TempMeter, но у каждой линии
             # своя шкала и своя полоса по высоте: Пар сверху, Пар 2/3 посередине, вода снизу.
@@ -21,8 +52,7 @@ CONFIG = {
             {"type": "grid", "column_span": 3, "cards": [
                 {"type": "custom:apexcharts-card", "graph_span": "1h",
                  "grid_options": {"columns": "full"},
-                 "header": {"show": True, "title": "Колонна, последний час",
-                            "show_states": True, "colorize_states": True},
+                 "header": {"show": True, "title": "Колонна, последний час", "show_states": False},
                  "yaxis": [
                      {"id": "par", "min": "|-0.6|", "max": "|+0.05|", "decimals": 2,
                       "apex_config": {"tickAmount": 6, "labels": {"style": {"colors": "#e53935"}}}},
@@ -41,6 +71,13 @@ CONFIG = {
                  ],
                  "apex_config": {"chart": {"height": 480}, "legend": {"show": True, "fontSize": "14px"},
                                  "tooltip": {"x": {"format": "HH:mm:ss"}}}},
+            ]},
+            # столбик табло справа от графика, как в TempMeter
+            {"type": "grid", "cards": [
+                tile("Пар", "par", "#e53935", 2, limit="par_max", ref=True),
+                tile("Пар 2/3", "par23", "#fb8c00", 2, limit="par23_max"),
+                tile("Вода", "voda", "#1e88e5", 1, limit="voda_max"),
+                tile("Атм. давление", "davl", "#fdd835", 1, unit="мм"),
             ]},
             {"type": "grid", "cards": [
                 {"type": "entities", "grid_options": {"columns": "full"},
