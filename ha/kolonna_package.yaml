@@ -9,6 +9,11 @@ kolonna_pkg:
     kolonna_voice_lite:
       name: "Колонна — голос на Яндекс Лайт"
       icon: mdi:account-voice
+    # умные тревоги программы на ноуте (рост Пара, уход от точки, «Пар 2/3 растёт»,
+    # «хвосты», вода). По умолчанию выключены — 16.10 на мёде орали весь день
+    kolonna_smart:
+      name: "Колонна — умные тревоги программы"
+      icon: mdi:brain
     kolonna_alarms:
       name: "Колонна — тревоги по порогам"
       icon: mdi:alarm-light
