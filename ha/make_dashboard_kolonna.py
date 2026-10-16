@@ -74,7 +74,7 @@ CONFIG = {
                  "apex_config": {"chart": {"height": 480}, "legend": {"show": True, "fontSize": "14px"},
                                  "tooltip": {"x": {"format": "HH:mm:ss"}}}},
                 {"type": "vertical-stack", "grid_options": {"columns": 6}, "cards": [
-                    tile("Пар", "par", "#e53935", 2, limit="par_max", ref=True),
+                    tile("Пар", "par", "#e53935", 2, limit="par_max"),
                     tile("Пар 2/3", "par23", "#fb8c00", 2, limit="par23_max"),
                     tile("Вода", "voda", "#1e88e5", 1, limit="voda_max"),
                     tile("Атм. давление", "davl", "#fdd835", 1, unit="мм"),
@@ -114,15 +114,6 @@ CONFIG = {
                       "name": "Норма тела", "suffix": " мл"},
                      {"type": "attribute", "entity": "sensor.kolonna_golovy", "attribute": "saved",
                       "name": "Журнал сохранён в"},
-                     {"entity": "sensor.kolonna_par_ref", "name": "Точка отсчёта Пара"},
-                     # подсказок по наведению в HA нет — пояснение живёт в окне подтверждения
-                     {"type": "button", "name": "Поменял отбор — перезапомнить", "icon": "mdi:target",
-                      "action_name": "Нажать",
-                      "tap_action": {"action": "perform-action", "perform_action": "input_button.press",
-                                     "target": {"entity_id": "input_button.kolonna_ref"},
-                                     "confirmation": {"text": "Поменял отбор? Подожду, пока колонна устоится "
-                                                              "(минимум 20 минут), запомню Пар и дальше буду следить "
-                                                              "за хвостами от него."}}},
                      {"type": "button", "name": "Весь погон — История HA", "icon": "mdi:chart-timeline-variant",
                       "action_name": "Открыть",
                       "tap_action": {"action": "navigate", "navigation_path":
@@ -139,7 +130,8 @@ CONFIG = {
                      {"entity": "input_number.kolonna_voda_max", "name": "Вода выше"},
                      {"type": "divider"},
                      {"entity": "input_boolean.kolonna_alarms", "name": "Тревоги по порогам"},
-                     {"entity": "input_boolean.kolonna_voice", "name": "Голос на станциях"},
+                     {"entity": "input_boolean.kolonna_voice_mini", "name": "Голос — Станция Мини"},
+                     {"entity": "input_boolean.kolonna_voice_lite", "name": "Голос — Яндекс Лайт"},
                  ]},
             ]},
             {"type": "grid", "cards": [

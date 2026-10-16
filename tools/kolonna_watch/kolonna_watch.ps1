@@ -5,12 +5,16 @@
 # Запускается сам при входе в Windows (ярлык в автозагрузке, окно свёрнуто) и молча
 # ждёт, пока TempMeter начнёт писать лог. Ключ HA лежит рядом в token.txt.
 
-$Version = '1.9.1'
+$Version = '2.0.0'
 
 # ---------- настройки ----------
 $LogDir     = 'C:\Users\Dark\Desktop\колонна\tma1037.jar'
 $HaUrl      = 'http://192.168.0.74:8123'
 
+# 16.10 Гена: тревоги по температуре — только свои пороги на странице «Колонна»
+# (HA сам: Пар, Пар 2/3, Вода выше порога). Свои тревоги программы — рост Пара,
+# уход от точки, «Пар 2/3 растёт», «хвосты», вода — выключены. Вернуть: $true
+$TempAlarms = $false
 $RiseFast   = 0.15   # Пар вырос за 10 минут, °C
 $RiseTotal  = 0.25   # Пар ушёл от рабочего уровня, °C
 $WaterHot   = 65     # вода горячая, °C
@@ -386,7 +390,7 @@ while ($true) {
     if ($btn -and $btn -ne $btnSeen) {
         $btnSeen = $btn
         Start-Settle
-        Say 'Поняла. Жду, пока колонна устоится, потом запомню Пар.'
+        if ($TempAlarms) { Say 'Поняла. Жду, пока колонна устоится, потом запомню Пар.' }
     }
 
     # фаза со страницы «Колонна» (или из журнала — см. ниже)
@@ -395,7 +399,10 @@ while ($true) {
         if ($faza -eq 'Тело') {
             Start-Settle
             $bodyFrom = $now
-            if ($null -ne $fazaSeen) { Say 'Фаза тело. Жду, пока колонна устоится после переключения, потом запомню Пар и буду следить за хвостами.' }
+            if ($null -ne $fazaSeen) {
+                if ($TempAlarms) { Say 'Фаза тело. Жду, пока колонна устоится после переключения, потом запомню Пар и буду следить за хвостами.' }
+                else { Say 'Фаза: тело.' }
+            }
         } elseif ($null -ne $fazaSeen) {
             Say "Фаза: $($faza.ToLower())."
         }
@@ -413,12 +420,12 @@ while ($true) {
             [math]::Abs($a5 - $b5) -le $FlatTol) {
             $settling = $false; $driftSaid = $false
             $lastParAlert = $now; $lastP23Say = $now
-            Say "Колонна устоялась. Запомнила Пар $(Num $refPar 2). Слежу за хвостами."
+            if ($TempAlarms) { Say "Колонна устоялась. Запомнила Пар $(Num $refPar 2). Слежу за хвостами." }
         }
     }
     # уход Пара и перепад — только на теле и только когда колонна устоялась: на
     # прогреве, головах и в переходе Пар гуляет законно. HA не ответил про фазу — следим
-    $parWatch = (-not $faza) -or ($faza -eq 'Тело' -and -not $settling)
+    $parWatch = $TempAlarms -and ((-not $faza) -or ($faza -eq 'Тело' -and -not $settling))
 
     # --- подсказки по фазам из температуры и журнала ---
     if (($now - $journalAt).TotalMinutes -ge 2) {
@@ -481,7 +488,7 @@ while ($true) {
         if ($null -ne $a -and $null -ne $b) { $dPar = $a - $b }
         $a = Get-BucketAvg 'Par23' 10 0; $b = Get-BucketAvg 'Par23' 40 30
         if ($null -ne $a -and $null -ne $b) { $d23 = $a - $b }
-        $rise = ($null -ne $dPar -and $dPar -ge $TailsPar) -or ($null -ne $d23 -and $d23 -ge $TailsPar23)
+        $rise = $TempAlarms -and (($null -ne $dPar -and $dPar -ge $TailsPar) -or ($null -ne $d23 -and $d23 -ge $TailsPar23))
         # тело в журнал не вписано — решаем по одной температуре, но не раньше часа
         # тела: в начале тела хвостов не бывает
         $volOk = if ($null -eq $frac) { ($now - $bodyFrom).TotalMinutes -ge $TailsMinMin } else { $frac -ge 0.8 }
@@ -541,8 +548,8 @@ while ($true) {
         }
     }
 
-    # --- вода горячая ---
-    if ($null -ne $w2) {
+    # --- вода горячая --- (выключено вместе с $TempAlarms: есть порог воды на странице)
+    if ($TempAlarms -and $null -ne $w2) {
         if ($w2 -ge $WaterHot -and (-not $waterHotNow -or ($now - $lastWaterAlert).TotalMinutes -ge 5)) {
             Say "Вода горячая, $(Num $w2 1) градуса. Проверь охлаждение." -Alarm
             $waterHotNow = $true; $lastWaterAlert = $now

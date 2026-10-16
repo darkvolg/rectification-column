@@ -1,10 +1,14 @@
 kolonna_pkg:
 
   input_boolean:
-    kolonna_voice:
-      name: "Колонна — голос на станциях"
+    # голос раздельно по станциям (16.10: на втором этаже бывает не нужен).
+    # Без initial — HA помнит, что выключено, и после перезапуска
+    kolonna_voice_mini:
+      name: "Колонна — голос на Станции Мини"
       icon: mdi:account-voice
-      initial: true
+    kolonna_voice_lite:
+      name: "Колонна — голос на Яндекс Лайт"
+      icon: mdi:account-voice
     kolonna_alarms:
       name: "Колонна — тревоги по порогам"
       icon: mdi:alarm-light
@@ -67,7 +71,7 @@ kolonna_pkg:
   script:
     kolonna_say:
       alias: "Колонна — сказать"
-      description: "Голос на обе станции (если включён)"
+      description: "Голос на станции, у которых включён переключатель"
       mode: queued
       max: 10
       fields:
@@ -78,17 +82,20 @@ kolonna_pkg:
           description: "Говорить на станциях (false = промолчать)"
           example: true
       sequence:
+        - variables:
+            st: >-
+              {% set ns = namespace(l=[]) %}
+              {% if is_state('input_boolean.kolonna_voice_mini', 'on') %}{% set ns.l = ns.l + ['media_player.yandex_station_m10tte210gm8rk'] %}{% endif %}
+              {% if is_state('input_boolean.kolonna_voice_lite', 'on') %}{% set ns.l = ns.l + ['media_player.yandex_station_lp000000000000410757000093e582bb'] %}{% endif %}
+              {{ ns.l }}
         - if:
             - condition: template
-              value_template: "{{ (voice | default(true) | bool) and is_state('input_boolean.kolonna_voice', 'on') }}"
+              value_template: "{{ (voice | default(true) | bool) and st | length > 0 }}"
           then:
             # на полную громкость, чтобы не прослушать, потом вернуть как было.
             # Свой возврат: встроенный extra.volume_level у yandex_station ждёт
             # состояние станции по локальной сети и здесь громкость не возвращал
             - variables:
-                st: >-
-                  {{ ['media_player.yandex_station_m10tte210gm8rk',
-                      'media_player.yandex_station_lp000000000000410757000093e582bb'] }}
                 vols: >-
                   {% set ns = namespace(d={}) %}
                   {% for e in st %}
