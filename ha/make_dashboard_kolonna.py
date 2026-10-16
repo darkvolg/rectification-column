@@ -21,10 +21,10 @@ def tile(name, sensor, color, digits, limit=None, unit="°C", ref=False):
     if limit:
         t += (
             f"{{% set lim = states('input_number.kolonna_{limit}') | float(0) %}}"
-            f"<center>{{% if lim > 0 %}}"
+            f"<h4><center>{{% if lim > 0 %}}"
             f"{{{{ '🔴' if st.state | float > lim else '🟢' }}}} порог "
             f"{{{{ ('%g' | format(lim)).replace('.', ',') }}}}"
-            f"{{% else %}}⚪ порог выключен{{% endif %}}</center>\n"
+            f"{{% else %}}⚪ порог выключен{{% endif %}}</center></h4>\n"
         )
     if ref:
         t += (
@@ -81,9 +81,25 @@ CONFIG = {
                 ]},
             ]},
             {"type": "grid", "cards": [
+                # тревога: видна только пока ждёт «Принял», HA повторяет её раз в минуту
+                {"type": "conditional", "grid_options": {"columns": "full"},
+                 "conditions": [{"condition": "state", "entity": "input_boolean.kolonna_alarm_active",
+                                 "state": "on"}],
+                 "card": {"type": "vertical-stack", "cards": [
+                     {"type": "markdown", "content":
+                         '<h3><font color="#e53935">🔔 '
+                         "{{ states('input_text.kolonna_alarm_text') }}</font></h3>"},
+                     {"type": "button", "entity": "input_button.kolonna_ack", "name": "ПРИНЯЛ",
+                      "icon": "mdi:check-bold", "show_state": False, "icon_height": "48px",
+                      "tap_action": {"action": "perform-action", "perform_action": "input_button.press",
+                                     "target": {"entity_id": "input_button.kolonna_ack"}}},
+                 ]}},
                 {"type": "entities", "grid_options": {"columns": "full"},
-                 "title": "Точка отсчёта Пара",
+                 "title": "Погон",
                  "entities": [
+                     # на «Тело» программа сама запоминает точку отсчёта и начинает
+                     # следить за уходом Пара; на прогреве и головах не дёргает
+                     {"entity": "input_select.kolonna_faza", "name": "Фаза"},
                      {"entity": "sensor.kolonna_par_ref", "name": "Запомнен Пар"},
                      # подсказок по наведению в HA нет — пояснение живёт в окне подтверждения
                      {"type": "button", "name": "Запомнить сейчас (начал тело)", "icon": "mdi:target",

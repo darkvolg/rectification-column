@@ -5,7 +5,7 @@
 # Запускается сам при входе в Windows (ярлык в автозагрузке, окно свёрнуто) и молча
 # ждёт, пока TempMeter начнёт писать лог. Ключ HA лежит рядом в token.txt.
 
-$Version = '1.3.0'
+$Version = '1.4.1'
 
 # ---------- настройки ----------
 $LogDir     = 'C:\Users\Dark\Desktop\колонна\tma1037.jar'
@@ -57,13 +57,20 @@ function Post($path, $obj) {
     Invoke-RestMethod -Uri "$HaUrl$path" -Method Post -Headers $H -ContentType 'application/json; charset=utf-8' -Body $body -TimeoutSec 10 | Out-Null
 }
 
+# ответ читаем байтами как UTF-8: PowerShell 5.1 без charset в ответе берёт
+# ISO-8859-1, и «Тело» приходит кракозябрами
 function Get-HaState($id) {
-    try { (Invoke-RestMethod -Uri "$HaUrl/api/states/$id" -Headers $H -TimeoutSec 5).state } catch { $null }
+    try {
+        $r = Invoke-WebRequest -Uri "$HaUrl/api/states/$id" -Headers $H -TimeoutSec 5 -UseBasicParsing
+        ([Text.Encoding]::UTF8.GetString($r.RawContentStream.ToArray()) | ConvertFrom-Json).state
+    } catch { $null }
 }
 
-function Say($msg) {
-    Note "ГОЛОС: $msg"
-    try { Post '/api/services/script/kolonna_say' @{ message = $msg } }
+# -Alarm: тревога — HA повторяет её раз в минуту, пока не нажмут «Принял»
+function Say($msg, [switch]$Alarm) {
+    $script = if ($Alarm) { 'kolonna_alarm' } else { 'kolonna_say' }
+    Note ($(if ($Alarm) { 'ТРЕВОГА: ' } else { 'ГОЛОС: ' }) + $msg)
+    try { Post "/api/services/script/$script" @{ message = $msg } }
     catch { Note "HA не ответил: $($_.Exception.Message)" }
 }
 
@@ -165,6 +172,7 @@ $lastWaterAlert = [datetime]::MinValue
 $waterHotNow = $false
 $lastPush = [datetime]::MinValue
 $btnSeen = Get-HaState 'input_button.kolonna_ref'
+$fazaSeen = $null
 
 while ($true) {
     $lastT = if ($samples.Count) { $samples[$samples.Count - 1].T } else { $null }
@@ -192,7 +200,7 @@ while ($true) {
         if ($due) {
             $stalled = $true; $stallCount++; $lastStallSay = $now
             if ($stallCount -lt $StallMax) {
-                Say "Лог колонны не пишется уже $(Minutes ([math]::Floor($silent / 60))). Проверь блютуз и программу."
+                Say "Лог колонны не пишется уже $(Minutes ([math]::Floor($silent / 60))). Проверь блютуз и программу." -Alarm
             } else {
                 Say 'Лог колонны так и молчит. Похоже, погон закончен. Замолкаю до следующего погона.'
                 $active = $false
@@ -224,7 +232,27 @@ while ($true) {
         Say "Запомнила рабочий уровень. Пар $(Num $refPar 2)."
     }
 
-    $parQuiet = ($now - $lastParAlert).TotalMinutes -ge $ParCooldown
+    # фаза со страницы «Колонна»: на «Тело» точка отсчёта запоминается сама
+    $faza = Get-HaState 'input_select.kolonna_faza'
+    if ($faza -and $faza -ne $fazaSeen) {
+        if ($null -ne $fazaSeen) {
+            if ($faza -eq 'Тело') {
+                $refPar = if ($null -ne $par2) { $par2 } else { $newest.Par }
+                $refP   = if ($null -ne $p2) { $p2 } else { $newest.P }
+                $lastParAlert = $now; $lastDeltaAlert = $now
+                Say "Фаза тело. Запомнила Пар $(Num $refPar 2). Слежу за хвостами."
+            } else {
+                Say "Фаза: $($faza.ToLower())."
+            }
+        }
+        Note "Фаза: $faza"
+        $fazaSeen = $faza
+    }
+    # уход Пара и перепад — только на теле: на прогреве и головах Пар гуляет
+    # законно. Если HA не ответил про фазу — следим, как раньше
+    $parWatch = (-not $faza) -or ($faza -eq 'Тело')
+
+    $parQuiet = $parWatch -and (($now - $lastParAlert).TotalMinutes -ge $ParCooldown)
 
     # --- Пар: быстрое изменение за 10 минут (с поправкой на давление) ---
     if ($parQuiet -and $null -ne $par2 -and $null -ne $par12) {
@@ -232,7 +260,7 @@ while ($true) {
         if ($null -ne $p2 -and $null -ne $p12) { $d -= $BaroK * ($p2 - $p12) }
         if ([math]::Abs($d) -ge $RiseFast) {
             $word = if ($d -gt 0) { 'вырос' } else { 'упал' }
-            Say "Внимание! Пар $word на $(Num ([math]::Abs($d)) 2) за 10 минут. Сейчас $(Num $par2 2)."
+            Say "Внимание! Пар $word на $(Num ([math]::Abs($d)) 2) за 10 минут. Сейчас $(Num $par2 2)." -Alarm
             $lastParAlert = $now; $parQuiet = $false
             $refPar = $par2; $refP = $p2
         }
@@ -244,7 +272,7 @@ while ($true) {
         if ($null -ne $p2 -and $null -ne $refP) { $d -= $BaroK * ($p2 - $refP) }
         if ([math]::Abs($d) -ge $RiseTotal) {
             $word = if ($d -gt 0) { 'выше' } else { 'ниже' }
-            Say "Пар ушёл $word рабочего уровня на $(Num ([math]::Abs($d)) 2). Сейчас $(Num $par2 2)."
+            Say "Пар ушёл $word рабочего уровня на $(Num ([math]::Abs($d)) 2). Сейчас $(Num $par2 2)." -Alarm
             $lastParAlert = $now
             $refPar = $par2; $refP = $p2
         }
@@ -253,7 +281,7 @@ while ($true) {
     # --- вода горячая ---
     if ($null -ne $w2) {
         if ($w2 -ge $WaterHot -and (-not $waterHotNow -or ($now - $lastWaterAlert).TotalMinutes -ge 5)) {
-            Say "Вода горячая, $(Num $w2 1) градуса. Проверь охлаждение."
+            Say "Вода горячая, $(Num $w2 1) градуса. Проверь охлаждение." -Alarm
             $waterHotNow = $true; $lastWaterAlert = $now
         } elseif ($waterHotNow -and $w2 -lt ($WaterHot - 2)) {
             Say "Вода в норме, $(Num $w2 1)."
@@ -263,11 +291,11 @@ while ($true) {
 
     # --- перепад Пар − Пар2/3 ---
     $q2 = Avg 'Par23' 2 0; $q12 = Avg 'Par23' 12 10
-    if ($null -ne $par2 -and $null -ne $q2 -and $null -ne $par12 -and $null -ne $q12 -and
+    if ($parWatch -and $null -ne $par2 -and $null -ne $q2 -and $null -ne $par12 -and $null -ne $q12 -and
         ($now - $lastDeltaAlert).TotalMinutes -ge 10) {
         $dNow = $par2 - $q2; $dOld = $par12 - $q12
         if ([math]::Abs($dNow - $dOld) -ge $DeltaJump) {
-            Say "Перепад по колонне изменился: был $(Num $dOld 1), стал $(Num $dNow 1)."
+            Say "Перепад по колонне изменился: был $(Num $dOld 1), стал $(Num $dNow 1)." -Alarm
             $lastDeltaAlert = $now
         }
     }

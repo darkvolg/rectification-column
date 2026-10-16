@@ -6,6 +6,8 @@ const PATH = "/kolonna-pult";
 const DESIGN_W = 1400; // ширина, при которой табло ещё стоят справа от графика
 const DESIGN_H = 880;  // высота всего содержимого страницы
 const MIN_ZOOM = 0.5;  // мельче уже не прочитать — дальше пусть HA перестраивает сам
+const HEADER_H = 56;   // верхняя полоса HA. Константа, а не box.top: тот меняется при
+                       // прокрутке, масштаб рос, и табло съезжали под график
 
 let current = null;
 
@@ -28,9 +30,9 @@ function fit() {
   }
   const view = findView();
   if (!view || !view.parentElement) return;
-  const box = view.parentElement.getBoundingClientRect();
+  const width = view.parentElement.getBoundingClientRect().width;
   const z = Math.max(MIN_ZOOM,
-    Math.min(1, box.width / DESIGN_W, (window.innerHeight - box.top) / DESIGN_H));
+    Math.min(1, width / DESIGN_W, (window.innerHeight - HEADER_H) / DESIGN_H));
   const val = z >= 0.999 ? "" : z.toFixed(3);
   if (view.style.zoom !== val) view.style.zoom = val;
   current = view;

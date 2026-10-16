@@ -9,11 +9,34 @@ kolonna_pkg:
       name: "Колонна — тревоги по порогам"
       icon: mdi:alarm-light
       initial: true
+    kolonna_alarm_active:
+      name: "Колонна — тревога ждёт «Принял»"
+      icon: mdi:bell-ring
+
+  input_text:
+    kolonna_alarm_text:
+      name: "Колонна — последняя тревога"
+      max: 255
+
+  # фаза погона: тревоги по уходу Пара программа на ноуте даёт только на «Тело»,
+  # при переключении на «Тело» сама запоминает точку отсчёта
+  input_select:
+    kolonna_faza:
+      name: "Колонна — фаза"
+      icon: mdi:flask-outline
+      options:
+        - Прогрев
+        - Головы
+        - Тело
+        - Хвосты
 
   input_button:
     kolonna_ref:
       name: "Запомнить рабочий уровень Пара"
       icon: mdi:target
+    kolonna_ack:
+      name: "Принял тревогу"
+      icon: mdi:check-bold
 
   input_number:
     kolonna_par_max:
@@ -59,15 +82,67 @@ kolonna_pkg:
             - condition: template
               value_template: "{{ (voice | default(true) | bool) and is_state('input_boolean.kolonna_voice', 'on') }}"
           then:
+            # на полную громкость, чтобы не прослушать, потом вернуть как было.
+            # Свой возврат: встроенный extra.volume_level у yandex_station ждёт
+            # состояние станции по локальной сети и здесь громкость не возвращал
+            - variables:
+                st: >-
+                  {{ ['media_player.yandex_station_m10tte210gm8rk',
+                      'media_player.yandex_station_lp000000000000410757000093e582bb'] }}
+                vols: >-
+                  {% set ns = namespace(d={}) %}
+                  {% for e in st %}
+                    {% set v = state_attr(e, 'volume_level') %}
+                    {% if v is number %}{% set ns.d = dict(ns.d, **{e: v}) %}{% endif %}
+                  {% endfor %}
+                  {{ ns.d }}
+            - action: media_player.volume_set
+              continue_on_error: true
+              target:
+                entity_id: "{{ st }}"
+              data:
+                volume_level: 1
             - action: media_player.play_media
               continue_on_error: true
               target:
-                entity_id:
-                  - media_player.yandex_station_m10tte210gm8rk
-                  - media_player.yandex_station_lp000000000000410757000093e582bb
+                entity_id: "{{ st }}"
               data:
                 media_content_type: text
                 media_content_id: "{{ message }}"
+            # примерно 12 букв в секунду плюс запас на старт фразы
+            - delay:
+                seconds: "{{ (message | length / 12 + 4) | round(0) | int }}"
+            - repeat:
+                for_each: "{{ vols | dictsort }}"
+                sequence:
+                  - action: media_player.volume_set
+                    continue_on_error: true
+                    target:
+                      entity_id: "{{ repeat.item[0] }}"
+                    data:
+                      volume_level: "{{ repeat.item[1] }}"
+
+    kolonna_alarm:
+      alias: "Колонна — тревога"
+      description: "Сказать и повторять раз в минуту, пока не нажмут «Принял»"
+      mode: queued
+      max: 10
+      fields:
+        message:
+          description: "Текст тревоги"
+          example: "Пар ушёл вверх"
+      sequence:
+        - action: input_text.set_value
+          target:
+            entity_id: input_text.kolonna_alarm_text
+          data:
+            value: "{{ message[:255] }}"
+        - action: input_boolean.turn_on
+          target:
+            entity_id: input_boolean.kolonna_alarm_active
+        - action: script.kolonna_say
+          data:
+            message: "{{ message }}"
 
   automation:
     - id: kolonna_threshold_cross
@@ -98,7 +173,7 @@ kolonna_pkg:
             names: {par: "Пар", par23: "Пар 2/3", voda: "Вода"}
             lim: "{{ states('input_number.kolonna_' ~ trigger.id ~ '_max') | float(0) }}"
             val: "{{ trigger.to_state.state | float(0) }}"
-        - action: script.kolonna_say
+        - action: script.kolonna_alarm
           data:
             message: >-
               Внимание! {{ names[trigger.id] }} выше {{ (lim | round(2) | string).replace('.', ',') }}.
@@ -124,7 +199,7 @@ kolonna_pkg:
                 {% set s = states.sensor['kolonna_' ~ k] %}
                 {% if lim > 0 and s is not none and s.state | is_number
                       and s.state | float > lim
-                      and (now() - s.last_updated).total_seconds() < 300 %}
+                      and (now() - s.last_reported).total_seconds() < 300 %}
                   {% set ns.t = ns.t + [n ~ ' ' ~ (s.state | float | round(2) | string).replace('.', ',')] %}
                 {% endif %}
               {% endfor %}
@@ -134,3 +209,40 @@ kolonna_pkg:
         - action: script.kolonna_say
           data:
             message: "Всё ещё выше порога: {{ over | trim }}."
+
+    - id: kolonna_alarm_repeat
+      alias: "Колонна — повтор тревоги до «Принял»"
+      mode: single
+      triggers:
+        - trigger: time_pattern
+          minutes: "/1"
+      conditions:
+        - condition: state
+          entity_id: input_boolean.kolonna_alarm_active
+          state: "on"
+          for:
+            seconds: 30
+      actions:
+        - action: script.kolonna_say
+          data:
+            message: >-
+              Повторяю: {{ states('input_text.kolonna_alarm_text') }}
+              Нажми «Принял» на странице колонны.
+
+    - id: kolonna_alarm_ack
+      alias: "Колонна — тревога принята"
+      mode: single
+      triggers:
+        - trigger: state
+          entity_id: input_button.kolonna_ack
+      conditions:
+        - condition: state
+          entity_id: input_boolean.kolonna_alarm_active
+          state: "on"
+      actions:
+        - action: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.kolonna_alarm_active
+        - action: script.kolonna_say
+          data:
+            message: "Принято."
