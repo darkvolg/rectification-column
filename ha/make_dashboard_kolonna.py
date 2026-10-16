@@ -11,61 +11,74 @@ CONFIG = {
         "title": "Колонна",
         "path": "main",
         "icon": "mdi:glass-mug-variant",
-        "cards": [
-            {"type": "glance", "title": "Сейчас", "show_state": True, "columns": 4,
-             "entities": [
-                 {"entity": "sensor.kolonna_par", "name": "Пар"},
-                 {"entity": "sensor.kolonna_par23", "name": "Пар 2/3"},
-                 {"entity": "sensor.kolonna_voda", "name": "Вода"},
-                 {"entity": "sensor.kolonna_davl", "name": "Давление"},
-             ]},
-            {"type": "entities", "title": "Рабочий уровень (от него следит за уходом Пара)",
-             "entities": [
-                 {"entity": "sensor.kolonna_par_ref", "name": "Рабочий уровень Пара"},
-                 {"entity": "input_button.kolonna_ref", "name": "Запомнить сейчас (перешёл на тело)"},
-             ]},
-            {"type": "entities", "title": "Пороги — выше порога Алиса скажет (0 = выключен)",
-             "entities": [
-                 {"entity": "input_number.kolonna_par_max", "name": "Пар выше"},
-                 {"entity": "input_number.kolonna_par23_max", "name": "Пар 2/3 выше"},
-                 {"entity": "input_number.kolonna_voda_max", "name": "Вода выше"},
-                 {"type": "divider"},
-                 {"entity": "input_boolean.kolonna_alarms", "name": "Тревоги по порогам"},
-                 {"entity": "input_boolean.kolonna_voice", "name": "Голос на станциях"},
-             ]},
-            # один график, как в TempMeter, но у каждой линии своя шкала: на общей оси
-            # 57–78 Пар расплющивается в прямую. Запас ±0,3 °C — шаг 0,0625 виден,
-            # а дрожание младшего бита не растягивается на всю высоту («частокол»)
-            {"type": "custom:apexcharts-card", "graph_span": "2h",
-             "header": {"show": True, "title": "Колонна, 2 часа", "show_states": True, "colorize_states": True},
-             "yaxis": [
-                 {"id": "par", "min": "|-0.3|", "max": "|+0.3|", "decimals": 2,
-                  "apex_config": {"tickAmount": 4, "labels": {"style": {"colors": "#e53935"}}}},
-                 {"id": "par23", "min": "|-0.3|", "max": "|+0.3|", "decimals": 2,
-                  "apex_config": {"tickAmount": 4, "labels": {"style": {"colors": "#fb8c00"}}}},
-                 {"id": "voda", "opposite": True, "min": "|-1|", "max": "|+1|", "decimals": 1,
-                  "apex_config": {"tickAmount": 4, "labels": {"style": {"colors": "#1e88e5"}}}},
-             ],
-             "series": [
-                 {"entity": "sensor.kolonna_par", "name": "Пар", "yaxis_id": "par", "color": "#e53935",
-                  "stroke_width": 2, "curve": "straight", "extend_to": "now"},
-                 {"entity": "sensor.kolonna_par_ref", "name": "Рабочий уровень", "yaxis_id": "par",
-                  "color": "#e53935", "stroke_width": 1, "stroke_dash": 6, "curve": "stepline",
-                  "extend_to": "now", "show": {"in_header": False}},
-                 {"entity": "sensor.kolonna_par23", "name": "Пар 2/3", "yaxis_id": "par23", "color": "#fb8c00",
-                  "stroke_width": 2, "curve": "straight", "extend_to": "now"},
-                 {"entity": "sensor.kolonna_voda", "name": "Вода", "yaxis_id": "voda", "color": "#1e88e5",
-                  "stroke_width": 2, "curve": "straight", "extend_to": "now"},
-             ],
-             "apex_config": {"chart": {"height": 360}, "legend": {"show": True},
-                             "tooltip": {"x": {"format": "HH:mm:ss"}}}},
-            {"type": "custom:apexcharts-card", "graph_span": "2h",
-             "header": {"show": True, "title": "Давление", "show_states": True},
-             "yaxis": [{"min": "|-0.5|", "max": "|+0.5|", "decimals": 1,
-                        "apex_config": {"tickAmount": 4}}],
-             "series": [{"entity": "sensor.kolonna_davl", "name": "Давление", "color": "#fdd835",
-                         "stroke_width": 2, "curve": "stepline", "extend_to": "now"}],
-             "apex_config": {"chart": {"height": 160}, "tooltip": {"x": {"format": "HH:mm:ss"}}}},
+        "type": "sections",
+        "max_columns": 3,
+        "sections": [
+            # главный график на всю ширину. Одно поле, как в TempMeter, но у каждой линии
+            # своя шкала и своя полоса по высоте: Пар сверху, Пар 2/3 посередине, вода снизу.
+            # Иначе на общей оси 57–78 Пар расплющивается в прямую, а на одинаковых осях
+            # линии ложатся друг на друга. Полосы задаются запасом шкалы над/под данными.
+            {"type": "grid", "column_span": 3, "cards": [
+                {"type": "custom:apexcharts-card", "graph_span": "1h",
+                 "grid_options": {"columns": "full"},
+                 "header": {"show": True, "title": "Колонна, последний час",
+                            "show_states": True, "colorize_states": True},
+                 "yaxis": [
+                     {"id": "par", "min": "|-0.6|", "max": "|+0.05|", "decimals": 2,
+                      "apex_config": {"tickAmount": 6, "labels": {"style": {"colors": "#e53935"}}}},
+                     {"id": "par23", "min": "|-0.3|", "max": "|+0.35|", "decimals": 2,
+                      "apex_config": {"tickAmount": 6, "labels": {"style": {"colors": "#fb8c00"}}}},
+                     {"id": "voda", "opposite": True, "min": "|-0.5|", "max": "|+8|", "decimals": 1,
+                      "apex_config": {"tickAmount": 6, "labels": {"style": {"colors": "#1e88e5"}}}},
+                 ],
+                 "series": [
+                     {"entity": "sensor.kolonna_par", "name": "Пар", "yaxis_id": "par", "color": "#e53935",
+                      "stroke_width": 3, "curve": "straight", "extend_to": "now"},
+                     {"entity": "sensor.kolonna_par23", "name": "Пар 2/3", "yaxis_id": "par23",
+                      "color": "#fb8c00", "stroke_width": 3, "curve": "straight", "extend_to": "now"},
+                     {"entity": "sensor.kolonna_voda", "name": "Вода", "yaxis_id": "voda", "color": "#1e88e5",
+                      "stroke_width": 3, "curve": "straight", "extend_to": "now"},
+                 ],
+                 "apex_config": {"chart": {"height": 480}, "legend": {"show": True, "fontSize": "14px"},
+                                 "tooltip": {"x": {"format": "HH:mm:ss"}}}},
+            ]},
+            {"type": "grid", "cards": [
+                {"type": "entities", "grid_options": {"columns": "full"},
+                 "title": "Точка отсчёта Пара",
+                 "entities": [
+                     {"entity": "sensor.kolonna_par_ref", "name": "Запомнен Пар"},
+                     # подсказок по наведению в HA нет — пояснение живёт в окне подтверждения
+                     {"type": "button", "name": "Запомнить сейчас (начал тело)", "icon": "mdi:target",
+                      "action_name": "Нажать",
+                      "tap_action": {"action": "perform-action", "perform_action": "input_button.press",
+                                     "target": {"entity_id": "input_button.kolonna_ref"},
+                                     "confirmation": {"text": "Запомнить Пар сейчас? Если Пар уйдёт "
+                                                              "на 0,25 от этой точки — Алиса скажет. "
+                                                              "Жми, когда перешёл на тело."}}},
+                 ]},
+            ]},
+            {"type": "grid", "cards": [
+                {"type": "entities", "grid_options": {"columns": "full"},
+                 "title": "Пороги (0 = выключен)",
+                 "entities": [
+                     {"entity": "input_number.kolonna_par_max", "name": "Пар выше"},
+                     {"entity": "input_number.kolonna_par23_max", "name": "Пар 2/3 выше"},
+                     {"entity": "input_number.kolonna_voda_max", "name": "Вода выше"},
+                     {"type": "divider"},
+                     {"entity": "input_boolean.kolonna_alarms", "name": "Тревоги по порогам"},
+                     {"entity": "input_boolean.kolonna_voice", "name": "Голос на станциях"},
+                 ]},
+            ]},
+            {"type": "grid", "cards": [
+                {"type": "custom:apexcharts-card", "graph_span": "1h",
+                 "grid_options": {"columns": "full"},
+                 "header": {"show": True, "title": "Давление", "show_states": True},
+                 "yaxis": [{"min": "|-0.5|", "max": "|+0.5|", "decimals": 1,
+                            "apex_config": {"tickAmount": 4}}],
+                 "series": [{"entity": "sensor.kolonna_davl", "name": "Давление", "color": "#fdd835",
+                             "stroke_width": 2, "curve": "stepline", "extend_to": "now"}],
+                 "apex_config": {"chart": {"height": 180}, "tooltip": {"x": {"format": "HH:mm:ss"}}}},
+            ]},
         ],
     }],
 }
