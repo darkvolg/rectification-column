@@ -5,7 +5,7 @@
 # Запускается сам при входе в Windows (ярлык в автозагрузке, окно свёрнуто) и молча
 # ждёт, пока TempMeter начнёт писать лог. Ключ HA лежит рядом в token.txt.
 
-$Version = '1.5.1'
+$Version = '1.6.0'
 
 # ---------- настройки ----------
 $LogDir     = 'C:\Users\Dark\Desktop\колонна\tma1037.jar'
@@ -22,6 +22,8 @@ $ParCooldown = 5     # минут тишины между тревогами п�
 $JournalDir = 'C:\Users\Dark\Desktop\колонна'   # журнал ректификации .xlsm (самый свежий)
 $FlatMin    = 60     # подсказка «пошло тело»: Пар стоит столько минут...
 $FlatTol    = 0.03   # ...меняясь не больше чем на столько °C (с поправкой на давление)
+$TailsPar   = 0.08   # подсказка «пошли хвосты»: Пар вырос за полчаса на столько °C...
+$TailsPar23 = 0.15   # ...или Пар 2/3 (он ниже, хвосты доходят до него раньше)
 $PushSec    = 5      # как часто отдавать показания в HA (по ним HA проверяет пороги)
 $SmoothMin  = 0.5    # в HA уходит среднее за столько минут — график без зубцов
 # --------------------------------
@@ -73,7 +75,9 @@ function Get-HaState($id) {
 function Say($msg, [switch]$Alarm) {
     $script = if ($Alarm) { 'kolonna_alarm' } else { 'kolonna_say' }
     Note ($(if ($Alarm) { 'ТРЕВОГА: ' } else { 'ГОЛОС: ' }) + $msg)
-    try { Post "/api/services/script/$script" @{ message = $msg } }
+    # script.turn_on не ждёт конца скрипта: с громкостью и паузой длинная фраза идёт
+    # дольше таймаута, и программа зря висела бы с «HA не ответил»
+    try { Post '/api/services/script/turn_on' @{ entity_id = "script.$script"; variables = @{ message = $msg } } }
     catch { Note "HA не ответил: $($_.Exception.Message)" }
 }
 
@@ -97,6 +101,7 @@ function Push-Sensors($s, $ref) {
 # ---------- чтение лога ----------
 $cur = $null; $pos = 0; $cols = $null
 $samples = New-Object Collections.Generic.List[object]
+$buckets = New-Object 'Collections.Generic.SortedDictionary[datetime,object]'
 
 function ConvertFrom-Header($line) {
     $h = $line.Split(';'); $m = @{}
@@ -145,12 +150,25 @@ function Read-New {
         $p = $line.Split(';')
         $ts = [datetime]::MinValue
         if (-not [datetime]::TryParseExact($p[0].Trim(), 'yyyy-MM-dd HH:mm:ss', $Inv, 'None', [ref]$ts)) { continue }
-        $samples.Add([pscustomobject]@{
+        $s = [pscustomobject]@{
             T = $ts; Par = (Val $p $script:cols.Par); Par23 = (Val $p $script:cols.Par23)
-            Water = (Val $p $script:cols.Water); P = (Val $p $script:cols.P) })
+            Water = (Val $p $script:cols.Water); P = (Val $p $script:cols.P) }
+        $samples.Add($s)
+        # поминутные суммы Пара и давления за последний час с лишним — для подсказки
+        # «пошло тело». Копятся и из уже записанного лога, поэтому после перезапуска
+        # программе не нужно ждать час
+        if ($null -ne $s.Par -and $null -ne $s.P) {
+            $k = $ts.Date.AddHours($ts.Hour).AddMinutes($ts.Minute)
+            $b = $null
+            if (-not $buckets.TryGetValue($k, [ref]$b)) { $b = [pscustomobject]@{ Par = 0.0; P = 0.0; N = 0; Q = 0.0; NQ = 0 }; $buckets[$k] = $b }
+            $b.Par += $s.Par; $b.P += $s.P; $b.N++
+            if ($null -ne $s.Par23) { $b.Q += $s.Par23; $b.NQ++ }
+        }
     }
     $old = (Get-Date).AddMinutes(-20)
     while ($samples.Count -gt 0 -and $samples[0].T -lt $old) { $samples.RemoveAt(0) }
+    $oldB = (Get-Date).AddMinutes(-($FlatMin + 15))
+    foreach ($k in @($buckets.Keys | Where-Object { $_ -lt $oldB })) { [void]$buckets.Remove($k) }
 }
 
 # ---------- журнал ректификации (Excel) ----------
@@ -200,13 +218,20 @@ function Read-Journal {
         $plan = $null
         $vol = & $num 'C5'; $krep = & $num 'C6'; $pct = & $num 'C10'
         if ($vol -and $krep -and $pct) { $plan = $vol * $krep * $pct }
-        $heads = 0.0
+        # норма тела — как в журнале (H7): АС − головы − хвосты (% хвостов в C11)
+        $bodyPlan = $null
+        $tpct = & $num 'C11'
+        if ($vol -and $krep -and $null -ne $pct -and $null -ne $tpct) { $bodyPlan = $vol * $krep * (1 - $pct - $tpct) }
+        # факт фазы — максимум «Отбор мл» по её строкам, как в «ИТОГИ ОТБОРА» журнала
+        $fact = @{ 'Головы' = 0.0; 'Тело' = 0.0; 'Хвосты' = 0.0 }
         for ($i = 14; $i -le 80; $i++) {
-            if ("$($cell["C$i"])".Trim() -eq 'Головы') {
-                $h = & $num "H$i"; if ($null -ne $h -and $h -gt $heads) { $heads = $h }
+            $ph = "$($cell["C$i"])".Trim()
+            if ($fact.ContainsKey($ph)) {
+                $h = & $num "H$i"; if ($null -ne $h -and $h -gt $fact[$ph]) { $fact[$ph] = $h }
             }
         }
-        return [pscustomobject]@{ Plan = $plan; Heads = $heads; Name = $f.Name; Time = $f.LastWriteTime }
+        return [pscustomobject]@{ Plan = $plan; Heads = $fact['Головы']; BodyPlan = $bodyPlan; Body = $fact['Тело']
+                                  Name = $f.Name; Time = $f.LastWriteTime }
     } catch { return $null } finally { $zip.Dispose() }
 }
 
@@ -234,6 +259,27 @@ function Avg($field, $from, $to) {
     return ($v | Measure-Object -Average).Average
 }
 
+# средний поминутный Пар или Пар 2/3, приведённый к 760 мм, за окно [now-from, now-to) минут
+function Get-BucketAvg($field, $from, $to) {
+    $now = Get-Date; $a = $now.AddMinutes(-$from); $z = $now.AddMinutes(-$to)
+    $v = @()
+    foreach ($kv in $buckets.GetEnumerator()) {
+        if ($kv.Key -lt $a -or $kv.Key -ge $z) { continue }
+        $x = $kv.Value
+        $corr = $BaroK * ($x.P / $x.N - 760)
+        if ($field -eq 'Par') { $v += $x.Par / $x.N - $corr }
+        elseif ($x.NQ -gt 0) { $v += $x.Q / $x.NQ - $corr }
+    }
+    if ($v.Count -lt 3) { return $null }
+    ($v | Measure-Object -Average).Average
+}
+
+# строка подсказки на странице «Колонна»; 'нет' — скрыть
+function Set-Hint($txt) {
+    try { Post '/api/states/sensor.kolonna_hint' @{ state = $txt.Substring(0, [math]::Min(250, $txt.Length))
+                                                    attributes = @{ friendly_name = 'Колонна подсказка' } } } catch { }
+}
+
 # ---------- главный цикл ----------
 Note "Старт v$Version. Жду, когда TempMeter начнёт писать лог: $LogDir"
 $active     = $false        # идёт погон: лог свежий
@@ -249,11 +295,16 @@ $waterHotNow = $false
 $lastPush = [datetime]::MinValue
 $btnSeen = Get-HaState 'input_button.kolonna_ref'
 $fazaSeen = $null
-$mins = New-Object Collections.Generic.List[object]   # средний Пар по минутам, для подсказки
-$lastMinute = -1
 $journal = $null; $journalAt = [datetime]::MinValue
-$hintSaid = $false
-try { Post '/api/states/sensor.kolonna_hint' @{ state = 'нет'; attributes = @{ friendly_name = 'Колонна подсказка' } } } catch { }
+$hintSaid = @{}; $hintPhase = $null   # какие подсказки уже сказаны в текущей фазе
+# после перезапуска не повторять то, что уже висит на странице
+$prevHint = Get-HaState 'sensor.kolonna_hint'
+if ($prevHint -and $prevHint -notin 'нет', 'unknown', 'unavailable') {
+    $hintPhase = Get-HaState 'input_select.kolonna_faza'
+    if ($prevHint -like 'Похоже, головы*') { $hintSaid.body = $true }
+    if ($prevHint -like 'Тело отобрано*')   { $hintSaid.p90 = $true }
+    if ($prevHint -like '*хвосты:*')        { $hintSaid.p90 = $true; $hintSaid.tails = $true }
+} else { Set-Hint 'нет' }
 
 while ($true) {
     $lastT = if ($samples.Count) { $samples[$samples.Count - 1].T } else { $null }
@@ -333,16 +384,7 @@ while ($true) {
     # законно. Если HA не ответил про фазу — следим, как раньше
     $parWatch = (-not $faza) -or ($faza -eq 'Тело')
 
-    # --- подсказка «похоже, пошло тело»: Пар час стоит И голов не меньше нормы ---
-    # Одной температуры мало: 16.10 Пар стоял час и в 09:00–10:15, при 100–180 мл голов
-    if ($now.Minute -ne $lastMinute) {
-        $lastMinute = $now.Minute
-        $a1 = Avg 'Par' 1 0; $pp1 = Avg 'P' 1 0
-        if ($null -ne $a1 -and $null -ne $pp1) {
-            $mins.Add([pscustomobject]@{ T = $now; V = $a1 - $BaroK * ($pp1 - 760) })
-        }
-        while ($mins.Count -gt 0 -and $mins[0].T -lt $now.AddMinutes(-($FlatMin + 10))) { $mins.RemoveAt(0) }
-    }
+    # --- подсказки по фазам из температуры и журнала ---
     if (($now - $journalAt).TotalMinutes -ge 2) {
         $journalAt = $now
         Save-OpenJournal
@@ -354,26 +396,56 @@ while ($true) {
                     friendly_name = 'Колонна головы отобрано'; unit_of_measurement = 'мл'
                     plan = $(if ($j.Plan) { [math]::Round($j.Plan) } else { $null }); file = $j.Name
                     saved = $j.Time.ToString('HH:mm') } }
+                Post '/api/states/sensor.kolonna_telo' @{ state = [math]::Round($j.Body); attributes = @{
+                    friendly_name = 'Колонна тело отобрано'; unit_of_measurement = 'мл'
+                    plan = $(if ($j.BodyPlan) { [math]::Round($j.BodyPlan) } else { $null }) } }
             } catch { }
         }
     }
-    $flat = $false
-    if ($mins.Count -gt 0 -and $mins[0].T -le $now.AddMinutes(-$FlatMin)) {
-        $old = @($mins | Where-Object { $_.T -le $now.AddMinutes(-($FlatMin - 10)) } | ForEach-Object { $_.V })
-        $new = @($mins | Where-Object { $_.T -ge $now.AddMinutes(-10) } | ForEach-Object { $_.V })
-        if ($old.Count -ge 3 -and $new.Count -ge 3) {
-            $flat = [math]::Abs(($new | Measure-Object -Average).Average - ($old | Measure-Object -Average).Average) -le $FlatTol
+
+    # подсказки живут в пределах своей фазы: сменилась фаза — строка на странице гаснет
+    if ($faza -ne $hintPhase) {
+        if ($hintPhase) { Set-Hint 'нет' }
+        $hintPhase = $faza; $hintSaid = @{}
+    }
+
+    # головы → тело: Пар час стоит И голов не меньше нормы. Одной температуры мало:
+    # 16.10 Пар стоял час и в 09:00–10:15, когда голов было 100–180 мл
+    if ($faza -eq 'Головы' -and -not $hintSaid.body -and $journal -and $journal.Plan -and $journal.Heads -ge $journal.Plan) {
+        $nowPar = Get-BucketAvg 'Par' 10 0; $hourPar = Get-BucketAvg 'Par' $FlatMin ($FlatMin - 10)
+        if ($null -ne $nowPar -and $null -ne $hourPar -and [math]::Abs($nowPar - $hourPar) -le $FlatTol) {
+            $hintSaid.body = $true
+            $txt = "Похоже, головы закончились: Пар час стоит на $(Num $par2 2), голов $([math]::Round($journal.Heads)) из $([math]::Round($journal.Plan)). Проверь пробу и переключай на тело."
+            Say $txt; Set-Hint $txt
         }
     }
-    $hintNow = $faza -eq 'Головы' -and $flat -and $journal -and $journal.Plan -and $journal.Heads -ge $journal.Plan
-    if ($hintNow -and -not $hintSaid) {
-        $hintSaid = $true
-        $txt = "Похоже, головы закончились: Пар час стоит на $(Num $par2 2), голов $([math]::Round($journal.Heads)) из $([math]::Round($journal.Plan)). Проверь пробу и переключай на тело."
-        Say $txt
-        try { Post '/api/states/sensor.kolonna_hint' @{ state = $txt.Substring(0, [math]::Min(250, $txt.Length)); attributes = @{ friendly_name = 'Колонна подсказка' } } } catch { }
-    } elseif ($hintSaid -and $faza -ne 'Головы') {
-        $hintSaid = $false
-        try { Post '/api/states/sensor.kolonna_hint' @{ state = 'нет'; attributes = @{ friendly_name = 'Колонна подсказка' } } } catch { }
+
+    # тело → хвосты. Пар 2/3 ниже по колонне: фронт хвостов доходит до него раньше
+    if ($faza -eq 'Тело') {
+        $frac = if ($journal -and $journal.BodyPlan -and $journal.Body -gt 0) { $journal.Body / $journal.BodyPlan } else { $null }
+        if (-not $hintSaid.p90 -and $null -ne $frac -and $frac -ge 0.9) {
+            $hintSaid.p90 = $true
+            $txt = "Тело отобрано на $([math]::Round($frac * 100)) процентов: $([math]::Round($journal.Body)) из $([math]::Round($journal.BodyPlan)). Скоро хвосты, следи за колонной."
+            Say $txt; Set-Hint $txt
+        }
+        $dPar = $null; $d23 = $null
+        $a = Get-BucketAvg 'Par' 10 0;   $b = Get-BucketAvg 'Par' 40 30
+        if ($null -ne $a -and $null -ne $b) { $dPar = $a - $b }
+        $a = Get-BucketAvg 'Par23' 10 0; $b = Get-BucketAvg 'Par23' 40 30
+        if ($null -ne $a -and $null -ne $b) { $d23 = $a - $b }
+        $rise = ($null -ne $dPar -and $dPar -ge $TailsPar) -or ($null -ne $d23 -and $d23 -ge $TailsPar23)
+        # тело в журнал не вписано — решаем по одной температуре
+        $volOk = ($null -eq $frac) -or ($frac -ge 0.8)
+        if (-not $hintSaid.tails -and $rise -and $volOk) {
+            $hintSaid.tails = $true
+            $what = @()
+            if ($null -ne $dPar -and $dPar -ge $TailsPar) { $what += "Пар поднялся на $(Num $dPar 2)" }
+            if ($null -ne $d23 -and $d23 -ge $TailsPar23) { $what += "Пар два третьих на $(Num $d23 2)" }
+            $txt = "Похоже, начинаются хвосты: $($what -join ', ') за полчаса"
+            if ($null -ne $frac) { $txt += ", тела $([math]::Round($journal.Body)) из $([math]::Round($journal.BodyPlan))" }
+            $txt += '. Проверь пробу.'
+            Say $txt -Alarm; Set-Hint $txt
+        }
     }
 
     $parQuiet = $parWatch -and (($now - $lastParAlert).TotalMinutes -ge $ParCooldown)
