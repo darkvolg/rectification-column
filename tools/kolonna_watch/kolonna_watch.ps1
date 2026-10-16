@@ -5,16 +5,16 @@
 # Запускается сам при входе в Windows (ярлык в автозагрузке, окно свёрнуто) и молча
 # ждёт, пока TempMeter начнёт писать лог. Ключ HA лежит рядом в token.txt.
 
-$Version = '1.8.0'
+$Version = '1.9.0'
 
 # ---------- настройки ----------
 $LogDir     = 'C:\Users\Dark\Desktop\колонна\tma1037.jar'
 $HaUrl      = 'http://192.168.0.74:8123'
 
-$RiseFast   = 0.15   # Пар вырос (или упал) за 10 минут, °C
+$RiseFast   = 0.15   # Пар вырос за 10 минут, °C
 $RiseTotal  = 0.25   # Пар ушёл от рабочего уровня, °C
 $WaterHot   = 65     # вода горячая, °C
-$DeltaJump  = 0.4    # перепад Пар − Пар2/3 изменился за 10 минут, °C
+$P23Rise    = 0.3    # Пар 2/3 вырос за 15 минут — «колонна не держит, убавь отбор», °C
 $StallSec   = 120    # лог молчит дольше — тревога
 $StallMax   = 3      # столько раз напомнить про молчащий лог, потом ждать новый погон
 $BaroK      = 0.037  # поправка точки кипения, °C на мм рт. ст.
@@ -311,6 +311,7 @@ $fazaSeen = $null
 $journal = $null; $journalAt = [datetime]::MinValue
 $excelPhaseSeen = $null
 $lastBeat = [datetime]::MinValue
+$driftSaid = $false; $lastP23Say = [datetime]::MinValue
 $settling = $false; $settleFrom = Get-Date; $bodyFrom = Get-Date
 $hintSaid = @{}; $hintPhase = $null   # какие подсказки уже сказаны в текущей фазе
 # после перезапуска не повторять то, что уже висит на странице
@@ -410,8 +411,8 @@ while ($true) {
         $a5 = Get-BucketAvg 'Par' 5 0; $b5 = Get-BucketAvg 'Par' 15 10
         if (($now - $settleFrom).TotalMinutes -ge $SettleMin -and $null -ne $a5 -and $null -ne $b5 -and
             [math]::Abs($a5 - $b5) -le $FlatTol) {
-            $settling = $false
-            $lastParAlert = $now; $lastDeltaAlert = $now
+            $settling = $false; $driftSaid = $false
+            $lastParAlert = $now; $lastP23Say = $now
             Say "Колонна устоялась. Запомнила Пар $(Num $refPar 2). Слежу за хвостами."
         }
     }
@@ -498,27 +499,41 @@ while ($true) {
 
     $parQuiet = $parWatch -and (($now - $lastParAlert).TotalMinutes -ge $ParCooldown)
 
-    # --- Пар: быстрое изменение за 10 минут (с поправкой на давление) ---
+    # Тревожим только за РОСТ Пара. «Пар упал» и «перепад изменился» убраны 16.10:
+    # дёргались на каждую регулировку отбора (убавил отбор — Пар падает, это не беда).
+    # Точка отсчёта после тревоги НЕ переезжает: 16.10 она уехала на 77,86 вместе с
+    # перегретой колонной, и следить дальше было бы не от чего
+
+    # --- Пар: быстрый рост за 10 минут (с поправкой на давление) ---
     if ($parQuiet -and $null -ne $par2 -and $null -ne $par12) {
         $d = $par2 - $par12
         if ($null -ne $p2 -and $null -ne $p12) { $d -= $BaroK * ($p2 - $p12) }
-        if ([math]::Abs($d) -ge $RiseFast) {
-            $word = if ($d -gt 0) { 'вырос' } else { 'упал' }
-            Say "Внимание! Пар $word на $(Num ([math]::Abs($d)) 2) за 10 минут. Сейчас $(Num $par2 2)." -Alarm
+        if ($d -ge $RiseFast) {
+            Say "Внимание! Пар вырос на $(Num $d 2) за 10 минут. Сейчас $(Num $par2 2)." -Alarm
             $lastParAlert = $now; $parQuiet = $false
-            $refPar = $par2; $refP = $p2
         }
     }
 
-    # --- Пар: медленный уход от рабочего уровня ---
-    if ($parQuiet -and $null -ne $par2 -and $null -ne $refPar) {
+    # --- Пар: ушёл вверх от точки отсчёта. Один раз, снова — когда вернётся ---
+    if ($null -ne $par2 -and $null -ne $refPar) {
         $d = $par2 - $refPar
         if ($null -ne $p2 -and $null -ne $refP) { $d -= $BaroK * ($p2 - $refP) }
-        if ([math]::Abs($d) -ge $RiseTotal) {
-            $word = if ($d -gt 0) { 'выше' } else { 'ниже' }
-            Say "Пар ушёл $word рабочего уровня на $(Num ([math]::Abs($d)) 2). Сейчас $(Num $par2 2)." -Alarm
-            $lastParAlert = $now
-            $refPar = $par2; $refP = $p2
+        if ($parQuiet -and -not $driftSaid -and $d -ge $RiseTotal) {
+            Say "Пар ушёл выше рабочего уровня на $(Num $d 2). Сейчас $(Num $par2 2)." -Alarm
+            $lastParAlert = $now; $driftSaid = $true
+        } elseif ($driftSaid -and $d -lt $RiseTotal / 2) {
+            $driftSaid = $false
+        }
+    }
+
+    # --- Пар 2/3 растёт: колонна не держит отбор. Раньше тревоги по Пару: 16.10
+    # Пар 2/3 пошёл вверх в 16:05, а Пар дошёл до тревоги только в 16:35. Не тревога,
+    # одна фраза: убавить отбор — и колонна вернётся
+    if ($parWatch -and ($now - $lastP23Say).TotalMinutes -ge 20) {
+        $a = Get-BucketAvg 'Par23' 5 0; $b = Get-BucketAvg 'Par23' 20 15
+        if ($null -ne $a -and $null -ne $b -and ($a - $b) -ge $P23Rise) {
+            Say "Пар два третьих растёт: плюс $(Num ($a - $b) 2) за 15 минут. Колонна не держит отбор, убавь отбор."
+            $lastP23Say = $now
         }
     }
 
@@ -530,17 +545,6 @@ while ($true) {
         } elseif ($waterHotNow -and $w2 -lt ($WaterHot - 2)) {
             Say "Вода в норме, $(Num $w2 1)."
             $waterHotNow = $false
-        }
-    }
-
-    # --- перепад Пар − Пар2/3 ---
-    $q2 = Avg 'Par23' 2 0; $q12 = Avg 'Par23' 12 10
-    if ($parWatch -and $null -ne $par2 -and $null -ne $q2 -and $null -ne $par12 -and $null -ne $q12 -and
-        ($now - $lastDeltaAlert).TotalMinutes -ge 10) {
-        $dNow = $par2 - $q2; $dOld = $par12 - $q12
-        if ([math]::Abs($dNow - $dOld) -ge $DeltaJump) {
-            Say "Перепад по колонне изменился: был $(Num $dOld 1), стал $(Num $dNow 1)." -Alarm
-            $lastDeltaAlert = $now
         }
     }
 
