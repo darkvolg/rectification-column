@@ -5,7 +5,7 @@
 # Запускается сам при входе в Windows (ярлык в автозагрузке, окно свёрнуто) и молча
 # ждёт, пока TempMeter начнёт писать лог. Ключ HA лежит рядом в token.txt.
 
-$Version = '1.9.0'
+$Version = '1.9.1'
 
 # ---------- настройки ----------
 $LogDir     = 'C:\Users\Dark\Desktop\колонна\tma1037.jar'
@@ -499,6 +499,9 @@ while ($true) {
 
     $parQuiet = $parWatch -and (($now - $lastParAlert).TotalMinutes -ge $ParCooldown)
 
+    # Рост Пара — одна фраза, без повтора до «Принял» (16.10: на мёде к концу тела
+    # колонна проседала каждые 20 минут, повторы только дёргали). С повтором
+    # остаются горячая вода, молчащий лог, нет связи с ноутом и пороги.
     # Тревожим только за РОСТ Пара. «Пар упал» и «перепад изменился» убраны 16.10:
     # дёргались на каждую регулировку отбора (убавил отбор — Пар падает, это не беда).
     # Точка отсчёта после тревоги НЕ переезжает: 16.10 она уехала на 77,86 вместе с
@@ -508,8 +511,9 @@ while ($true) {
     if ($parQuiet -and $null -ne $par2 -and $null -ne $par12) {
         $d = $par2 - $par12
         if ($null -ne $p2 -and $null -ne $p12) { $d -= $BaroK * ($p2 - $p12) }
-        if ($d -ge $RiseFast) {
-            Say "Внимание! Пар вырос на $(Num $d 2) за 10 минут. Сейчас $(Num $par2 2)." -Alarm
+        # сразу после «Пар 2/3 растёт» — молчим: это одно и то же событие
+        if ($d -ge $RiseFast -and ($now - $lastP23Say).TotalMinutes -ge 15) {
+            Say "Внимание! Пар вырос на $(Num $d 2) за 10 минут. Сейчас $(Num $par2 2)."
             $lastParAlert = $now; $parQuiet = $false
         }
     }
@@ -519,7 +523,7 @@ while ($true) {
         $d = $par2 - $refPar
         if ($null -ne $p2 -and $null -ne $refP) { $d -= $BaroK * ($p2 - $refP) }
         if ($parQuiet -and -not $driftSaid -and $d -ge $RiseTotal) {
-            Say "Пар ушёл выше рабочего уровня на $(Num $d 2). Сейчас $(Num $par2 2)." -Alarm
+            Say "Пар ушёл выше рабочего уровня на $(Num $d 2). Сейчас $(Num $par2 2)."
             $lastParAlert = $now; $driftSaid = $true
         } elseif ($driftSaid -and $d -lt $RiseTotal / 2) {
             $driftSaid = $false
