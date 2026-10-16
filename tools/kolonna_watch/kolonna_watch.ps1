@@ -5,7 +5,7 @@
 # Запускается сам при входе в Windows (ярлык в автозагрузке, окно свёрнуто) и молча
 # ждёт, пока TempMeter начнёт писать лог. Ключ HA лежит рядом в token.txt.
 
-$Version = '1.4.1'
+$Version = '1.5.0'
 
 # ---------- настройки ----------
 $LogDir     = 'C:\Users\Dark\Desktop\колонна\tma1037.jar'
@@ -19,6 +19,9 @@ $StallSec   = 120    # лог молчит дольше — тревога
 $StallMax   = 3      # столько раз напомнить про молчащий лог, потом ждать новый погон
 $BaroK      = 0.037  # поправка точки кипения, °C на мм рт. ст.
 $ParCooldown = 5     # минут тишины между тревогами по Пару
+$JournalDir = 'C:\Users\Dark\Desktop\колонна'   # журнал ректификации .xlsm (самый свежий)
+$FlatMin    = 60     # подсказка «пошло тело»: Пар стоит столько минут...
+$FlatTol    = 0.03   # ...меняясь не больше чем на столько °C (с поправкой на давление)
 $PushSec    = 5      # как часто отдавать показания в HA (по ним HA проверяет пороги)
 $SmoothMin  = 0.5    # в HA уходит среднее за столько минут — график без зубцов
 # --------------------------------
@@ -150,6 +153,63 @@ function Read-New {
     while ($samples.Count -gt 0 -and $samples[0].T -lt $old) { $samples.RemoveAt(0) }
 }
 
+# ---------- журнал ректификации (Excel) ----------
+# Норма голов = объём СС (C5) × крепость (C6) × % голов (C10), отобрано — максимум
+# столбца H «Отбор мл» (нарастающий) по строкам с фазой «Головы». Видно только то,
+# что Excel сохранил на диск (Ctrl+S или автосохранение раз в 10 минут)
+Add-Type -AssemblyName System.IO.Compression
+
+function Read-Journal {
+    $f = Get-ChildItem $JournalDir -Recurse -Filter '*.xlsm' -ErrorAction SilentlyContinue |
+         Where-Object { $_.Name -notlike '~$*' -and $_.LastWriteTime -gt (Get-Date).AddHours(-24) } |
+         Sort-Object LastWriteTime | Select-Object -Last 1
+    if (-not $f) { return $null }
+    $ms = New-Object IO.MemoryStream
+    $fs = [IO.File]::Open($f.FullName, 'Open', 'Read', 'ReadWrite,Delete')
+    try { $fs.CopyTo($ms) } finally { $fs.Close() }
+    $ms.Position = 0
+    $zip = New-Object IO.Compression.ZipArchive($ms)
+    try {
+        $xml = {
+            param($name)
+            $e = $zip.GetEntry($name); if (-not $e) { return $null }
+            $r = New-Object IO.StreamReader($e.Open(), [Text.Encoding]::UTF8)
+            try { [xml]$r.ReadToEnd() } finally { $r.Close() }
+        }
+        $ss = @()
+        $sx = & $xml 'xl/sharedStrings.xml'
+        if ($sx) { foreach ($si in $sx.sst.si) { $ss += $si.InnerText } }
+        $rel = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
+        $sheet = (& $xml 'xl/workbook.xml').workbook.sheets.sheet | Where-Object { $_.name -eq 'Журнал процесса' }
+        if (-not $sheet) { return $null }
+        $rid = $sheet.GetAttribute('id', $rel)
+        $target = ((& $xml 'xl/_rels/workbook.xml.rels').Relationships.Relationship | Where-Object { $_.Id -eq $rid }).Target
+        $ws = & $xml ('xl/' + $target.TrimStart('/').Replace('xl/', ''))
+        $cell = @{}
+        foreach ($row in $ws.worksheet.sheetData.row) {
+            foreach ($c in $row.c) {
+                if ($null -eq $c.v -and $c.t -ne 'inlineStr') { continue }
+                $cell[$c.r] = switch ($c.t) {
+                    's'         { $ss[[int]$c.v] }
+                    'inlineStr' { $c.is.InnerText }
+                    default     { $c.v }
+                }
+            }
+        }
+        $num = { param($a) $v = 0.0; if ($cell[$a] -and [double]::TryParse($cell[$a], [Globalization.NumberStyles]::Float, $Inv, [ref]$v)) { $v } else { $null } }
+        $plan = $null
+        $vol = & $num 'C5'; $krep = & $num 'C6'; $pct = & $num 'C10'
+        if ($vol -and $krep -and $pct) { $plan = $vol * $krep * $pct }
+        $heads = 0.0
+        for ($i = 14; $i -le 80; $i++) {
+            if ("$($cell["C$i"])".Trim() -eq 'Головы') {
+                $h = & $num "H$i"; if ($null -ne $h -and $h -gt $heads) { $heads = $h }
+            }
+        }
+        return [pscustomobject]@{ Plan = $plan; Heads = $heads; Name = $f.Name; Time = $f.LastWriteTime }
+    } catch { return $null } finally { $zip.Dispose() }
+}
+
 # среднее поля за окно [now-from, now-to] минут
 function Avg($field, $from, $to) {
     $now = Get-Date; $a = $now.AddMinutes(-$from); $b = $now.AddMinutes(-$to)
@@ -173,6 +233,11 @@ $waterHotNow = $false
 $lastPush = [datetime]::MinValue
 $btnSeen = Get-HaState 'input_button.kolonna_ref'
 $fazaSeen = $null
+$mins = New-Object Collections.Generic.List[object]   # средний Пар по минутам, для подсказки
+$lastMinute = -1
+$journal = $null; $journalAt = [datetime]::MinValue
+$hintSaid = $false
+try { Post '/api/states/sensor.kolonna_hint' @{ state = 'нет'; attributes = @{ friendly_name = 'Колонна подсказка' } } } catch { }
 
 while ($true) {
     $lastT = if ($samples.Count) { $samples[$samples.Count - 1].T } else { $null }
@@ -251,6 +316,48 @@ while ($true) {
     # уход Пара и перепад — только на теле: на прогреве и головах Пар гуляет
     # законно. Если HA не ответил про фазу — следим, как раньше
     $parWatch = (-not $faza) -or ($faza -eq 'Тело')
+
+    # --- подсказка «похоже, пошло тело»: Пар час стоит И голов не меньше нормы ---
+    # Одной температуры мало: 16.10 Пар стоял час и в 09:00–10:15, при 100–180 мл голов
+    if ($now.Minute -ne $lastMinute) {
+        $lastMinute = $now.Minute
+        $a1 = Avg 'Par' 1 0; $pp1 = Avg 'P' 1 0
+        if ($null -ne $a1 -and $null -ne $pp1) {
+            $mins.Add([pscustomobject]@{ T = $now; V = $a1 - $BaroK * ($pp1 - 760) })
+        }
+        while ($mins.Count -gt 0 -and $mins[0].T -lt $now.AddMinutes(-($FlatMin + 10))) { $mins.RemoveAt(0) }
+    }
+    if (($now - $journalAt).TotalMinutes -ge 2) {
+        $journalAt = $now
+        $j = Read-Journal
+        if ($j) {
+            $journal = $j
+            try {
+                Post '/api/states/sensor.kolonna_golovy' @{ state = [math]::Round($j.Heads); attributes = @{
+                    friendly_name = 'Колонна головы отобрано'; unit_of_measurement = 'мл'
+                    plan = $(if ($j.Plan) { [math]::Round($j.Plan) } else { $null }); file = $j.Name
+                    saved = $j.Time.ToString('HH:mm') } }
+            } catch { }
+        }
+    }
+    $flat = $false
+    if ($mins.Count -gt 0 -and $mins[0].T -le $now.AddMinutes(-$FlatMin)) {
+        $old = @($mins | Where-Object { $_.T -le $now.AddMinutes(-($FlatMin - 10)) } | ForEach-Object { $_.V })
+        $new = @($mins | Where-Object { $_.T -ge $now.AddMinutes(-10) } | ForEach-Object { $_.V })
+        if ($old.Count -ge 3 -and $new.Count -ge 3) {
+            $flat = [math]::Abs(($new | Measure-Object -Average).Average - ($old | Measure-Object -Average).Average) -le $FlatTol
+        }
+    }
+    $hintNow = $faza -eq 'Головы' -and $flat -and $journal -and $journal.Plan -and $journal.Heads -ge $journal.Plan
+    if ($hintNow -and -not $hintSaid) {
+        $hintSaid = $true
+        $txt = "Похоже, головы закончились: Пар час стоит на $(Num $par2 2), голов $([math]::Round($journal.Heads)) из $([math]::Round($journal.Plan)). Проверь пробу и переключай на тело."
+        Say $txt
+        try { Post '/api/states/sensor.kolonna_hint' @{ state = $txt.Substring(0, [math]::Min(250, $txt.Length)); attributes = @{ friendly_name = 'Колонна подсказка' } } } catch { }
+    } elseif ($hintSaid -and $faza -ne 'Головы') {
+        $hintSaid = $false
+        try { Post '/api/states/sensor.kolonna_hint' @{ state = 'нет'; attributes = @{ friendly_name = 'Колонна подсказка' } } } catch { }
+    }
 
     $parQuiet = $parWatch -and (($now - $lastParAlert).TotalMinutes -ge $ParCooldown)
 

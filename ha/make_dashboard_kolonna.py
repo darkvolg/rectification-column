@@ -94,12 +94,23 @@ CONFIG = {
                       "tap_action": {"action": "perform-action", "perform_action": "input_button.press",
                                      "target": {"entity_id": "input_button.kolonna_ack"}}},
                  ]}},
+                # подсказка «похоже, пошло тело»: Пар час стоит и голов не меньше нормы
+                {"type": "conditional", "grid_options": {"columns": "full"},
+                 "conditions": [{"condition": "state", "entity": "sensor.kolonna_hint",
+                                 "state_not": ["нет", "unknown", "unavailable"]}],
+                 "card": {"type": "markdown", "content":
+                          '<h3><font color="#43a047">💡 {{ states("sensor.kolonna_hint") }}</font></h3>'}},
                 {"type": "entities", "grid_options": {"columns": "full"},
                  "title": "Погон",
                  "entities": [
                      # на «Тело» программа сама запоминает точку отсчёта и начинает
                      # следить за уходом Пара; на прогреве и головах не дёргает
                      {"entity": "input_select.kolonna_faza", "name": "Фаза"},
+                     {"entity": "sensor.kolonna_golovy", "name": "Голов отобрано (из журнала)"},
+                     {"type": "attribute", "entity": "sensor.kolonna_golovy", "attribute": "plan",
+                      "name": "Норма голов", "suffix": " мл"},
+                     {"type": "attribute", "entity": "sensor.kolonna_golovy", "attribute": "saved",
+                      "name": "Журнал сохранён в"},
                      {"entity": "sensor.kolonna_par_ref", "name": "Запомнен Пар"},
                      # подсказок по наведению в HA нет — пояснение живёт в окне подтверждения
                      {"type": "button", "name": "Запомнить сейчас (начал тело)", "icon": "mdi:target",
@@ -109,6 +120,11 @@ CONFIG = {
                                      "confirmation": {"text": "Запомнить Пар сейчас? Если Пар уйдёт "
                                                               "на 0,25 от этой точки — Алиса скажет. "
                                                               "Жми, когда перешёл на тело."}}},
+                     {"type": "button", "name": "Весь погон — История HA", "icon": "mdi:chart-timeline-variant",
+                      "action_name": "Открыть",
+                      "tap_action": {"action": "navigate", "navigation_path":
+                                     "/history?entity_id=sensor.kolonna_par%2Csensor.kolonna_par23"
+                                     "%2Csensor.kolonna_voda%2Csensor.kolonna_davl"}},
                  ]},
             ]},
             {"type": "grid", "cards": [
