@@ -5,7 +5,7 @@
 # Запускается сам при входе в Windows (ярлык в автозагрузке, окно свёрнуто) и молча
 # ждёт, пока TempMeter начнёт писать лог. Ключ HA лежит рядом в token.txt.
 
-$Version = '2.1.0'
+$Version = '2.1.1'
 
 # ---------- настройки ----------
 $LogDir     = 'C:\Users\Dark\Desktop\колонна\tma1037.jar'
@@ -68,6 +68,13 @@ function Minutes([int]$n) {
 function Post($path, $obj) {
     $body = [Text.Encoding]::UTF8.GetBytes(($obj | ConvertTo-Json -Compress -Depth 4))
     Invoke-RestMethod -Uri "$HaUrl$path" -Method Post -Headers $H -ContentType 'application/json; charset=utf-8' -Body $body -TimeoutSec 10 | Out-Null
+}
+
+function Get-HaAttr($id, $attr) {
+    try {
+        $r = Invoke-WebRequest -Uri "$HaUrl/api/states/$id" -Headers $H -TimeoutSec 5 -UseBasicParsing
+        ([Text.Encoding]::UTF8.GetString($r.RawContentStream.ToArray()) | ConvertFrom-Json).attributes.$attr
+    } catch { $null }
 }
 
 # ответ читаем байтами как UTF-8: PowerShell 5.1 без charset в ответе берёт
@@ -314,7 +321,7 @@ $lastPush = [datetime]::MinValue
 $btnSeen = Get-HaState 'input_button.kolonna_ref'
 $fazaSeen = $null
 $journal = $null; $journalAt = [datetime]::MinValue
-$excelPhaseSeen = $null
+$excelPhaseSeen = $null; $journalFileSeen = $null
 $lastBeat = [datetime]::MinValue
 $driftSaid = $false; $lastP23Say = [datetime]::MinValue
 $settling = $false; $settleFrom = Get-Date; $bodyFrom = Get-Date
@@ -448,10 +455,17 @@ while ($true) {
             $journal = $j
             # фаза из журнала: фаза последней строки с данными. Только вперёд
             # (Головы → Тело → Хвосты), чтобы Excel не перебил выбор на странице
+            # Новый журнал (другой файл, чем в прошлый раз) — новый погон: фазу берём
+            # как есть, и назад тоже (вчерашнее «Тело» → сегодняшний «Прогрев»).
+            # Прошлое имя файла HA помнит в атрибуте file у sensor.kolonna_golovy
+            if ($null -eq $journalFileSeen) { $journalFileSeen = Get-HaAttr 'sensor.kolonna_golovy' 'file' }
+            $newJournal = $journalFileSeen -and $j.Name -ne $journalFileSeen
+            $journalFileSeen = $j.Name
+            if ($newJournal) { $excelPhaseSeen = $null; Note "Новый журнал: $($j.Name)" }
             if ($j.LastPhase -and $PhaseOrder.ContainsKey($j.LastPhase) -and $j.LastPhase -ne $excelPhaseSeen) {
                 $excelPhaseSeen = $j.LastPhase
                 $haFaza = Get-HaState 'input_select.kolonna_faza'   # не $cur: это путь к логу
-                if (-not $haFaza -or -not $PhaseOrder.ContainsKey($haFaza) -or $PhaseOrder[$j.LastPhase] -gt $PhaseOrder[$haFaza]) {
+                if ($newJournal -or -not $haFaza -or -not $PhaseOrder.ContainsKey($haFaza) -or $PhaseOrder[$j.LastPhase] -gt $PhaseOrder[$haFaza]) {
                     try {
                         Post '/api/services/input_select/select_option' @{ entity_id = 'input_select.kolonna_faza'; option = $j.LastPhase }
                         Note "Фаза из журнала: $($j.LastPhase)"
