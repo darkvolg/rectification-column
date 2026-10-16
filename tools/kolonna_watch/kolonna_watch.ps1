@@ -5,7 +5,7 @@
 # Запускается сам при входе в Windows (ярлык в автозагрузке, окно свёрнуто) и молча
 # ждёт, пока TempMeter начнёт писать лог. Ключ HA лежит рядом в token.txt.
 
-$Version = '1.2.1'
+$Version = '1.3.0'
 
 # ---------- настройки ----------
 $LogDir     = 'C:\Users\Dark\Desktop\колонна\tma1037.jar'
@@ -20,6 +20,7 @@ $StallMax   = 3      # столько раз напомнить про молч�
 $BaroK      = 0.037  # поправка точки кипения, °C на мм рт. ст.
 $ParCooldown = 5     # минут тишины между тревогами по Пару
 $PushSec    = 5      # как часто отдавать показания в HA (по ним HA проверяет пороги)
+$SmoothMin  = 0.5    # в HA уходит среднее за столько минут — график без зубцов
 # --------------------------------
 
 $Dir   = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -272,9 +273,17 @@ while ($true) {
     }
 
     # --- показания в HA как датчики ---
+    # среднее за 30 с: датчик дрожит на младшем бите (77,25 ↔ 77,31), на графике
+    # это зубцы. Тревоги программы считают по своим средним, их это не касается
     if (($now - $lastPush).TotalSeconds -ge $PushSec) {
         $lastPush = $now
-        Push-Sensors $newest $refPar
+        $smooth = [pscustomobject]@{}
+        foreach ($f in 'Par', 'Par23', 'Water', 'P') {
+            $v = Avg $f $SmoothMin 0
+            if ($null -eq $v) { $v = $newest.$f }
+            $smooth | Add-Member -NotePropertyName $f -NotePropertyValue $v
+        }
+        Push-Sensors $smooth $refPar
     }
 
     Start-Sleep -Seconds 5
