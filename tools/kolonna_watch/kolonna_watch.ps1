@@ -5,7 +5,7 @@
 # Запускается сам при входе в Windows (ярлык в автозагрузке, окно свёрнуто) и молча
 # ждёт, пока TempMeter начнёт писать лог. Ключ HA лежит рядом в token.txt.
 
-$Version = '2.1.1'
+$Version = '2.1.2'
 
 # ---------- настройки ----------
 $LogDir     = 'C:\Users\Dark\Desktop\колонна\tma1037.jar'
@@ -365,6 +365,13 @@ while ($true) {
 
     # --- лог молчит ---
     if ($silent -gt $StallSec) {
+        # колонна уже остыла (Пар < 60) и TempMeter закрыли — это конец погона,
+        # а не обрыв связи: одна спокойная фраза, без тревоги с повтором
+        if ($newest -and $null -ne $newest.Par -and $newest.Par -lt 60) {
+            Say 'TempMeter закрыт, колонна остыла. Погон закончен, жду следующего.'
+            $active = $false; $stalled = $false; $stallCount = 0
+            Start-Sleep -Seconds 5; continue
+        }
         $due = (-not $stalled) -or (($now - $lastStallSay).TotalMinutes -ge 10)
         if ($due) {
             $stalled = $true; $stallCount++; $lastStallSay = $now
