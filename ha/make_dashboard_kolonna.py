@@ -161,6 +161,7 @@ CONFIG = {
                                                               "буду следить за хвостами от него."}}}},
                      {"entity": "input_boolean.kolonna_voice_mini", "name": "Голос — Станция Мини"},
                      {"entity": "input_boolean.kolonna_voice_lite", "name": "Голос — Яндекс Лайт"},
+                     {"entity": "input_number.kolonna_volume", "name": "Громкость голоса"},
                  ]},
             ]},
             {"type": "grid", "cards": [

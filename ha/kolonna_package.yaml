@@ -48,6 +48,16 @@ kolonna_pkg:
       icon: mdi:check-bold
 
   input_number:
+    # громкость фраз колонны; после фразы станция возвращается к своей громкости.
+    # Без initial — HA помнит выставленное
+    kolonna_volume:
+      name: "Колонна — громкость голоса"
+      icon: mdi:volume-high
+      min: 10
+      max: 100
+      step: 5
+      mode: slider
+      unit_of_measurement: "%"
     kolonna_par_max:
       name: "Порог Пар"
       icon: mdi:thermometer-high
@@ -97,7 +107,7 @@ kolonna_pkg:
             - condition: template
               value_template: "{{ (voice | default(true) | bool) and st | length > 0 }}"
           then:
-            # на полную громкость, чтобы не прослушать, потом вернуть как было.
+            # на громкости с ползунка (по умолчанию 100%), потом вернуть как было.
             # Свой возврат: встроенный extra.volume_level у yandex_station ждёт
             # состояние станции по локальной сети и здесь громкость не возвращал
             - variables:
@@ -113,7 +123,7 @@ kolonna_pkg:
               target:
                 entity_id: "{{ st }}"
               data:
-                volume_level: 1
+                volume_level: "{{ (states('input_number.kolonna_volume') | float(100)) / 100 }}"
             - action: media_player.play_media
               continue_on_error: true
               target:
