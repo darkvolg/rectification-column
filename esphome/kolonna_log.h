@@ -35,8 +35,10 @@
 // и не тянет за собой пол-Arduino.
 //
 // РАСПИНОВКА КАРТЫ (модуль microSD-SPI), верхний ряд платы:
-//   MOSI → GPIO13     SCK  → GPIO14
-//   MISO → GPIO27     CS   → GPIO26
+//   MOSI → GPIO14     CLK  → GPIO27
+//   MISO → GPIO26     CS   → GPIO25
+//   (01.11.2026: выводы приведены к тому, как плата спаяна вживую.
+//    SPI у ESP32 идёт через матрицу, любые GPIO равноправны.)
 //   VCC  → 5 В (у модулей со стабилизатором) либо 3.3 В
 //   GND  → GND
 // Пины выбраны из свободных: 4, 16-19, 21-23 заняты датчиками, сиреной
@@ -68,10 +70,10 @@ namespace kolonna_log {
 
 static const char *const TAG = "kolonna_log";
 
-static const gpio_num_t SD_MOSI = GPIO_NUM_13;
-static const gpio_num_t SD_SCK  = GPIO_NUM_14;
-static const gpio_num_t SD_MISO = GPIO_NUM_27;
-static const gpio_num_t SD_CS   = GPIO_NUM_26;
+static const gpio_num_t SD_MOSI = GPIO_NUM_14;
+static const gpio_num_t SD_SCK  = GPIO_NUM_27;
+static const gpio_num_t SD_MISO = GPIO_NUM_26;
+static const gpio_num_t SD_CS   = GPIO_NUM_25;
 static const char *const MOUNT = "/sd";
 
 // Глубина кольца в памяти. Старое затирается новым: подстраховка — это

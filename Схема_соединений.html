@@ -187,7 +187,7 @@
         <rect x="339" y="75" width="96" height="38" rx="2" fill="#232323"/>
         <g fill="#d8b23a"><rect x="296" y="141" width="6" height="6"/><rect x="330" y="141" width="6" height="6"/><rect x="364" y="141" width="6" height="6"/><rect x="398" y="141" width="6" height="6"/><rect x="432" y="141" width="6" height="6"/><rect x="466" y="141" width="6" height="6"/></g>
         <g font-size="8.5" font-weight="700" fill="#dcecdc" text-anchor="middle"><text x="299" y="126">3V3</text><text x="333" y="126">CS</text><text x="367" y="126">MOSI</text><text x="401" y="126">CLK</text><text x="435" y="126">MISO</text><text x="469" y="126">GND</text></g>
-        <g font-size="7.5" fill="#f0c64a" text-anchor="middle"><text x="299" y="136">+3,3 В</text><text x="333" y="136">D26</text><text x="367" y="136">D13</text><text x="401" y="136">D14</text><text x="435" y="136">D27</text><text x="469" y="136">GND</text></g>
+        <g font-size="7.5" fill="#f0c64a" text-anchor="middle"><text x="299" y="136">+3,3 В</text><text x="333" y="136">D25</text><text x="367" y="136">D14</text><text x="401" y="136">D27</text><text x="435" y="136">D26</text><text x="469" y="136">GND</text></g>
 
         <!-- плата ESP32 -->
         <rect x="200" y="210" width="510" height="180" rx="4" fill="#1f4d2e" stroke="#0f2a19" stroke-width="2"/>
@@ -264,10 +264,10 @@
         <g class="bs" data-s="7" fill="none" stroke-width="3.2" stroke-linejoin="round">
           <path d="M469 148V156H920V420" stroke="#1b1b1b"/>
           <path d="M299 148V164H95V472" stroke="#fb8c00"/>
-          <path d="M333 148V170H419V210" stroke="#c2185b"/>
-          <path d="M367 148V178H283V210" stroke="#1e63d0"/>
-          <path d="M401 148V186H351V210" stroke="#e6b800"/>
-          <path d="M435 148V194H385V210" stroke="#2e9d4f"/>
+          <path d="M333 148V170H453V210" stroke="#c2185b"/>
+          <path d="M367 148V178H351V210" stroke="#1e63d0"/>
+          <path d="M401 148V186H385V210" stroke="#e6b800"/>
+          <path d="M435 148V194H419V210" stroke="#2e9d4f"/>
           <path d="M555 390V400H726V288H750" stroke="#2e9d4f"/><path d="M657 390V408H738V308H750" stroke="#e6b800"/>
           <path d="M890 472V300H880" stroke="#fb8c00"/><path d="M928 420V320H880" stroke="#1b1b1b"/>
         </g>
@@ -443,7 +443,7 @@
   // ───── Плата ESP32 ─────
   comp('esp', 'mcu', 655, 250, 190, 454, 'ESP32 DevKit', { ty: 22, full: 'Плата ESP32' });
   column('esp', 'L', 290, ['EN', 'VP 36', 'VN 39', '34', '35', '32', '33', '25', '26', '27', '14', '12', '13', 'GND', 'VIN'],
-    ['32', '26', '27', '14', '13', 'VIN']);
+    ['32', '25', '26', '27', '14', 'VIN']);
   column('esp', 'R', 290, ['23', '22', 'TX0', 'RX0', '21', '19', '18', '5', 'TX2 17', 'RX2 16', '4', '2', '15', 'GND ', '3V3'],
     ['23', '22', '21', '19', 'TX2 17', 'RX2 16', '4', 'GND ', '3V3']);
   NAME['esp.GND '] = 'Плата ESP32, GND (правый ряд)';
@@ -454,9 +454,9 @@
   comp('btn', 'pwr', 400, 392, 140, 56, 'Кнопка на крышке');
   pin('btn', 'a', 'R', 420, ''); pin('btn', 'b', 'L', 420, '');
   NAME['btn.a'] = 'Кнопка, первый контакт'; NAME['btn.b'] = 'Кнопка, второй контакт';
-  comp('sd', 'mod', 400, 480, 140, 140, 'microSD', { ty: 106, full: 'Модуль microSD' });
-  pin('sd', 'CS', 'R', 498); pin('sd', 'MISO', 'R', 524); pin('sd', 'CLK', 'R', 550); pin('sd', 'MOSI', 'R', 602);
-  pin('sd', '3V3', 'L', 511); pin('sd', 'GND', 'L', 563);
+  comp('sd', 'mod', 400, 450, 140, 150, 'microSD', { ty: 120, full: 'Модуль microSD' });
+  pin('sd', 'CS', 'R', 472); pin('sd', 'MISO', 'R', 498); pin('sd', 'CLK', 'R', 524); pin('sd', 'MOSI', 'R', 550);
+  pin('sd', '3V3', 'L', 490); pin('sd', 'GND', 'L', 570);
 
   // ───── Сирена ─────
   res('R1', 970, 146, '100 Ом');
@@ -516,10 +516,10 @@
   wire(GND, 'tv.mv', 'psu.m', null, 1);
 
   step = 'Шаг 2. Карта microSD и кнопка';
-  wire(PNK, 'esp.26', 'sd.CS');
-  wire(GRN, 'esp.27', 'sd.MISO');
-  wire(YEL, 'esp.14', 'sd.CLK');
-  wire(BLU, 'esp.13', 'sd.MOSI');
+  wire(PNK, 'esp.25', 'sd.CS');
+  wire(GRN, 'esp.26', 'sd.MISO');
+  wire(YEL, 'esp.27', 'sd.CLK');
+  wire(BLU, 'esp.14', 'sd.MOSI');
   wire(V33, 'sd.3V3', 'b3.sd', ['x', 370, 'y', 850]);
   wire(GND, 'sd.GND', 'bg.sd', ['x', 355, 'y', 866]);
   wire(PUR, 'esp.32', 'btn.a');
@@ -719,7 +719,7 @@
   // ноги ESP32: верхний и нижний ряд, шаг 34
   var top = ['VIN', 'GND', 'D13', 'D12', 'D14', 'D27', 'D26', 'D25', 'D33', 'D32', 'D35', 'D34', 'VN', 'VP', 'EN'];
   var bot = ['3V3', 'GND', 'D15', 'D2', 'D4', 'RX2', 'TX2', 'D5', 'D18', 'D19', 'D21', 'RX0', 'TX0', 'D22', 'D23'];
-  var usedTop = ['VIN', 'D13', 'D14', 'D27', 'D26', 'D32'], usedBot = ['3V3', 'GND', 'D4', 'RX2', 'TX2', 'D19', 'D21', 'D22', 'D23'];
+  var usedTop = ['VIN', 'D14', 'D27', 'D26', 'D25', 'D32'], usedBot = ['3V3', 'GND', 'D4', 'RX2', 'TX2', 'D19', 'D21', 'D22', 'D23'];
   var p = '';
   top.forEach(function (n, i) {
     var u = usedTop.indexOf(n) >= 0, x = 215 + i * 34;
@@ -795,10 +795,10 @@
     ] },
     { t: 'Шаг 8. Карта microSD и барометр', c: 'Питание обоих модулей — 3,3 В. Ни один провод карты не идёт вертикально вниз: порядок контактов модуля не совпадает с порядком ног ESP32. Жёлтая подпись под контактом — куда он идёт.', i: [
       [95, 300, 'Оранжевый: контакт 3V3 карты — влево, вниз по левому краю, в обход ESP32, на провод +3,3 В.'],
-      [419, 204, 'Малиновый: контакт CS — вправо, мимо четырёх ног, вниз на D26 (верхний ряд, седьмая слева).'],
-      [283, 204, 'Синий: контакт MOSI — влево, вниз на D13 (верхний ряд, третья слева).'],
-      [351, 204, 'Жёлтый: контакт CLK — влево, вниз на D14 (верхний ряд, пятая слева).'],
-      [385, 204, 'Зелёный: контакт MISO — влево, вниз на D27 (верхний ряд, шестая слева).'],
+      [453, 204, 'Малиновый: контакт CS — вправо, мимо четырёх ног, вниз на D25 (верхний ряд, восьмая слева).'],
+      [351, 204, 'Синий: контакт MOSI — чуть влево, вниз на D14 (верхний ряд, пятая слева).'],
+      [385, 204, 'Жёлтый: контакт CLK — чуть влево, вниз на D27 (шестая слева).'],
+      [419, 204, 'Зелёный: контакт MISO — чуть влево, вниз на D26 (седьмая слева).'],
       [920, 300, 'Чёрный: контакт GND — вправо, вниз по правому краю, на жилу GND.'],
       [726, 344, 'Нога D21 — под платой вправо и вверх к контакту SDA барометра.'],
       [738, 368, 'Нога D22 — к контакту SCL барометра.'],
