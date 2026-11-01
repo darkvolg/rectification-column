@@ -182,12 +182,12 @@
         <rect x="56" y="70" width="888" height="562" fill="url(#bholes)"/>
 
         <!-- карта microSD -->
-        <text x="387" y="88" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1c2321">Модуль microSD</text>
-        <rect x="282" y="92" width="210" height="78" rx="2" fill="#2f5d2f" stroke="#1a3a1a" stroke-width="1.3"/>
-        <rect x="339" y="97" width="96" height="38" rx="2" fill="#232323"/>
-        <g fill="#d8b23a"><rect x="296" y="163" width="6" height="6"/><rect x="330" y="163" width="6" height="6"/><rect x="364" y="163" width="6" height="6"/><rect x="398" y="163" width="6" height="6"/><rect x="432" y="163" width="6" height="6"/><rect x="466" y="163" width="6" height="6"/></g>
-        <g font-size="8.5" font-weight="700" fill="#dcecdc" text-anchor="middle"><text x="299" y="148">3V3</text><text x="333" y="148">CS</text><text x="367" y="148">MOSI</text><text x="401" y="148">CLK</text><text x="435" y="148">MISO</text><text x="469" y="148">GND</text></g>
-        <g font-size="7.5" fill="#f0c64a" text-anchor="middle"><text x="299" y="158">+3,3 В</text><text x="333" y="158">D26</text><text x="367" y="158">D13</text><text x="401" y="158">D14</text><text x="435" y="158">D27</text><text x="469" y="158">GND</text></g>
+        <text x="387" y="66" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1c2321">Модуль microSD</text>
+        <rect x="282" y="70" width="210" height="78" rx="2" fill="#2f5d2f" stroke="#1a3a1a" stroke-width="1.3"/>
+        <rect x="339" y="75" width="96" height="38" rx="2" fill="#232323"/>
+        <g fill="#d8b23a"><rect x="296" y="141" width="6" height="6"/><rect x="330" y="141" width="6" height="6"/><rect x="364" y="141" width="6" height="6"/><rect x="398" y="141" width="6" height="6"/><rect x="432" y="141" width="6" height="6"/><rect x="466" y="141" width="6" height="6"/></g>
+        <g font-size="8.5" font-weight="700" fill="#dcecdc" text-anchor="middle"><text x="299" y="126">3V3</text><text x="333" y="126">CS</text><text x="367" y="126">MOSI</text><text x="401" y="126">CLK</text><text x="435" y="126">MISO</text><text x="469" y="126">GND</text></g>
+        <g font-size="7.5" fill="#f0c64a" text-anchor="middle"><text x="299" y="136">+3,3 В</text><text x="333" y="136">D26</text><text x="367" y="136">D13</text><text x="401" y="136">D14</text><text x="435" y="136">D27</text><text x="469" y="136">GND</text></g>
 
         <!-- плата ESP32 -->
         <rect x="200" y="210" width="510" height="180" rx="4" fill="#1f4d2e" stroke="#0f2a19" stroke-width="2"/>
@@ -262,8 +262,12 @@
         </g>
         <!-- шаг 8: карта и барометр -->
         <g class="bs" data-s="7" fill="none" stroke-width="3.2" stroke-linejoin="round">
-          <path d="M283 210V185" stroke="#1e63d0"/><path d="M351 210V185" stroke="#e6b800"/><path d="M385 210V185" stroke="#2e9d4f"/><path d="M419 210V185" stroke="#c2185b"/>
-          <path d="M95 472V130H255" stroke="#fb8c00"/><path d="M115 420V150H255" stroke="#1b1b1b"/>
+          <path d="M469 148V156H920V420" stroke="#1b1b1b"/>
+          <path d="M299 148V164H95V472" stroke="#fb8c00"/>
+          <path d="M333 148V170H419V210" stroke="#c2185b"/>
+          <path d="M367 148V178H283V210" stroke="#1e63d0"/>
+          <path d="M401 148V186H351V210" stroke="#e6b800"/>
+          <path d="M435 148V194H385V210" stroke="#2e9d4f"/>
           <path d="M555 390V400H726V288H750" stroke="#2e9d4f"/><path d="M657 390V408H738V308H750" stroke="#e6b800"/>
           <path d="M890 472V300H880" stroke="#fb8c00"/><path d="M928 420V320H880" stroke="#1b1b1b"/>
         </g>
@@ -790,12 +794,12 @@
       [880, 500, 'Сток транзистора (нога «С») — в обход корпуса к контакту «−» клеммника «Сирена».']
     ] },
     { t: 'Шаг 8. Карта microSD и барометр', c: 'Питание обоих модулей — 3,3 В. Ни один провод карты не идёт вертикально вниз: порядок контактов модуля не совпадает с порядком ног ESP32. Жёлтая подпись под контактом — куда он идёт.', i: [
-      [299, 190, 'Контакт 3V3 карты — вниз по левому краю, в обход ESP32, на провод +3,3 В.'],
-      [333, 190, 'Контакт CS — к ноге D26 (верхний ряд, седьмая слева). Провод идёт наискосок ВПРАВО, мимо четырёх ног.'],
-      [367, 190, 'Контакт MOSI — к ноге D13 (верхний ряд, третья слева). Наискосок ВЛЕВО.'],
-      [401, 190, 'Контакт CLK — к ноге D14 (верхний ряд, пятая слева). Наискосок влево.'],
-      [435, 190, 'Контакт MISO — к ноге D27 (верхний ряд, шестая слева). Наискосок влево.'],
-      [469, 190, 'Контакт GND — вниз по правому краю, в обход ESP32, на жилу GND.'],
+      [95, 300, 'Оранжевый: контакт 3V3 карты — влево, вниз по левому краю, в обход ESP32, на провод +3,3 В.'],
+      [419, 204, 'Малиновый: контакт CS — вправо, мимо четырёх ног, вниз на D26 (верхний ряд, седьмая слева).'],
+      [283, 204, 'Синий: контакт MOSI — влево, вниз на D13 (верхний ряд, третья слева).'],
+      [351, 204, 'Жёлтый: контакт CLK — влево, вниз на D14 (верхний ряд, пятая слева).'],
+      [385, 204, 'Зелёный: контакт MISO — влево, вниз на D27 (верхний ряд, шестая слева).'],
+      [920, 300, 'Чёрный: контакт GND — вправо, вниз по правому краю, на жилу GND.'],
       [726, 344, 'Нога D21 — под платой вправо и вверх к контакту SDA барометра.'],
       [738, 368, 'Нога D22 — к контакту SCL барометра.'],
       [902, 380, 'От правого конца провода +3,3 В вверх — к контакту «3,3 В» барометра.'],
