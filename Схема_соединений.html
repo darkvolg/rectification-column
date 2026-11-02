@@ -203,17 +203,26 @@
         <g font-size="9" fill="#e6e2f2"><text x="760" y="291">SDA</text><text x="760" y="311">SCL</text><text x="870" y="303" text-anchor="end">3,3 В</text><text x="870" y="323" text-anchor="end">GND</text></g>
         <text x="815" y="275" text-anchor="middle" font-size="13" font-weight="700" fill="#e6e2f2">BMP180</text>
 
+        <!-- на крышке: экран и кнопка, к плате идут проводами (пунктир) -->
+        <rect x="770" y="168" width="125" height="46" rx="3" fill="#14213d" stroke="#0a1020" stroke-width="1.3" stroke-dasharray="5 3"/>
+        <text x="832" y="185" text-anchor="middle" font-size="10" font-weight="700" fill="#ffffff">Экран (на крышке)</text>
+        <g fill="#d8b23a"><rect x="787" y="208" width="6" height="6"/><rect x="812" y="208" width="6" height="6"/><rect x="842" y="208" width="6" height="6"/><rect x="867" y="208" width="6" height="6"/></g>
+        <g font-size="8" font-weight="700" fill="#dbe4ff" text-anchor="middle"><text x="790" y="203">SDA</text><text x="815" y="203">SCL</text><text x="845" y="203">VCC</text><text x="870" y="203">GND</text></g>
+        <rect x="540" y="164" width="110" height="32" rx="3" fill="#cfd4d8" stroke="#6b6f73" stroke-width="1.3" stroke-dasharray="5 3"/>
+        <text x="595" y="184" text-anchor="middle" font-size="10" font-weight="700" fill="#1a1a1a">Кнопка (на крышке)</text>
+        <g fill="#d8b23a"><rect x="557" y="190" width="6" height="6"/><rect x="627" y="164" width="6" height="6"/></g>
+
         <!-- резисторы и транзистор -->
         <g fill="#e3c896" stroke="#8a6d3a">
-          <rect x="273" y="485" width="10" height="20" rx="5"/><rect x="455" y="490" width="10" height="20" rx="5"/><rect x="455" y="460" width="10" height="20" rx="5"/>
-          <rect x="660" y="490" width="10" height="20" rx="5"/><rect x="660" y="460" width="10" height="20" rx="5"/><rect x="750" y="457" width="25" height="10" rx="5"/><rect x="717" y="430" width="10" height="20" rx="5"/>
+          <rect x="273" y="485" width="10" height="20" rx="5"/><rect x="455" y="490" width="10" height="20" rx="5"/><rect x="455" y="436" width="10" height="20" rx="5"/>
+          <rect x="660" y="490" width="10" height="20" rx="5"/><rect x="660" y="436" width="10" height="20" rx="5"/><rect x="750" y="457" width="25" height="10" rx="5"/><rect x="717" y="430" width="10" height="20" rx="5"/>
         </g>
-        <g font-size="10.5" font-weight="700" fill="#1a1a1a">
-          <text x="266" y="499" text-anchor="end">4,7 кОм</text><text x="472" y="505">1 кОм</text><text x="472" y="474">2 кОм</text>
-          <text x="677" y="505">10 кОм</text><text x="677" y="474">20 кОм</text><text x="762" y="484" text-anchor="middle">100 Ом</text><text x="712" y="444" text-anchor="end">10 кОм</text>
+        <g font-size="10.5" font-weight="700" fill="#1a1a1a" stroke="#fdfcf7" stroke-width="3" paint-order="stroke">
+          <text x="266" y="499" text-anchor="end">4,7 кОм</text><text x="448" y="505" text-anchor="end">1 кОм</text><text x="472" y="450">2 кОм</text>
+          <text x="652" y="505" text-anchor="end">10 кОм</text><text x="652" y="450" text-anchor="end">20 кОм</text><text x="762" y="484" text-anchor="middle">100 Ом</text><text x="732" y="444">10 кОм</text>
         </g>
         <rect x="790" y="480" width="60" height="28" rx="3" fill="#161616"/>
-        <text x="820" y="498" text-anchor="middle" font-size="9" font-weight="700" fill="#ffffff">Q1</text>
+        <text x="820" y="492" text-anchor="middle" font-size="9" font-weight="700" fill="#ffffff">Q1</text><text x="820" y="503" text-anchor="middle" font-size="7" fill="#ffffff">IRLZ44N</text>
         <g stroke="#999" stroke-width="2.5"><path d="M798 470V480M820 470V480M842 470V480"/></g>
         <g font-size="10" fill="#1a1a1a"><text x="786" y="468">З</text><text x="826" y="452">С</text><text x="850" y="468">И</text></g>
 
@@ -244,14 +253,14 @@
         </g>
         <!-- шаг 5: PZEM -->
         <g class="bs" data-s="4" fill="none" stroke-width="3.2" stroke-linejoin="round">
-          <path d="M500 530V450H419V390" stroke="#8e44ad"/>
-          <path d="M460 530V510M460 490V480H385V390" stroke="#c2185b"/>
-          <path d="M460 460V420" stroke="#1b1b1b"/>
+          <path d="M500 530V466H419V390" stroke="#8e44ad"/>
+          <path d="M460 530V510M460 490V480H385V390M460 456V480" stroke="#c2185b"/>
+          <path d="M460 436V420" stroke="#1b1b1b"/>
         </g>
         <!-- шаг 6: датчик протока -->
         <g class="bs" data-s="5" fill="none" stroke-width="3.2" stroke-linejoin="round">
-          <path d="M665 530V510M665 490V480H521V390" stroke="#1e63d0"/>
-          <path d="M665 460V420" stroke="#1b1b1b"/>
+          <path d="M665 530V510M665 490V480H521V390M665 456V480" stroke="#1e63d0"/>
+          <path d="M665 436V420" stroke="#1b1b1b"/>
         </g>
         <!-- шаг 7: сирена -->
         <g class="bs" data-s="6" fill="none" stroke-width="3.2" stroke-linejoin="round">
@@ -270,6 +279,15 @@
           <path d="M435 148V194H419V210" stroke="#2e9d4f"/>
           <path d="M555 390V400H726V288H750" stroke="#2e9d4f"/><path d="M657 390V408H738V308H750" stroke="#e6b800"/>
           <path d="M890 472V300H880" stroke="#fb8c00"/><path d="M928 420V320H880" stroke="#1b1b1b"/>
+        </g>
+        <!-- шаг 9: экран и кнопка — пунктир, это провода на крышку -->
+        <g class="bs" data-s="8" fill="none" stroke-width="3.2" stroke-linejoin="round" stroke-dasharray="7 4">
+          <path d="M790 214V226H735V288" stroke="#2e9d4f"/>
+          <path d="M815 214V234H745V308" stroke="#e6b800"/>
+          <path d="M845 214V226H890V300" stroke="#fb8c00"/>
+          <path d="M870 214V220H920" stroke="#1b1b1b"/>
+          <path d="M560 196V203H521V210" stroke="#8e44ad"/>
+          <path d="M630 164V156" stroke="#1b1b1b"/>
         </g>
         <!-- номера и метки рисуются скриптом -->
         <g id="b-marks"></g>
@@ -460,7 +478,7 @@
 
   // ───── Сирена ─────
   res('R1', 970, 146, '100 Ом');
-  comp('q1', 'mod', 1050, 105, 62, 90, 'Q1', { ty: 80, full: 'Транзистор Q1' });
+  comp('q1', 'mod', 1050, 105, 62, 90, 'Q1', { ty: 80, full: 'Транзистор Q1 (IRLZ44N)' });
   pin('q1', 'G', 'L', 146, 'З'); pin('q1', 'D', 'R', 128, 'С'); pin('q1', 'S', 'R', 164, 'И');
   NAME['q1.G'] = 'Транзистор Q1, затвор'; NAME['q1.D'] = 'Транзистор Q1, сток'; NAME['q1.S'] = 'Транзистор Q1, исток';
   res('R2', 970, 200, '10 кОм');
@@ -506,7 +524,7 @@
   pin('psu', 'p', 'L', 772, '+'); pin('psu', 'm', 'L', 798, '−');
 
   // ═════ ПРОВОДА ═════
-  step = 'Шаг 1. Питание и шины';
+  step = 'Питание и шины (на плате — шаги 1–3)';
   wire(V5, 'tv.p', 'b5.pw');
   wire(GND, 'tv.m', 'bg.pw');
   wire(V5, 'esp.VIN', 'b5.esp', ['x', 620, 'y', 740]);
@@ -515,7 +533,7 @@
   wire(V5, 'tv.pv', 'psu.p', null, 1);
   wire(GND, 'tv.mv', 'psu.m', null, 1);
 
-  step = 'Шаг 2. Карта microSD и кнопка';
+  step = 'Карта microSD и кнопка (на плате — шаги 8 и 9)';
   wire(PNK, 'esp.25', 'sd.CS');
   wire(GRN, 'esp.26', 'sd.MISO');
   wire(YEL, 'esp.27', 'sd.CLK');
@@ -525,7 +543,7 @@
   wire(PUR, 'esp.32', 'btn.a');
   wire(GND, 'btn.b', 'bg.btn', ['x', 340, 'y', 882]);
 
-  step = 'Шаг 3. Барометр и экран';
+  step = 'Барометр и экран (на плате — шаги 8 и 9)';
   wire(YEL, 'esp.22', 'bmp.SCL');
   wire(GRN, 'esp.21', 'bmp.SDA');
   wire(V33, 'bmp.VCC', 'b3.bmp');
@@ -535,7 +553,7 @@
   wire(GND, 'bmp.GNDo', 'ol.GND', null, 1);
   wire(GRN, 'bmp.SDAo', 'ol.SDA', null, 1);
 
-  step = 'Шаг 4. Датчики температуры';
+  step = 'Датчики температуры (на плате — шаг 4)';
   wire(TEA, 'esp.4', 'tw.d', ['x', 870, 'y', 612]);
   wire(TEA, 'R7.T', 'tw.d', ['y', 612]);
   wire(V33, 'R7.B', 'tw.p', ['y', 680]);
@@ -545,7 +563,7 @@
   wire(V33, 'tw.pv', 'ds.p', null, 1);
   wire(GND, 'tw.gv', 'ds.g', null, 1);
 
-  step = 'Шаг 5. Сирена';
+  step = 'Сирена (на плате — шаг 7)';
   wire(BRN, 'esp.23', 'R1.L', ['x', 900]);
   wire(BRN, 'R1.R', 'q1.G');
   wire(BRN, 'R1.R', 'R2.R', ['x', 1040]);
@@ -556,7 +574,7 @@
   wire(V5, 'ts.pv', 'bz.p', null, 1);
   wire(GRY, 'ts.mv', 'bz.m', null, 1);
 
-  step = 'Шаг 6. Датчик протока';
+  step = 'Датчик протока (на плате — шаг 6)';
   wire(BLU, 'esp.19', 'R3.L');
   wire(BLU, 'R3.R', 'tf.s');
   wire(BLU, 'R3.L', 'R4.L', ['x', 955]);
@@ -567,7 +585,7 @@
   wire(V5, 'tf.pv', 'yf.p', null, 1);
   wire(GND, 'tf.gv', 'yf.g', null, 1);
 
-  step = 'Шаг 7. PZEM';
+  step = 'PZEM (на плате — шаг 5)';
   wire(PUR, 'esp.TX2 17', 'tp.rx');
   wire(PNK, 'esp.RX2 16', 'R5.L');
   wire(PNK, 'R5.R', 'tp.tx');
@@ -805,13 +823,13 @@
       [902, 380, 'От правого конца провода +3,3 В вверх — к контакту «3,3 В» барометра.'],
       [940, 370, 'От правого конца жилы GND вверх — к контакту GND барометра.']
     ] },
-    { t: 'Шаг 9. Экран и кнопка на крышке', c: 'Экран — только от 3,3 В. Кнопке резистор не нужен.', letters: true, i: [
-      [555, 408, 'Экран, контакт SDA — к ноге D21 (туда же, куда SDA барометра).'],
-      [657, 416, 'Экран, контакт SCL — к ноге D22.'],
-      [890, 490, 'Экран, контакт VCC — к проводу +3,3 В.'],
-      [928, 438, 'Экран, контакт GND — к жиле GND.'],
-      [521, 192, 'Кнопка, первый контакт — к ноге D32 (верхний ряд).'],
-      [249, 192, 'Кнопка, второй контакт — к ноге GND (верхний ряд, вторая слева).']
+    { t: 'Шаг 9. Экран и кнопка на крышке', c: 'Экран — только от 3,3 В. Кнопке резистор не нужен. Пунктир — провод уходит с платы на крышку. Экран и барометр висят на одних и тех же четырёх точках: в журнале платы поиск по шине должен найти 0x77 (барометр) и 0x3C (экран).', letters: true, i: [
+      [790, 214, 'Экран, SDA (зелёный) — к контакту SDA барометра. Это та же линия, что идёт на ногу D21.'],
+      [815, 214, 'Экран, SCL (жёлтый) — к контакту SCL барометра, он же нога D22. Пересекает зелёный — так и надо, провода изолированные.'],
+      [845, 214, 'Экран, VCC (оранжевый) — к контакту «3,3 В» барометра. Только 3,3 В, не 5!'],
+      [870, 214, 'Экран, GND (чёрный) — на чёрный провод GND, который идёт от карты по правому краю.'],
+      [560, 196, 'Кнопка, первый контакт (фиолетовый) — к ноге D32 (верхний ряд).'],
+      [630, 164, 'Кнопка, второй контакт — вверх, на тот же чёрный провод GND над ней.']
     ] }
   ];
   var LET = ['А', 'Б', 'В', 'Г', 'Д', 'Е'];

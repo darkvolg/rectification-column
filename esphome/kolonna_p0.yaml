@@ -268,7 +268,7 @@ one_wire:
     pin: GPIO4
     id: ow_bus
 
-# I2C для BMP280 и экрана OLED
+# I2C для BMP180 и экрана OLED
 i2c:
   sda: GPIO21
   scl: GPIO22
@@ -1508,7 +1508,7 @@ font:
 display:
   - platform: ssd1306_i2c
     model: "SSD1306 128x64"
-    address: 0x3C          # у BMP280 на этой же шине 0x77, не пересекаются
+    address: 0x3C          # у BMP180 на этой же шине 0x77, не пересекаются
     id: oled
     update_interval: 1s
     pages:
