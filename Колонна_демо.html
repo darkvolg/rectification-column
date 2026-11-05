@@ -74,36 +74,37 @@ svg.mimic{display:block;width:100%;height:auto}
 .legend i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:6px}
 footer{font-size:13px;color:var(--muted);margin:14px 0 30px}
 /* ---- схема: таблички ---- */
-.chip rect.bx{fill:#fff;stroke:#94A3B8;stroke-width:1.2}
+.chip rect.bx{fill:#fff;stroke:#CBD5E1;stroke-width:1.5}
 .chip[data-s="w"] rect.bx{fill:#FEF3C7;stroke:#B45309;stroke-width:2}
 .chip[data-s="a"] rect.bx{fill:#FEE2E2;stroke:#DC2626;stroke-width:2.4}
 .chip[data-s="n"] rect.bx{stroke-dasharray:5 4;fill:#F1F5F9}
-.chip .lb{font:600 10.5px "Segoe UI",sans-serif;letter-spacing:.6px;fill:#475569}
-.chip .vl{font:700 27px var(--mono);fill:#0F172A}
-.chip .un{font:500 13px "Segoe UI",sans-serif;fill:#475569}
-.chip .sb{font:500 11px "Segoe UI",sans-serif;fill:#475569}
-.lead{stroke:#64748B;stroke-width:1;opacity:.7}
-.sdot{stroke:#fff;stroke-width:2.5}
+.chip .lb{font:600 14px "Segoe UI",sans-serif;fill:#334155}
+.chip .vl{font:700 33px var(--mono);fill:#0F172A}
+.chip .un{font:500 15px "Segoe UI",sans-serif;fill:#475569}
+.chip .sb{font:500 12px "Segoe UI",sans-serif;fill:#475569}
+.lead{stroke:#64748B;stroke-width:1.3;opacity:.75}
+.sdot{stroke:#fff;stroke-width:3}
 .ring{fill:none;stroke-width:3;opacity:0}
 .chip[data-s="a"] + .ring, .ring.on{animation:pulse 1s ease-out infinite}
-.lbl{font:500 12px "Segoe UI",sans-serif;fill:#475569}
+.lbl{font:500 14px "Segoe UI",sans-serif;fill:#475569}
+.plate1{font:700 15px "Segoe UI",sans-serif;fill:#FDE7CF;letter-spacing:2px}
+.plate2{font:500 11px "Segoe UI",sans-serif;fill:#FDE7CF}
 .lblw{font:600 13px "Segoe UI",sans-serif;fill:#fff;letter-spacing:1px}
 /* ---- схема: жизнь ---- */
 .heat{opacity:0;transition:opacity 1.5s}
 svg[data-heat="1"] .heat{opacity:1}
 .jacket{fill:#E2E8F0;transition:fill 1s}
 svg[data-flow="1"] .jacket{fill:#BFDBFE}
-.wflow{stroke:#fff;stroke-width:2;stroke-dasharray:6 10;opacity:0}
+.wflow{stroke:#fff;stroke-width:2.5;stroke-dasharray:8 12;stroke-linecap:round;opacity:0}
 svg[data-flow="1"] .wflow{opacity:.9;animation:flow 1s linear infinite}
-.wflow.rev{animation-direction:reverse !important}
 .bub,.stm,.drp{opacity:0}
 svg[data-boil="1"] .bub{animation:bub 1.8s ease-in infinite}
 svg[data-steam="1"] .stm{animation:stm 3.2s linear infinite}
 svg[data-drip="1"] .drp{animation:drp 1.1s ease-in infinite}
-@keyframes flow{to{stroke-dashoffset:-32}}
-@keyframes bub{0%{opacity:0;transform:translateY(0)}20%{opacity:.9}100%{opacity:0;transform:translateY(-44px)}}
-@keyframes stm{0%{opacity:0;transform:translateY(0)}15%{opacity:.75}85%{opacity:.75}100%{opacity:0;transform:translateY(-270px)}}
-@keyframes drp{0%{opacity:0;transform:translateY(0)}15%{opacity:1}100%{opacity:1;transform:translateY(40px)}}
+@keyframes flow{to{stroke-dashoffset:-40}}
+@keyframes bub{0%{opacity:0;transform:translateY(0)}20%{opacity:.95}100%{opacity:0;transform:translateY(-34px)}}
+@keyframes stm{0%{opacity:0;transform:translateY(0)}15%{opacity:.9}85%{opacity:.9}100%{opacity:0;transform:translateY(-270px)}}
+@keyframes drp{0%{opacity:0;transform:translateY(0)}15%{opacity:1}100%{opacity:1;transform:translateY(60px)}}
 @keyframes pulse{0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(2.2)}}
 .ring{transform-box:fill-box;transform-origin:center}
 @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
@@ -142,111 +143,76 @@ svg[data-drip="1"] .drp{animation:drp 1.1s ease-in infinite}
   <div class="grid">
     <section class="card">
       <h2>Аппарат — колонна с насадкой</h2>
-      <svg class="mimic" id="mimic" viewBox="0 0 600 680" role="img"
-           aria-label="Схема колонны: внизу куб с ТЭНом, над ним царга с насадкой, узел отбора с краном и банкой, сверху дефлегматор с водой и трубка связи с атмосферой. У каждого датчика табличка с температурой.">
+      <svg class="mimic" id="mimic" viewBox="0 0 640 800" role="img"
+           aria-label="Схема колонны: внизу медный куб с ТЭНом и смотровым окном, над ним стеклянная царга с насадкой, узел отбора с краном и приёмником, сверху дефлегматор с водой и трубка связи с атмосферой. У каждого датчика табличка с температурой.">
         <defs>
-          <linearGradient id="cu" x1="0" x2="1">
-            <stop offset="0" stop-color="#7C3F16"/><stop offset=".18" stop-color="#E3A16F"/>
-            <stop offset=".45" stop-color="#C77B45"/><stop offset=".8" stop-color="#8F4A1E"/>
-            <stop offset="1" stop-color="#6B3312"/>
-          </linearGradient>
-          <linearGradient id="cuv" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#E3A16F"/><stop offset="1" stop-color="#8F4A1E"/>
-          </linearGradient>
-          <radialGradient id="glow">
-            <stop offset="0" stop-color="#FF7A2F" stop-opacity=".85"/>
-            <stop offset=".6" stop-color="#F97316" stop-opacity=".25"/>
-            <stop offset="1" stop-color="#F97316" stop-opacity="0"/>
+          <radialGradient id="bgG" cx=".5" cy=".45" r=".75">
+            <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#E2E8F0"/>
           </radialGradient>
-          <pattern id="mesh" width="8" height="8" patternUnits="userSpaceOnUse">
-            <path d="M0 8 L8 0 M-2 2 L2 -2 M6 10 L10 6" stroke="#B98A63" stroke-width="1" opacity=".55"/>
-          </pattern>
+          <linearGradient id="steel" x1="0" x2="1">
+            <stop offset="0" stop-color="#1A1E24"/><stop offset=".1" stop-color="#3A4048"/>
+            <stop offset=".27" stop-color="#7C858F"/><stop offset=".35" stop-color="#B4BCC5"/>
+            <stop offset=".52" stop-color="#5B636D"/><stop offset=".82" stop-color="#343A42"/>
+            <stop offset="1" stop-color="#15191E"/>
+          </linearGradient>
+          <linearGradient id="steelTop" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#C3C9D0"/><stop offset="1" stop-color="#6B737D"/>
+          </linearGradient>
+          <radialGradient id="steelR" cx=".4" cy=".35" r=".7">
+            <stop offset="0" stop-color="#D5DAE0"/><stop offset=".6" stop-color="#7C858F"/><stop offset="1" stop-color="#2D333B"/>
+          </radialGradient>
+          <linearGradient id="copper" x1="0" x2="1">
+            <stop offset="0" stop-color="#3E1906"/><stop offset=".1" stop-color="#8A4518"/>
+            <stop offset=".26" stop-color="#D88A52"/><stop offset=".34" stop-color="#F6C08F"/>
+            <stop offset=".55" stop-color="#B8662F"/><stop offset=".83" stop-color="#7A3A12"/>
+            <stop offset="1" stop-color="#3A1605"/>
+          </linearGradient>
+          <linearGradient id="copperTop" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#F6C597"/><stop offset=".55" stop-color="#C47A44"/><stop offset="1" stop-color="#8A4518"/>
+          </linearGradient>
+          <linearGradient id="glass" x1="0" x2="1">
+            <stop offset="0" stop-color="#475569" stop-opacity=".55"/>
+            <stop offset=".18" stop-color="#E2E8F0" stop-opacity=".18"/>
+            <stop offset=".3" stop-color="#FFFFFF" stop-opacity=".6"/>
+            <stop offset=".42" stop-color="#F1F5F9" stop-opacity=".12"/>
+            <stop offset=".8" stop-color="#CBD5E1" stop-opacity=".2"/>
+            <stop offset="1" stop-color="#334155" stop-opacity=".55"/>
+          </linearGradient>
+          <linearGradient id="hose" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#1E3A8A"/><stop offset=".32" stop-color="#3B82F6"/>
+            <stop offset=".48" stop-color="#BFDBFE"/><stop offset=".7" stop-color="#2563EB"/>
+            <stop offset="1" stop-color="#1E3A8A"/>
+          </linearGradient>
+          <linearGradient id="pipeH" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#5A2A0C"/><stop offset=".38" stop-color="#F0B07A"/>
+            <stop offset=".7" stop-color="#A65A2A"/><stop offset="1" stop-color="#4A1F08"/>
+          </linearGradient>
+          <linearGradient id="spirt" x1="0" x2="1">
+            <stop offset="0" stop-color="#5EEAD4"/><stop offset=".35" stop-color="#CCFBF1"/>
+            <stop offset="1" stop-color="#2DD4BF"/>
+          </linearGradient>
           <linearGradient id="liq" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stop-color="#FDE68A"/><stop offset="1" stop-color="#D97706"/>
           </linearGradient>
-          <linearGradient id="spirt" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#E0F2FE"/><stop offset="1" stop-color="#BAE6FD"/>
-          </linearGradient>
-          <clipPath id="winClip"><rect x="220" y="540" width="60" height="66" rx="8"/></clipPath>
-          <clipPath id="jarClip"><path d="M402 342 L402 434 Q402 440 408 440 L452 440 Q458 440 458 434 L458 342 Z"/></clipPath>
+          <radialGradient id="glow">
+            <stop offset="0" stop-color="#FF6A1F" stop-opacity=".9"/>
+            <stop offset=".55" stop-color="#F97316" stop-opacity=".3"/>
+            <stop offset="1" stop-color="#F97316" stop-opacity="0"/>
+          </radialGradient>
+          <pattern id="pack" width="12" height="12" patternUnits="userSpaceOnUse">
+            <rect width="12" height="12" fill="#EDE6DC"/>
+            <circle cx="3" cy="3" r="2.6" fill="none" stroke="#B87333" stroke-width="1.3"/>
+            <circle cx="9" cy="9" r="2.6" fill="none" stroke="#A0602A" stroke-width="1.3"/>
+            <path d="M8 2 l3 2 M1 8 l3 2" stroke="#C88A55" stroke-width="1"/>
+          </pattern>
+          <filter id="sh" x="-20%" y="-20%" width="140%" height="150%">
+            <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#0F172A" flood-opacity=".22"/>
+          </filter>
+          <clipPath id="portClip"><circle cx="262" cy="700" r="21"/></clipPath>
+          <clipPath id="cargaClip"><path d="M292 308 L292 594 A28 7.28 0 0 0 348 594 L348 308 Z"/></clipPath>
         </defs>
-
-        <!-- пол и свечение ТЭНа -->
-        <ellipse class="heat" cx="300" cy="630" rx="150" ry="26" fill="url(#glow)"/>
-        <line x1="150" y1="652" x2="450" y2="652" stroke="#94A3B8" stroke-width="2"/>
-
-        <!-- КУБ -->
-        <path fill="url(#cu)" d="M204 522 L204 612 Q204 630 224 630 L376 630 Q396 630 396 612 L396 522 Z"/>
-        <ellipse cx="300" cy="522" rx="96" ry="15" fill="url(#cuv)"/>
-        <rect x="216" y="536" width="68" height="74" rx="10" fill="#7C3F16"/>
-        <rect x="220" y="540" width="60" height="66" rx="8" fill="#F1F5F9"/>
-        <g clip-path="url(#winClip)">
-          <rect id="kubLiq" x="220" y="560" width="60" height="46" fill="url(#liq)" opacity=".85"/>
-          <circle class="bub" cx="232" cy="600" r="3" fill="#FFF7ED" style="animation-delay:0s"/>
-          <circle class="bub" cx="248" cy="603" r="2.4" fill="#FFF7ED" style="animation-delay:.5s"/>
-          <circle class="bub" cx="262" cy="598" r="3.4" fill="#FFF7ED" style="animation-delay:1s"/>
-          <circle class="bub" cx="271" cy="602" r="2.2" fill="#FFF7ED" style="animation-delay:1.4s"/>
-          <circle class="bub" cx="240" cy="596" r="2" fill="#FFF7ED" style="animation-delay:.8s"/>
-        </g>
-        <text class="lblw" x="350" y="566" text-anchor="middle">КУБ</text>
-        <text class="lblw" x="350" y="588" text-anchor="middle" style="font-size:11px;letter-spacing:.5px">ТЭН 3 кВт</text>
-        <!-- горловина -->
-        <rect x="288" y="494" width="24" height="20" fill="url(#cu)"/>
-
-        <!-- ЦАРГА С НАСАДКОЙ: стекло, видно насадку и пар -->
-        <rect x="280" y="200" width="40" height="296" fill="url(#cu)"/>
-        <rect x="286" y="206" width="28" height="140" fill="#EEF2F6"/>
-        <rect x="286" y="356" width="28" height="136" fill="#EEF2F6"/>
-        <rect x="286" y="206" width="28" height="140" fill="url(#mesh)"/>
-        <rect x="286" y="356" width="28" height="136" fill="url(#mesh)"/>
-        <g fill="#60A5FA">
-          <ellipse class="stm" cx="295" cy="488" rx="4" ry="3" style="animation-delay:0s"/>
-          <ellipse class="stm" cx="305" cy="488" rx="3.5" ry="2.6" style="animation-delay:.8s"/>
-          <ellipse class="stm" cx="299" cy="488" rx="4.5" ry="3.2" style="animation-delay:1.6s"/>
-          <ellipse class="stm" cx="307" cy="488" rx="3" ry="2.2" style="animation-delay:2.4s"/>
-        </g>
-        <rect x="274" y="346" width="52" height="10" rx="2" fill="url(#cuv)"/>
-        <text class="lbl" x="334" y="420">царга</text>
-        <text class="lbl" x="334" y="436">с насадкой</text>
-
-        <!-- УЗЕЛ ОТБОРА -->
-        <rect x="274" y="176" width="52" height="26" rx="3" fill="url(#cuv)"/>
-        <line x1="326" y1="189" x2="378" y2="189" stroke="#B5703F" stroke-width="7"/>
-        <polygon points="378,180 378,198 389,189" fill="#8F4A1E"/>
-        <polygon points="400,180 400,198 389,189" fill="#8F4A1E"/>
-        <line x1="389" y1="189" x2="389" y2="174" stroke="#8F4A1E" stroke-width="3"/>
-        <line x1="381" y1="173" x2="397" y2="173" stroke="#8F4A1E" stroke-width="4" stroke-linecap="round"/>
-        <text class="lbl" x="389" y="214" text-anchor="middle">кран</text>
-        <path d="M400 189 L422 189 Q430 189 430 197 L430 300" fill="none" stroke="#B5703F" stroke-width="7"/>
-        <circle class="drp" cx="430" cy="304" r="3.6" fill="#38BDF8"/>
-        <!-- банка -->
-        <g clip-path="url(#jarClip)">
-          <rect id="jarLiq" x="402" y="438" width="56" height="2" fill="url(#spirt)"/>
-        </g>
-        <path d="M400 340 L400 434 Q400 442 408 442 L452 442 Q460 442 460 434 L460 340" fill="none" stroke="#64748B" stroke-width="2.5"/>
-        <text class="lbl" x="430" y="458" text-anchor="middle" id="jarTxt">банка</text>
-
-        <!-- ДЕФЛЕГМАТОР -->
-        <rect x="268" y="90" width="64" height="86" rx="4" fill="url(#cu)"/>
-        <rect class="jacket" x="276" y="98" width="48" height="70" rx="3"/>
-        <g stroke="#8F4A1E" stroke-width="2" opacity=".6">
-          <line x1="280" y1="110" x2="320" y2="110"/><line x1="280" y1="124" x2="320" y2="124"/>
-          <line x1="280" y1="138" x2="320" y2="138"/><line x1="280" y1="152" x2="320" y2="152"/>
-        </g>
-        <text class="lbl" x="340" y="138">дефлегматор</text>
-        <!-- вода: вход снизу справа, выход сверху -->
-        <line x1="332" y1="165" x2="590" y2="165" stroke="#60A5FA" stroke-width="6"/>
-        <line class="wflow rev" x1="332" y1="165" x2="590" y2="165"/>
-        <line x1="332" y1="100" x2="590" y2="100" stroke="#3B82F6" stroke-width="6"/>
-        <line class="wflow" x1="332" y1="100" x2="590" y2="100"/>
-        <text class="lbl" x="588" y="186" text-anchor="end">вода — вход</text>
-        <text class="lbl" x="588" y="121" text-anchor="end">вода — выход</text>
-
-        <!-- ТСА: трубка связи с атмосферой -->
-        <rect x="294" y="40" width="12" height="50" fill="url(#cu)"/>
-        <path d="M300 22 L294 34 L306 34 Z" fill="#94A3B8"/>
-        <text class="lbl" x="314" y="34">атмосфера</text>
-
+        <rect width="640" height="800" fill="url(#bgG)"/>
+        <g id="app"></g>
         <g id="chips"></g>
       </svg>
     </section>
@@ -311,18 +277,10 @@ svg[data-drip="1"] .drp{animation:drp 1.1s ease-in infinite}
 
 <script>
 "use strict";
-/* ===== ТАБЛИЧКИ НА СХЕМЕ =====
-   k — ключ величины, x,y — левый верхний угол таблички, dot — где датчик на аппарате. */
-const CHIPS = [
-  {k:'tsa',   lb:'АТМОСФЕРА · ТСА', un:'°C', c:'--tsa',   x:16,  y:20,  dot:[300,64],  none:true},
-  {k:'otbor', lb:'ОТБОР · T3',      un:'°C', c:'--otbor', x:16,  y:150, dot:[276,189]},
-  {k:'carga', lb:'ЦАРГА 2/3 · T2',  un:'°C', c:'--carga', x:16,  y:270, dot:[282,300]},
-  {k:'kub',   lb:'КУБ · T1',        un:'°C', c:'--kub',   x:16,  y:430, dot:[204,572]},
-  {k:'pwr',   lb:'ТЭН · МОЩНОСТЬ',  un:'Вт', c:'--pwr',   x:16,  y:580, dot:[236,634]},
-  {k:'voda',  lb:'ВОДА ВЫХОД · T4', un:'°C', c:'--voda',  x:408, y:12,  dot:[372,100], anchor:[440,82]},
-  {k:'vol',   lb:'ОТОБРАНО',        un:'мл', c:'--voda',  x:420, y:470, dot:[430,442], anchor:[470,470], nodot:true},
-];
-const W = 176, H = 70, NS = 'http://www.w3.org/2000/svg';
+/* ===== АППАРАТ =====
+   Рисуется из цилиндров: тело с боковым отливом (металл), верх — эллипс,
+   низ — дуга. Так выходит объём без картинок. */
+const NS = 'http://www.w3.org/2000/svg';
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 function el(tag, attrs, parent, text){
   const e = document.createElementNS(NS, tag);
@@ -331,6 +289,129 @@ function el(tag, attrs, parent, text){
   if (parent) parent.appendChild(e);
   return e;
 }
+const RY = 0.26, CX = 320;
+const cylD = (cx, yt, yb, r) => `M${cx-r} ${yt} L${cx-r} ${yb} A${r} ${r*RY} 0 0 0 ${cx+r} ${yb} L${cx+r} ${yt} Z`;
+const arcD = (cx, y, r) => `M${cx-r} ${y} A${r} ${r*RY} 0 0 0 ${cx+r} ${y}`;
+(function drawApp(){
+  const A = document.getElementById('app');
+  const cyl = (cx, yt, yb, r, body, top) => {
+    el('path', {d:cylD(cx, yt, yb, r), fill:'url(#'+body+')'}, A);
+    if (top) el('ellipse', {cx, cy:yt, rx:r, ry:r*RY, fill:'url(#'+top+')'}, A);
+  };
+  const flange = (y, r) => {
+    cyl(CX, y-6, y+6, r, 'steel', 'steelTop');
+    el('path', {d:arcD(CX, y+6, r), fill:'none', stroke:'#0F172A', 'stroke-opacity':.35, 'stroke-width':1.2}, A);
+  };
+  const hose = (x1, x2, y) => {
+    el('rect', {x:Math.min(x1,x2), y:y-7, width:Math.abs(x2-x1), height:14, rx:7, fill:'url(#hose)'}, A);
+    el('line', {class:'wflow', x1, y1:y, x2, y2:y}, A);
+  };
+  const cuPipe = d => {
+    [['#4A1F08',14,1],['#B8662F',10,1],['#F6C08F',3,.85]].forEach(([c,w,o]) =>
+      el('path', {d, fill:'none', stroke:c, 'stroke-width':w, 'stroke-linecap':'round', 'stroke-linejoin':'round', opacity:o}, A));
+  };
+  const lbl = (x, y, t, an) => el('text', {class:'lbl', x, y, 'text-anchor':an || 'start'}, A, t);
+
+  // пол, тень, нагрев
+  el('ellipse', {cx:CX, cy:776, rx:190, ry:13, fill:'#0F172A', opacity:.13}, A);
+  el('ellipse', {class:'heat', cx:CX, cy:758, rx:170, ry:30, fill:'url(#glow)'}, A);
+  el('path', {class:'heat', d:'M222 764 q12 -10 24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0',
+              fill:'none', stroke:'#F97316', 'stroke-width':3.5, 'stroke-linecap':'round'}, A);
+
+  // вода — слева, как у живого аппарата: выход сверху, вход снизу
+  hose(284, 18, 98);   // выход: течёт влево
+  hose(18, 284, 228);  // вход: течёт вправо
+  lbl(20, 84, 'вода — выход'); lbl(20, 254, 'вода — вход');
+
+  // труба отбора — до узла, чтобы конец спрятался под ним
+  cuPipe('M436 282 L488 282 Q512 282 512 306 L512 390');
+
+  // КУБ
+  cyl(CX, 642, 734, 116, 'copper', 'copperTop');
+  [[668,'#F6C597',.55],[671,'#4A1F08',.45],[718,'#F6C597',.45],[721,'#4A1F08',.45]].forEach(([y,c,o]) =>
+    el('path', {d:arcD(CX, y, 116), fill:'none', stroke:c, 'stroke-opacity':o, 'stroke-width':2}, A));
+  el('ellipse', {cx:CX, cy:642, rx:70, ry:16, fill:'none', stroke:'#8A4518', 'stroke-opacity':.5}, A);
+  // смотровое окно
+  el('circle', {cx:262, cy:700, r:28, fill:'url(#steelR)'}, A);
+  el('circle', {cx:262, cy:700, r:21, fill:'#FFF7ED'}, A);
+  const pc = el('g', {'clip-path':'url(#portClip)'}, A);
+  el('rect', {id:'kubLiq', x:240, y:700, width:44, height:22, fill:'url(#liq)'}, pc);
+  [[252,716,2.6,0],[262,719,2,.5],[270,715,3,1],[257,712,1.8,1.4],[267,718,2.2,.8]].forEach(([x,y,r,dl]) =>
+    el('circle', {class:'bub', cx:x, cy:y, r, fill:'#FFFBEB', style:'animation-delay:'+dl+'s'}, pc));
+  el('path', {d:'M247 692 A17 17 0 0 1 266 682', fill:'none', stroke:'#fff', 'stroke-width':3, 'stroke-linecap':'round', opacity:.8}, A);
+  for (let i = 0; i < 8; i++){ const an = i * Math.PI / 4;
+    el('circle', {cx:262 + 24.5*Math.cos(an), cy:700 + 24.5*Math.sin(an), r:1.6, fill:'#1F2937', opacity:.6}, A); }
+  // шильдик
+  el('rect', {x:316, y:680, width:96, height:42, rx:9, fill:'#3B2416', 'fill-opacity':.88, stroke:'#F6C597', 'stroke-opacity':.7}, A);
+  el('text', {x:364, y:699, 'text-anchor':'middle', class:'plate1'}, A, 'КУБ');
+  el('text', {x:364, y:714, 'text-anchor':'middle', class:'plate2'}, A, 'ТЭН 3 кВт');
+
+  // горловина и низ царги
+  cyl(CX, 598, 646, 17, 'steel', 'steelTop');
+  flange(600, 36);
+
+  // ЦАРГА: стекло, за ним насадка и пар
+  const cg = el('g', {'clip-path':'url(#cargaClip)'}, A);
+  el('rect', {x:CX-28, y:300, width:56, height:300, fill:'url(#pack)'}, cg);
+  [[312,0,4.5],[326,.9,4],[318,1.8,5],[330,2.6,3.6],[310,3.3,3.8]].forEach(([x,dl,r]) =>
+    el('ellipse', {class:'stm', cx:x, cy:588, rx:r, ry:r*.75, fill:'#FFFFFF', style:'animation-delay:'+dl+'s'}, cg));
+  el('path', {d:cylD(CX, 308, 594, 28), fill:'url(#glass)'}, A);
+  el('rect', {x:CX-21, y:314, width:4, height:274, rx:2, fill:'#fff', opacity:.55}, A);
+  flange(452, 36);
+  flange(304, 36);
+
+  // УЗЕЛ ОТБОРА + кран
+  el('rect', {x:350, y:275, width:52, height:14, fill:'url(#pipeH)'}, A);
+  cyl(CX, 262, 300, 32, 'steel', 'steelTop');
+  el('rect', {x:400, y:268, width:36, height:28, rx:6, fill:'url(#steel)'}, A);
+  el('line', {x1:418, y1:268, x2:418, y2:250, stroke:'#374151', 'stroke-width':4}, A);
+  el('rect', {x:402, y:243, width:32, height:9, rx:4, fill:'#1F2937'}, A);
+  lbl(418, 318, 'кран отбора', 'middle');
+  flange(256, 40);
+
+  // ДЕФЛЕГМАТОР: ребристая рубашка
+  cyl(CX, 80, 250, 36, 'steel', 'steelTop');
+  for (let y = 104; y <= 232; y += 16){
+    el('path', {d:arcD(CX, y + 2, 38), fill:'none', stroke:'#0F172A', 'stroke-opacity':.45, 'stroke-width':2}, A);
+    el('path', {d:arcD(CX, y, 38), fill:'none', stroke:'#C3C9D0', 'stroke-width':2.4}, A);
+  }
+  el('rect', {x:274, y:90, width:14, height:16, rx:2, fill:'url(#steel)'}, A);
+  el('rect', {x:274, y:220, width:14, height:16, rx:2, fill:'url(#steel)'}, A);
+  lbl(370, 170, 'дефлегматор');
+
+  // ТСА — трубка связи с атмосферой
+  cyl(CX, 30, 84, 7, 'steel', 'steelTop');
+  el('ellipse', {cx:CX, cy:30, rx:9, ry:3, fill:'none', stroke:'#374151', 'stroke-width':1.5}, A);
+  lbl(336, 30, 'атмосфера');
+
+  // ПРИЁМНИК — стеклянная банка
+  el('path', {d:cylD(512, 398, 502, 36), fill:'#F1F5F9', 'fill-opacity':.6}, A);
+  el('path', {id:'jarBody', d:cylD(512, 500, 500, 32), fill:'url(#spirt)', opacity:.9}, A);
+  el('ellipse', {id:'jarTop', cx:512, cy:500, rx:32, ry:32*RY, fill:'#E6FFFA', opacity:.95}, A);
+  el('path', {d:cylD(512, 398, 502, 36), fill:'url(#glass)'}, A);
+  el('ellipse', {cx:512, cy:398, rx:36, ry:36*RY, fill:'none', stroke:'#64748B', 'stroke-width':2}, A);
+  el('path', {d:arcD(512, 502, 36), fill:'none', stroke:'#64748B', 'stroke-width':2}, A);
+  el('rect', {x:483, y:406, width:4, height:88, rx:2, fill:'#fff', opacity:.6}, A);
+  for (let y = 414; y <= 490; y += 15) el('line', {x1:534, x2:542, y1:y, y2:y, stroke:'#64748B', 'stroke-width':1.2}, A);
+  el('circle', {class:'drp', cx:512, cy:396, r:3.6, fill:'#22D3EE'}, A);
+  lbl(470, 476, 'приёмник', 'end');
+  lbl(352, 548, 'царга');
+  lbl(352, 564, 'с насадкой');
+})();
+
+/* ===== ТАБЛИЧКИ НА СХЕМЕ =====
+   k — ключ величины, x,y — левый верхний угол таблички, dot — где датчик на аппарате,
+   anchor — откуда тянуть линию (по умолчанию середина правого края). */
+const W = 184, H = 86;
+const CHIPS = [
+  {k:'voda',  lb:'Вода · выход · T4', un:'°C', c:'--voda',  x:12,  y:112, dot:[150,98],  anchor:[150,112]},
+  {k:'otbor', lb:'Отбор · T3',        un:'°C', c:'--otbor', x:12,  y:270, dot:[288,284]},
+  {k:'carga', lb:'Царга 2/3 · T2',    un:'°C', c:'--carga', x:12,  y:404, dot:[292,402]},
+  {k:'kub',   lb:'Куб · T1',          un:'°C', c:'--kub',   x:12,  y:612, dot:[204,694]},
+  {k:'tsa',   lb:'Атмосфера · ТСА',   un:'°C', c:'--tsa',   x:444, y:14,  dot:[327,58],  anchor:[444,57]},
+  {k:'vol',   lb:'Отобрано',          un:'мл', c:'--voda',  x:440, y:528, dot:[512,516], anchor:[512,528], nodot:true},
+  {k:'pwr',   lb:'ТЭН · мощность',    un:'Вт', c:'--pwr',   x:448, y:690, dot:[414,762], anchor:[448,733]},
+];
 (function buildChips(){
   const root = document.getElementById('chips');
   CHIPS.forEach(c => {
@@ -338,13 +419,14 @@ function el(tag, attrs, parent, text){
     const an = c.anchor || [c.x + W, c.y + H/2];
     el('line', {class:'lead', x1:an[0], y1:an[1], x2:c.dot[0], y2:c.dot[1]}, root);
     const g = el('g', {class:'chip', id:'g_'+c.k, transform:`translate(${c.x},${c.y})`}, root);
-    el('rect', {class:'bx', width:W, height:H, rx:10}, g);
-    el('rect', {x:0, y:8, width:5, height:H-16, rx:2, fill:col}, g);
-    el('text', {class:'lb', x:14, y:18}, g, c.lb);
-    el('text', {class:'vl', x:14, y:48, id:'v_'+c.k}, g, '—');
-    el('text', {class:'un', x:W-10, y:48, 'text-anchor':'end'}, g, c.un);
-    el('text', {class:'sb', x:14, y:63, id:'s_'+c.k}, g, '');
+    el('rect', {class:'bx', width:W, height:H, rx:14, filter:'url(#sh)'}, g);
+    el('rect', {x:0, y:12, width:4, height:H-24, rx:2, fill:col}, g);
+    el('text', {class:'lb', x:16, y:24}, g, c.lb);
+    el('text', {class:'vl', x:16, y:60, id:'v_'+c.k}, g, '—');
+    el('text', {class:'un', x:W-12, y:60, 'text-anchor':'end'}, g, c.un);
+    el('text', {class:'sb', x:16, y:77, id:'s_'+c.k}, g, '');
     if (!c.nodot){
+      el('circle', {cx:c.dot[0], cy:c.dot[1], r:13, fill:col, opacity:.22}, root);
       el('circle', {class:'ring', id:'r_'+c.k, cx:c.dot[0], cy:c.dot[1], r:8, stroke:'#DC2626'}, root);
       el('circle', {class:'sdot', cx:c.dot[0], cy:c.dot[1], r:7, fill:col}, root);
     }
@@ -505,11 +587,11 @@ function paint(){
   setChip('vol', S.vol, 0, 'банка №' + (jars + 1) + ' · скорость ' + ({heads:150, body:900}[S.stage] || 0) + ' мл/ч', '');
 
   // уровень в банке (литровая) и в кубе
-  const lv = (S.vol % 1000) / 1000 * 96;
-  $('jarLiq').setAttribute('y', 440 - lv); $('jarLiq').setAttribute('height', Math.max(2, lv));
-  $('jarTxt').textContent = S.stage === 'heads' ? 'головы' : 'банка';
-  const kl = 46 - Math.min(20, S.vol / 300);
-  $('kubLiq').setAttribute('y', 606 - kl); $('kubLiq').setAttribute('height', kl);
+  const lv = (S.vol % 1000) / 1000 * 92, yl = 500 - lv;
+  $('jarBody').setAttribute('d', cylD(512, yl, 500, 32));
+  $('jarTop').setAttribute('cy', yl); $('jarTop').style.display = lv < 1 ? 'none' : '';
+  const kl = 24 - Math.min(10, S.vol / 450);
+  $('kubLiq').setAttribute('y', 721 - kl); $('kubLiq').setAttribute('height', kl);
 
   // шапка
   const stName = Object.fromEntries(STAGES)[S.stage];
