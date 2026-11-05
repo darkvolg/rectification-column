@@ -181,6 +181,11 @@ table.plan.when th:first-child,table.plan.when td:first-child{width:9.5em}
 #board .pt.sel>rect:first-of-type{stroke:#2563eb;stroke-width:3}
 #board .bus.hid{display:none}
 #board .bus.dim{opacity:.25}
+#board .bus.on{filter:drop-shadow(0 0 3px #2563eb) drop-shadow(0 0 2px #2563eb)}
+#info h4.grp{margin:.8em 0 .2em;font-size:16px;color:var(--fg-strong);border-bottom:2px solid var(--frame);padding-bottom:2px}
+#info li.busl{cursor:default;color:var(--mut)}
+#info .via{font-size:13px;font-weight:600;color:#7c2d12;background:#ffedd5;border:1px solid #fdba74;border-radius:3px;padding:0 6px}
+#info li.busl .n{border-color:#2563eb;color:#2563eb}
 #board .mk.hid{display:none}
 #info{background:var(--card);border:1px solid var(--frame);border-radius:4px;box-shadow:var(--shadow);padding:12px 16px;margin:.6em 0}
 #info h3{margin:0 0 .4em}
@@ -763,11 +768,64 @@ function saveDone() { try { localStorage.setItem('kolonna_v2_done', JSON.stringi
 function wiresOf(id) { return W.map(function (x, i) { return i; }).filter(function (i) { var x = W[i]; return x.a === id || x.b === id || x.a.split('.')[0] === id || x.b.split('.')[0] === id; }); }
 function stepWires(n) { return W.map(function (x, i) { return i; }).filter(function (i) { return W[i].step === n; }); }
 
+// Цепь: от контакта по проводам дальше, через другие контакты (две жилы на одном контакте),
+// пока не упрётся в шину. Шина светится целиком, её остальные провода не тянем — иначе горит вся плата.
+// Через резистор цепь тоже идёт (подтяжка, делитель), такие провода помечены «через резистор».
+function netOf(start, out) {
+  var seen = {}, q = [[start, 0]]; seen[start] = 1;
+  out.via = out.via || {};
+  function visit(o, via) {
+    if (seen[o]) return; seen[o] = 1; q.push([o, via]);
+    var a = o.split('.'), p = P[a[0]];
+    if (p.k === 'res') { var other = a[0] + '.' + (a[1] === 'a' ? 'b' : 'a'); if (!seen[other]) { seen[other] = 1; q.push([other, 1]); } }
+  }
+  while (q.length) {
+    var it = q.shift(), r = it[0], via = it[1];
+    W.forEach(function (x, i) {
+      if (x.a !== r && x.b !== r) return;
+      if (out.wires.indexOf(i) < 0) { out.wires.push(i); if (via) out.via[i] = 1; }
+      var o = x.a === r ? x.b : x.a;
+      if (BUS[o]) out.buses[o] = 1; else visit(o, via);
+    });
+  }
+  return out;
+}
+function pinTitle(p, q) {
+  if (p.k === 'mcu') return 'Нога ' + q.lab;
+  if (p.k === 'res') return q.id === 'a' ? 'Верхняя нога' : 'Нижняя нога';
+  if (q.say) return q.say.charAt(0).toUpperCase() + q.say.slice(1);
+  return 'Контакт ' + q.lab;
+}
+// Что подсветить: группы «вывод → его цепь», все провода, шины
+function selection() {
+  var F = { groups: [], wires: [], buses: {} };
+  function add(title, refs) {
+    var g = netOf(refs[0], { wires: [], buses: {} });
+    for (var j = 1; j < refs.length; j++) netOf(refs[j], g);
+    g.wires = g.wires.filter(function (k) { return F.wires.indexOf(k) < 0; });
+    if (!g.wires.length) return;
+    g.title = title; F.groups.push(g);
+    g.wires.forEach(function (k) { F.wires.push(k); });
+    for (var b in g.buses) F.buses[b] = 1;
+  }
+  if (selPart && BUS[selPart]) {
+    var ws = wiresOf(selPart);
+    F.groups.push({ title: '', wires: ws, buses: {} }); F.wires = ws; F.buses[selPart] = 1;
+  } else if (selPart) {
+    var p = P[selPart];
+    p.pinList.forEach(function (q) { add(pinTitle(p, q), [selPart + '.' + q.id]); });
+  } else if (selWire >= 0) {
+    var x = W[selWire], refs = [x.a, x.b].filter(function (r) { return !BUS[r]; });
+    add('', refs);
+    if (BUS[x.a]) F.buses[x.a] = 1; if (BUS[x.b]) F.buses[x.b] = 1;
+    F.groups[0].buses = F.buses;
+  } else return null;
+  return F;
+}
+
 function paint() {
   var gs = board.querySelectorAll('.w'), i;
-  var focus = null;
-  if (selPart) focus = wiresOf(selPart);
-  if (selWire >= 0) focus = [selWire];
+  var F = selection(), focus = F ? F.wires : null;
   for (i = 0; i < gs.length; i++) {
     var k = +gs[i].getAttribute('data-i'), s = W[k].step;
     gs[i].classList.remove('pale', 'hid', 'dim', 'hl');
@@ -779,7 +837,8 @@ function paint() {
   for (i = 0; i < bs.length; i++) {
     var b = BUS[bs[i].getAttribute('data-b')];
     bs[i].classList.toggle('hid', !focus && cur > 0 && b.step > cur);
-    bs[i].classList.toggle('dim', !!focus && !(selPart === b.id || (selWire >= 0 && (W[selWire].a === b.id || W[selWire].b === b.id))));
+    bs[i].classList.toggle('dim', !!focus && !F.buses[b.id]);
+    bs[i].classList.toggle('on', !!focus && !!F.buses[b.id]);
   }
   var ps = board.querySelectorAll('.pt');
   var near = {};
@@ -799,23 +858,35 @@ function paint() {
   document.getElementById('marks').innerHTML = m;
   var btns = document.querySelectorAll('#steps button[data-s]');
   for (i = 0; i < btns.length; i++) btns[i].classList.toggle('on', !focus && +btns[i].getAttribute('data-s') === cur);
-  info(focus);
+  info(F);
 }
 
-function line(k, j) {
+function line(k, j, via) {
   var x = W[k];
   return '<li data-i="' + k + '"' + (DONE[k] ? ' class="done"' : '') + '><span class="n">' + (j + 1) + '</span>' +
     '<input type="checkbox" aria-label="припаян"' + (DONE[k] ? ' checked' : '') + '>' +
-    '<span>' + say(x.a, x) + ' → ' + say(x.b, x) + (x.note ? ' <span class="mut">— ' + x.note + '</span>' : '') + '</span></li>';
+    '<span>' + (via ? '<span class="via">через резистор</span> ' : '') + say(x.a, x) + ' → ' + say(x.b, x) + (x.note ? ' <span class="mut">— ' + x.note + '</span>' : '') + '</span></li>';
 }
-function info(focus) {
+function groupsHtml(F) {
+  var n = 0, h = '';
+  F.groups.forEach(function (g) {
+    if (g.title) h += '<h4 class="grp">' + g.title + '</h4>';
+    h += '<ol>' + g.wires.map(function (k) { return line(k, n++, g.via && g.via[k]); }).join('');
+    Object.keys(g.buses).forEach(function (b) {
+      h += '<li class="busl"><span class="n">⟶</span><span>дальше — <b>' + BUS[b].t + '</b> (горит целиком): от неё питаются и другие детали</span></li>';
+    });
+    h += '</ol>';
+  });
+  return h;
+}
+function info(F) {
   var el = document.getElementById('info'), h = '';
+  var back = '<p class="chk mut">Нажми на пустое место платы, чтобы вернуться к шагам.</p>';
   if (selPart) {
     var p = P[selPart];
-    h = '<h3>' + (p.k === 'bus' ? p.t : p.full.charAt(0).toUpperCase() + p.full.slice(1)) + ': куда идут провода</h3><ol>' + focus.map(line).join('') + '</ol>' +
-      '<p class="chk mut">Нажми на пустое место платы, чтобы вернуться к шагам.</p>';
+    h = '<h3>' + (p.k === 'bus' ? p.t + ': все провода' : p.full.charAt(0).toUpperCase() + p.full.slice(1) + ': куда идёт каждый вывод') + '</h3>' + groupsHtml(F) + back;
   } else if (selWire >= 0) {
-    h = '<h3>Провод из шага ' + W[selWire].step + '</h3><ol>' + line(selWire, 0) + '</ol><p class="chk mut">Нажми на пустое место платы, чтобы вернуться к шагам.</p>';
+    h = '<h3>Провод из шага ' + W[selWire].step + ' и вся его цепь</h3>' + groupsHtml(F) + back;
   } else if (cur > 0) {
     var s = S[cur - 1], ks = stepWires(cur);
     h = '<h3>' + s.t + '</h3>';
