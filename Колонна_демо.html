@@ -1,0 +1,651 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Колонна — новый пульт (демо)</title>
+<style>
+:root{
+  --bg:#CBD5E1; --card:#F8FAFC; --line:#94A3B8; --plate:#334155;
+  --text:#1E293B; --muted:#475569; --acc:#2563EB;
+  --kub:#EA580C; --carga:#2563EB; --otbor:#16A34A; --voda:#0891B2; --tsa:#7C3AED; --pwr:#64748B;
+  --warn:#B45309; --warnbg:#FEF3C7; --bad:#DC2626; --badbg:#FEE2E2; --info:#1D4ED8; --infobg:#DBEAFE;
+  --mono:"Cascadia Mono","Consolas",monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 "Segoe UI",system-ui,sans-serif}
+button{font:inherit;cursor:pointer;touch-action:manipulation}
+button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.top{background:var(--plate);color:#F8FAFC;padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.top h1{font-size:18px;margin:0 8px 0 0;font-weight:600}
+.pill{background:#475569;border-radius:999px;padding:3px 12px;font-size:14px;white-space:nowrap}
+.pill b{font-family:var(--mono);font-weight:600}
+.pill.on{background:#0E7490}.pill.off{background:#991B1B}
+.top .sp{flex:1}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:8px;padding:7px 14px;min-height:40px}
+.btn:hover{background:#E2E8F0}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.pri:hover{background:#1D4ED8}
+.btn.glow{box-shadow:0 0 0 4px #93C5FD}
+.btn.sel{background:var(--plate);color:#fff;border-color:var(--plate)}
+.wrap{max-width:1500px;margin:0 auto;padding:14px}
+.demo{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--card);border:1px dashed var(--line);
+  border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:14px;color:var(--muted)}
+.demo b{color:var(--text)}
+.alarms{display:grid;gap:8px;margin-bottom:12px}
+.al{display:flex;gap:12px;align-items:center;border-radius:10px;padding:10px 14px;border:2px solid}
+.al.a{background:var(--badbg);border-color:var(--bad)}
+.al.w{background:var(--warnbg);border-color:var(--warn)}
+.al.i{background:var(--infobg);border-color:var(--info)}
+.al .tag{font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.5px;min-width:86px}
+.al.a .tag{color:var(--bad)}.al.w .tag{color:var(--warn)}.al.i .tag{color:var(--info)}
+.al .msg{flex:1}
+.grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 3px rgba(15,23,42,.12);overflow:hidden}
+.card h2{margin:0;background:var(--plate);color:#F8FAFC;font-size:15px;font-weight:600;padding:7px 14px}
+.card .in{padding:12px 14px}
+.side{display:grid;gap:12px;align-content:start}
+svg.mimic{display:block;width:100%;height:auto}
+/* ---- этапы ---- */
+.stages{display:flex;flex-wrap:wrap;gap:6px;list-style:none;margin:0 0 10px;padding:0}
+.stages li{border:1px solid var(--line);border-radius:8px;padding:3px 10px;font-size:14px;color:var(--muted)}
+.stages li.done{background:#E2E8F0}
+.stages li.cur{background:var(--plate);color:#fff;border-color:var(--plate);font-weight:600}
+.big{font-size:15px}
+/* ---- фикс ---- */
+.fx{display:grid;grid-template-columns:auto 1fr 1fr;gap:6px 14px;align-items:baseline;font-size:15px;margin-bottom:10px}
+.fx .h{font-size:13px;color:var(--muted)}
+.fx .n{font-family:var(--mono);font-size:18px;font-weight:600}
+.fx .n[data-s="w"]{color:var(--warn)}.fx .n[data-s="a"]{color:var(--bad)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.note{font-size:13px;color:var(--muted);margin:8px 0 0}
+/* ---- события ---- */
+.ev{list-style:none;margin:0;padding:0;max-height:230px;overflow:auto;font-size:14px}
+.ev li{display:flex;gap:10px;padding:5px 0;border-bottom:1px solid #E2E8F0}
+.ev .tm{font-family:var(--mono);color:var(--muted);min-width:44px}
+.ev .dot{width:9px;height:9px;border-radius:50%;margin-top:7px;flex:none;background:#64748B}
+.ev .dot.a{background:var(--bad)}.ev .dot.w{background:#F59E0B}.ev .dot.i{background:var(--info)}
+/* ---- графики ---- */
+.charts{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px;margin-top:12px}
+.chart svg{display:block;width:100%;height:auto}
+.legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.legend button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:2px 10px;font-size:13px;min-height:32px}
+.legend button.offl{opacity:.4;text-decoration:line-through}
+.legend i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:6px}
+footer{font-size:13px;color:var(--muted);margin:14px 0 30px}
+/* ---- схема: таблички ---- */
+.chip rect.bx{fill:#fff;stroke:#94A3B8;stroke-width:1.2}
+.chip[data-s="w"] rect.bx{fill:#FEF3C7;stroke:#B45309;stroke-width:2}
+.chip[data-s="a"] rect.bx{fill:#FEE2E2;stroke:#DC2626;stroke-width:2.4}
+.chip[data-s="n"] rect.bx{stroke-dasharray:5 4;fill:#F1F5F9}
+.chip .lb{font:600 10.5px "Segoe UI",sans-serif;letter-spacing:.6px;fill:#475569}
+.chip .vl{font:700 27px var(--mono);fill:#0F172A}
+.chip .un{font:500 13px "Segoe UI",sans-serif;fill:#475569}
+.chip .sb{font:500 11px "Segoe UI",sans-serif;fill:#475569}
+.lead{stroke:#64748B;stroke-width:1;opacity:.7}
+.sdot{stroke:#fff;stroke-width:2.5}
+.ring{fill:none;stroke-width:3;opacity:0}
+.chip[data-s="a"] + .ring, .ring.on{animation:pulse 1s ease-out infinite}
+.lbl{font:500 12px "Segoe UI",sans-serif;fill:#475569}
+.lblw{font:600 13px "Segoe UI",sans-serif;fill:#fff;letter-spacing:1px}
+/* ---- схема: жизнь ---- */
+.heat{opacity:0;transition:opacity 1.5s}
+svg[data-heat="1"] .heat{opacity:1}
+.jacket{fill:#E2E8F0;transition:fill 1s}
+svg[data-flow="1"] .jacket{fill:#BFDBFE}
+.wflow{stroke:#fff;stroke-width:2;stroke-dasharray:6 10;opacity:0}
+svg[data-flow="1"] .wflow{opacity:.9;animation:flow 1s linear infinite}
+.wflow.rev{animation-direction:reverse !important}
+.bub,.stm,.drp{opacity:0}
+svg[data-boil="1"] .bub{animation:bub 1.8s ease-in infinite}
+svg[data-steam="1"] .stm{animation:stm 3.2s linear infinite}
+svg[data-drip="1"] .drp{animation:drp 1.1s ease-in infinite}
+@keyframes flow{to{stroke-dashoffset:-32}}
+@keyframes bub{0%{opacity:0;transform:translateY(0)}20%{opacity:.9}100%{opacity:0;transform:translateY(-44px)}}
+@keyframes stm{0%{opacity:0;transform:translateY(0)}15%{opacity:.75}85%{opacity:.75}100%{opacity:0;transform:translateY(-270px)}}
+@keyframes drp{0%{opacity:0;transform:translateY(0)}15%{opacity:1}100%{opacity:1;transform:translateY(40px)}}
+@keyframes pulse{0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(2.2)}}
+.ring{transform-box:fill-box;transform-origin:center}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+@media (max-width:1050px){.grid,.charts{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1>Колонна · пульт</h1>
+  <span class="pill">Этап: <b id="pStage">—</b></span>
+  <span class="pill" id="pWater">Вода: <b>—</b></span>
+  <span class="pill">Давление: <b id="pPress">—</b> мм</span>
+  <span class="pill">В работе: <b id="pTime">—</b></span>
+  <span class="pill">Отобрано: <b id="pVol">—</b> л</span>
+  <span class="sp"></span>
+  <button class="btn" id="bWater">Воду включил</button>
+  <button class="btn" id="bSound" aria-pressed="false">Звук тревоги: выкл</button>
+</header>
+
+<div class="wrap">
+  <div class="demo" aria-label="Управление демонстрацией">
+    <b>Демо — цифры придуманы, датчики не подключены.</b>
+    <span>Скорость:</span>
+    <button class="btn" data-sp="10">×10</button>
+    <button class="btn sel" data-sp="60">×60</button>
+    <button class="btn" data-sp="300">×300</button>
+    <span>Что показать:</span>
+    <button class="btn" data-sc="norm">Погон сначала</button>
+    <button class="btn" data-sc="nowater">Пропала вода</button>
+    <button class="btn" data-sc="tails">Хвосты пошли</button>
+  </div>
+
+  <div class="alarms" id="alarms" aria-live="polite"></div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Аппарат — колонна с насадкой</h2>
+      <svg class="mimic" id="mimic" viewBox="0 0 600 680" role="img"
+           aria-label="Схема колонны: внизу куб с ТЭНом, над ним царга с насадкой, узел отбора с краном и банкой, сверху дефлегматор с водой и трубка связи с атмосферой. У каждого датчика табличка с температурой.">
+        <defs>
+          <linearGradient id="cu" x1="0" x2="1">
+            <stop offset="0" stop-color="#7C3F16"/><stop offset=".18" stop-color="#E3A16F"/>
+            <stop offset=".45" stop-color="#C77B45"/><stop offset=".8" stop-color="#8F4A1E"/>
+            <stop offset="1" stop-color="#6B3312"/>
+          </linearGradient>
+          <linearGradient id="cuv" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#E3A16F"/><stop offset="1" stop-color="#8F4A1E"/>
+          </linearGradient>
+          <radialGradient id="glow">
+            <stop offset="0" stop-color="#FF7A2F" stop-opacity=".85"/>
+            <stop offset=".6" stop-color="#F97316" stop-opacity=".25"/>
+            <stop offset="1" stop-color="#F97316" stop-opacity="0"/>
+          </radialGradient>
+          <pattern id="mesh" width="8" height="8" patternUnits="userSpaceOnUse">
+            <path d="M0 8 L8 0 M-2 2 L2 -2 M6 10 L10 6" stroke="#B98A63" stroke-width="1" opacity=".55"/>
+          </pattern>
+          <linearGradient id="liq" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#FDE68A"/><stop offset="1" stop-color="#D97706"/>
+          </linearGradient>
+          <linearGradient id="spirt" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#E0F2FE"/><stop offset="1" stop-color="#BAE6FD"/>
+          </linearGradient>
+          <clipPath id="winClip"><rect x="220" y="540" width="60" height="66" rx="8"/></clipPath>
+          <clipPath id="jarClip"><path d="M402 342 L402 434 Q402 440 408 440 L452 440 Q458 440 458 434 L458 342 Z"/></clipPath>
+        </defs>
+
+        <!-- пол и свечение ТЭНа -->
+        <ellipse class="heat" cx="300" cy="630" rx="150" ry="26" fill="url(#glow)"/>
+        <line x1="150" y1="652" x2="450" y2="652" stroke="#94A3B8" stroke-width="2"/>
+
+        <!-- КУБ -->
+        <path fill="url(#cu)" d="M204 522 L204 612 Q204 630 224 630 L376 630 Q396 630 396 612 L396 522 Z"/>
+        <ellipse cx="300" cy="522" rx="96" ry="15" fill="url(#cuv)"/>
+        <rect x="216" y="536" width="68" height="74" rx="10" fill="#7C3F16"/>
+        <rect x="220" y="540" width="60" height="66" rx="8" fill="#F1F5F9"/>
+        <g clip-path="url(#winClip)">
+          <rect id="kubLiq" x="220" y="560" width="60" height="46" fill="url(#liq)" opacity=".85"/>
+          <circle class="bub" cx="232" cy="600" r="3" fill="#FFF7ED" style="animation-delay:0s"/>
+          <circle class="bub" cx="248" cy="603" r="2.4" fill="#FFF7ED" style="animation-delay:.5s"/>
+          <circle class="bub" cx="262" cy="598" r="3.4" fill="#FFF7ED" style="animation-delay:1s"/>
+          <circle class="bub" cx="271" cy="602" r="2.2" fill="#FFF7ED" style="animation-delay:1.4s"/>
+          <circle class="bub" cx="240" cy="596" r="2" fill="#FFF7ED" style="animation-delay:.8s"/>
+        </g>
+        <text class="lblw" x="350" y="566" text-anchor="middle">КУБ</text>
+        <text class="lblw" x="350" y="588" text-anchor="middle" style="font-size:11px;letter-spacing:.5px">ТЭН 3 кВт</text>
+        <!-- горловина -->
+        <rect x="288" y="494" width="24" height="20" fill="url(#cu)"/>
+
+        <!-- ЦАРГА С НАСАДКОЙ: стекло, видно насадку и пар -->
+        <rect x="280" y="200" width="40" height="296" fill="url(#cu)"/>
+        <rect x="286" y="206" width="28" height="140" fill="#EEF2F6"/>
+        <rect x="286" y="356" width="28" height="136" fill="#EEF2F6"/>
+        <rect x="286" y="206" width="28" height="140" fill="url(#mesh)"/>
+        <rect x="286" y="356" width="28" height="136" fill="url(#mesh)"/>
+        <g fill="#60A5FA">
+          <ellipse class="stm" cx="295" cy="488" rx="4" ry="3" style="animation-delay:0s"/>
+          <ellipse class="stm" cx="305" cy="488" rx="3.5" ry="2.6" style="animation-delay:.8s"/>
+          <ellipse class="stm" cx="299" cy="488" rx="4.5" ry="3.2" style="animation-delay:1.6s"/>
+          <ellipse class="stm" cx="307" cy="488" rx="3" ry="2.2" style="animation-delay:2.4s"/>
+        </g>
+        <rect x="274" y="346" width="52" height="10" rx="2" fill="url(#cuv)"/>
+        <text class="lbl" x="334" y="420">царга</text>
+        <text class="lbl" x="334" y="436">с насадкой</text>
+
+        <!-- УЗЕЛ ОТБОРА -->
+        <rect x="274" y="176" width="52" height="26" rx="3" fill="url(#cuv)"/>
+        <line x1="326" y1="189" x2="378" y2="189" stroke="#B5703F" stroke-width="7"/>
+        <polygon points="378,180 378,198 389,189" fill="#8F4A1E"/>
+        <polygon points="400,180 400,198 389,189" fill="#8F4A1E"/>
+        <line x1="389" y1="189" x2="389" y2="174" stroke="#8F4A1E" stroke-width="3"/>
+        <line x1="381" y1="173" x2="397" y2="173" stroke="#8F4A1E" stroke-width="4" stroke-linecap="round"/>
+        <text class="lbl" x="389" y="214" text-anchor="middle">кран</text>
+        <path d="M400 189 L422 189 Q430 189 430 197 L430 300" fill="none" stroke="#B5703F" stroke-width="7"/>
+        <circle class="drp" cx="430" cy="304" r="3.6" fill="#38BDF8"/>
+        <!-- банка -->
+        <g clip-path="url(#jarClip)">
+          <rect id="jarLiq" x="402" y="438" width="56" height="2" fill="url(#spirt)"/>
+        </g>
+        <path d="M400 340 L400 434 Q400 442 408 442 L452 442 Q460 442 460 434 L460 340" fill="none" stroke="#64748B" stroke-width="2.5"/>
+        <text class="lbl" x="430" y="458" text-anchor="middle" id="jarTxt">банка</text>
+
+        <!-- ДЕФЛЕГМАТОР -->
+        <rect x="268" y="90" width="64" height="86" rx="4" fill="url(#cu)"/>
+        <rect class="jacket" x="276" y="98" width="48" height="70" rx="3"/>
+        <g stroke="#8F4A1E" stroke-width="2" opacity=".6">
+          <line x1="280" y1="110" x2="320" y2="110"/><line x1="280" y1="124" x2="320" y2="124"/>
+          <line x1="280" y1="138" x2="320" y2="138"/><line x1="280" y1="152" x2="320" y2="152"/>
+        </g>
+        <text class="lbl" x="340" y="138">дефлегматор</text>
+        <!-- вода: вход снизу справа, выход сверху -->
+        <line x1="332" y1="165" x2="590" y2="165" stroke="#60A5FA" stroke-width="6"/>
+        <line class="wflow rev" x1="332" y1="165" x2="590" y2="165"/>
+        <line x1="332" y1="100" x2="590" y2="100" stroke="#3B82F6" stroke-width="6"/>
+        <line class="wflow" x1="332" y1="100" x2="590" y2="100"/>
+        <text class="lbl" x="588" y="186" text-anchor="end">вода — вход</text>
+        <text class="lbl" x="588" y="121" text-anchor="end">вода — выход</text>
+
+        <!-- ТСА: трубка связи с атмосферой -->
+        <rect x="294" y="40" width="12" height="50" fill="url(#cu)"/>
+        <path d="M300 22 L294 34 L306 34 Z" fill="#94A3B8"/>
+        <text class="lbl" x="314" y="34">атмосфера</text>
+
+        <g id="chips"></g>
+      </svg>
+    </section>
+
+    <div class="side">
+      <section class="card">
+        <h2>Этап перегонки</h2>
+        <div class="in">
+          <ol class="stages" id="stages"></ol>
+          <div class="big" id="stageTxt">—</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Фикс — царга и отбор</h2>
+        <div class="in">
+          <div class="fx">
+            <span></span><span class="h">Царга · T2</span><span class="h">Отбор · T3</span>
+            <span class="h">Фикс</span><span class="n" id="fxC">—</span><span class="n" id="fxO">—</span>
+            <span class="h">Δ от фикса</span><span class="n" id="dC">—</span><span class="n" id="dO">—</span>
+            <span class="h">Пороги</span><span class="h">+0,30 / +0,50</span><span class="h">+0,10 / +0,15</span>
+          </div>
+          <div class="row">
+            <button class="btn pri" id="bFix">Зафиксировать</button>
+            <button class="btn" id="bUnfix">Сбросить</button>
+          </div>
+          <p class="note">Δ считается с поправкой на давление: 0,035 °C на 1 мм рт. ст.
+            Погода меняется — ложной тревоги нет.</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>События</h2>
+        <div class="in"><ul class="ev" id="ev"></ul>
+          <p class="note">Позже те же события пойдут в Telegram с самой платы.</p></div>
+      </section>
+    </div>
+  </div>
+
+  <div class="charts">
+    <section class="card chart">
+      <h2>Перегонка целиком</h2>
+      <div class="in"><svg id="ch1" viewBox="0 0 440 210"></svg>
+        <div class="legend" id="lg1"></div></div>
+    </section>
+    <section class="card chart">
+      <h2>Царга: Δ от фикса, последний час</h2>
+      <div class="in"><svg id="ch2" viewBox="0 0 440 210"></svg></div>
+    </section>
+    <section class="card chart">
+      <h2>Отбор: Δ от фикса, последний час</h2>
+      <div class="in"><svg id="ch3" viewBox="0 0 440 210"></svg></div>
+    </section>
+  </div>
+
+  <footer>
+    Это проба внешнего вида. Цифры считает сама страница по упрощённой модели погона.
+    Пороги взяты из плана (D1, D4, D6). Датчика ТСА пока нет (пункт Г3) — табличка пунктиром.
+    Двух датчиков воды и расходомера у нас нет — поэтому один датчик «вода выход» и мощность ТЭНа.
+  </footer>
+</div>
+
+<script>
+"use strict";
+/* ===== ТАБЛИЧКИ НА СХЕМЕ =====
+   k — ключ величины, x,y — левый верхний угол таблички, dot — где датчик на аппарате. */
+const CHIPS = [
+  {k:'tsa',   lb:'АТМОСФЕРА · ТСА', un:'°C', c:'--tsa',   x:16,  y:20,  dot:[300,64],  none:true},
+  {k:'otbor', lb:'ОТБОР · T3',      un:'°C', c:'--otbor', x:16,  y:150, dot:[276,189]},
+  {k:'carga', lb:'ЦАРГА 2/3 · T2',  un:'°C', c:'--carga', x:16,  y:270, dot:[282,300]},
+  {k:'kub',   lb:'КУБ · T1',        un:'°C', c:'--kub',   x:16,  y:430, dot:[204,572]},
+  {k:'pwr',   lb:'ТЭН · МОЩНОСТЬ',  un:'Вт', c:'--pwr',   x:16,  y:580, dot:[236,634]},
+  {k:'voda',  lb:'ВОДА ВЫХОД · T4', un:'°C', c:'--voda',  x:408, y:12,  dot:[372,100], anchor:[440,82]},
+  {k:'vol',   lb:'ОТОБРАНО',        un:'мл', c:'--voda',  x:420, y:470, dot:[430,442], anchor:[470,470], nodot:true},
+];
+const W = 176, H = 70, NS = 'http://www.w3.org/2000/svg';
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function el(tag, attrs, parent, text){
+  const e = document.createElementNS(NS, tag);
+  for (const a in attrs) e.setAttribute(a, attrs[a]);
+  if (text !== undefined) e.textContent = text;
+  if (parent) parent.appendChild(e);
+  return e;
+}
+(function buildChips(){
+  const root = document.getElementById('chips');
+  CHIPS.forEach(c => {
+    const col = css(c.c);
+    const an = c.anchor || [c.x + W, c.y + H/2];
+    el('line', {class:'lead', x1:an[0], y1:an[1], x2:c.dot[0], y2:c.dot[1]}, root);
+    const g = el('g', {class:'chip', id:'g_'+c.k, transform:`translate(${c.x},${c.y})`}, root);
+    el('rect', {class:'bx', width:W, height:H, rx:10}, g);
+    el('rect', {x:0, y:8, width:5, height:H-16, rx:2, fill:col}, g);
+    el('text', {class:'lb', x:14, y:18}, g, c.lb);
+    el('text', {class:'vl', x:14, y:48, id:'v_'+c.k}, g, '—');
+    el('text', {class:'un', x:W-10, y:48, 'text-anchor':'end'}, g, c.un);
+    el('text', {class:'sb', x:14, y:63, id:'s_'+c.k}, g, '');
+    if (!c.nodot){
+      el('circle', {class:'ring', id:'r_'+c.k, cx:c.dot[0], cy:c.dot[1], r:8, stroke:'#DC2626'}, root);
+      el('circle', {class:'sdot', cx:c.dot[0], cy:c.dot[1], r:7, fill:col}, root);
+    }
+  });
+})();
+
+/* ===== МОДЕЛЬ ПОГОНА (только для демо) ===== */
+const STAGES = [['razgon','Разгон'],['self','Работа на себя'],['heads','Головы'],
+                ['body','Тело'],['tails','Хвосты'],['end','Конец']];
+const STXT = {
+  razgon:'ТЭН на полную, греем куб. Отбор закрыт.',
+  self:'Пар дошёл до верха. Колонна работает на себя, отбор закрыт — ждём, пока царга встанет ровно.',
+  heads:'Головы: отбор по капле, в отдельную банку.',
+  body:'Тело: отбор открыт, следим за дельтой царги и отбора.',
+  tails:'Хвосты пошли: отбор закрыть. Дальше — на хвосты или выключать.',
+  end:'Конец: куб 98,5 °C, ТЭН выключен.'
+};
+const r2 = () => (Math.random() - .5);
+const f = (v, d) => (v === null || v === undefined || !isFinite(v)) ? '—' : v.toFixed(d).replace('.', ',');
+let S, speed = 60;
+
+function reset(){
+  S = {t:0, kub:20, carga:21, otbor:21, voda:15, tsa:23, pwr:3000, volt:228, amp:13, kwh:0,
+       press:748, water:false, vol:0, stage:'razgon', stageT:0, fix:null, ev:[], hist:[],
+       al:{}, alPrev:'', waterAsk:null, autoWater:true, stableSaid:false, muted:false};
+  log('i', 'Старт: разгон, ТЭН на полную');
+}
+function log(c, txt){ S.ev.unshift({t:S.t, c, txt}); if (S.ev.length > 60) S.ev.pop(); }
+function setStage(st, txt){ S.stage = st; S.stageT = 0; log('i', txt); }
+function Tb(){ return 78.15 + 0.035 * (S.press - 760); }
+function delta(T, k){ return S.fix ? T - S.fix[k] - 0.035 * (S.press - S.fix.press) : null; }
+function doFix(why){
+  S.fix = {carga:S.carga, otbor:S.otbor, press:S.press};
+  log('i', why || ('Фикс: царга ' + f(S.carga,2) + ', отбор ' + f(S.otbor,2)));
+}
+function setWater(on, why){ S.water = on; log(on ? 'i' : 'w', why); }
+const ap = (cur, tgt, k, dt) => cur + (tgt - cur) * (1 - Math.exp(-k * dt));
+
+function step(dt){
+  S.t += dt; S.stageT += dt;
+  S.press = 748 + 1.6 * Math.sin(S.t / 80);
+  const tb = Tb();
+  S.pwr = S.stage === 'end' ? 0 : S.stage === 'razgon' ? 3000 : 1750;
+  S.volt = 228 + r2() * 2; S.amp = S.pwr ? S.pwr / S.volt : 0;
+  S.kwh += S.pwr / 1000 * dt / 60;
+
+  if (S.pwr > 0) S.kub += (S.kub < 78.4 ? 1.2 : 0.06) * dt;
+  else S.kub = ap(S.kub, 20, 0.01, dt);
+  S.kub += r2() * 0.04;
+  const tails = S.kub > 95 ? Math.pow(S.kub - 95, 2) * 0.06 : 0;
+  let tc, to;
+  if (S.pwr > 0 && S.kub >= 76){ tc = tb + 0.25 + tails; to = tb + 0.02 + tails * 0.3; }
+  else if (S.pwr > 0){ tc = 21 + Math.max(0, S.kub - 55) * 0.6; to = 21 + Math.max(0, S.kub - 60) * 0.4; }
+  else { tc = to = 20; }
+  const kk = S.pwr > 0 ? 0.35 : 0.03;
+  S.carga = ap(S.carga, tc, kk, dt) + r2() * 0.012;
+  S.otbor = ap(S.otbor, to, kk * 0.85, dt) + r2() * 0.010;
+
+  const hot = S.pwr > 0 && S.kub > 72;
+  S.voda = ap(S.voda, S.water ? (hot ? 31 : 17) : (hot ? 92 : 15), 0.3, dt) + r2() * 0.05;
+  S.tsa  = ap(S.tsa, (!S.water && S.pwr > 0 && S.kub > 76) ? 85 : 23, 0.25, dt);
+
+  // подсказка «открой воду» и автонажатие в демо
+  if (S.kub >= 70 && !S.water && S.waterAsk === null && S.pwr > 0){
+    S.waterAsk = S.t; log('i', 'Куб 70 °C — открой воду (D4)');
+  }
+  if (S.autoWater && !S.water && S.waterAsk !== null && S.t - S.waterAsk > 1.5){
+    S.autoWater = false; setWater(true, 'Вода включена (в демо — само)');
+  }
+
+  // этапы
+  const rate = {heads:150, body:900}[S.stage] || 0;          // мл/ч
+  S.vol += rate * dt / 60;
+  if (S.stage === 'razgon' && S.kub >= 76 && Math.abs(S.carga - (tb + 0.25)) < 0.15)
+    setStage('self', 'Пар дошёл до верха — работа на себя');
+  if (S.stage === 'self'){
+    const h = S.hist.filter(p => p.t >= S.t - 10);
+    if (!S.fix && !S.stableSaid && S.stageT > 10 && h.length){
+      const mn = Math.min(...h.map(p => p.carga)), mx = Math.max(...h.map(p => p.carga));
+      if (mx - mn <= 0.10){ S.stableSaid = true; log('i', 'Колонна стабильна — можно фиксировать (D2)'); }
+    }
+    if (S.stageT >= 25){
+      if (!S.fix) doFix('Фикс поставлен сам (в демо)');
+      setStage('heads', 'Головы: отбор по капле');
+    }
+  }
+  if (S.stage === 'heads' && S.stageT >= 30) setStage('body', 'Тело: отбор открыт');
+  if (S.stage === 'body' && S.al.dC === 'a') setStage('tails', 'Хвосты пошли — отбор закрыть');
+  if ((S.stage === 'body' || S.stage === 'tails') && S.kub >= 98.5)
+    setStage('end', 'Конец: куб 98,5 °C — ТЭН выключен');
+
+  if (S.t - (S.hist.length ? S.hist[S.hist.length-1].t : -1) >= 0.5)
+    S.hist.push({t:S.t, kub:S.kub, carga:S.carga, otbor:S.otbor,
+                 dC:delta(S.carga,'carga'), dO:delta(S.otbor,'otbor')});
+  if (S.hist.length > 1600) S.hist.shift();
+  alarms();
+}
+
+/* Тревоги. Дельта — с гистерезисом из D1: «внимание» снимается ниже 70 % порога,
+   «не норма» — ниже 50 %. */
+function hyst(key, v, w, a){
+  let c = S.al[key] || '';
+  if (v === null) c = '';
+  else {
+    if (v >= a) c = 'a'; else if (c === 'a' && v < 0.5 * a) c = '';
+    if (c !== 'a'){ if (v >= w) c = 'w'; else if (c === 'w' && v < 0.7 * w) c = ''; }
+  }
+  S.al[key] = c; return c;
+}
+function alarms(){
+  const L = [];
+  const dC = delta(S.carga,'carga'), dO = delta(S.otbor,'otbor');
+  const c1 = hyst('dC', dC, 0.30, 0.50), c2 = hyst('dO', dO, 0.10, 0.15);
+  if (c1) L.push([c1, 'Царга', 'ушла от фикса на ' + f(dC,2) + ' °C' + (c1 === 'a' ? ' — хвосты, отбор закрыть' : '')]);
+  if (c2) L.push([c2, 'Отбор', 'ушёл от фикса на ' + f(dO,2) + ' °C' + (c2 === 'a' ? ' — сбавить отбор' : '')]);
+  S.al.voda = S.voda > 55 ? 'a' : '';
+  if (S.al.voda) L.push(['a', 'Нет воды', 'вода на выходе ' + f(S.voda,1) + ' °C — пары уйдут в комнату']);
+  S.al.tsa = S.tsa >= 40 ? 'a' : '';
+  if (S.al.tsa) L.push(['a', 'ТСА', 'пар пошёл в атмосферу: ' + f(S.tsa,1) + ' °C']);
+  S.al.kub = S.kub > 99.5 ? 'a' : '';
+  if (S.al.kub) L.push(['a', 'Куб', 'перегрев ' + f(S.kub,1) + ' °C']);
+  S.L = L;
+  const sig = L.map(x => x[0] + x[1]).join('|');
+  if (sig !== S.alPrev){
+    L.filter(x => !S.alPrev.includes(x[0] + x[1])).forEach(x => log(x[0], x[1] + ': ' + x[2]));
+    if (L.some(x => x[0] === 'a')) S.muted = false;
+    S.alPrev = sig;
+  }
+}
+
+/* ===== ОТРИСОВКА ===== */
+const $ = id => document.getElementById(id);
+const hm = t => Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0');
+function setChip(k, val, d, sub, st){
+  $('v_' + k).textContent = f(val, d);
+  $('s_' + k).textContent = sub || '';
+  $('g_' + k).dataset.s = st || '';
+  const r = $('r_' + k); if (r) r.classList.toggle('on', st === 'a');
+}
+function paint(){
+  const m = $('mimic');
+  m.dataset.heat  = S.pwr > 0 ? '1' : '0';
+  m.dataset.boil  = S.pwr > 0 && S.kub > 77 ? '1' : '0';
+  m.dataset.steam = S.pwr > 0 && S.kub > 76 ? '1' : '0';
+  m.dataset.flow  = S.water ? '1' : '0';
+  m.dataset.drip  = ['heads','body'].includes(S.stage) ? '1' : '0';
+  m.querySelector('.drp').style.animationDuration = S.stage === 'heads' ? '2.4s' : '0.9s';
+
+  const dC = delta(S.carga,'carga'), dO = delta(S.otbor,'otbor');
+  const sg = v => v === null ? '' : (v >= 0 ? '+' : '') + f(v, 2);
+  setChip('tsa', S.tsa, 1, 'датчика нет (Г3) · порог 40', S.al.tsa || 'n');
+  setChip('otbor', S.otbor, 2, S.fix ? 'Δ от фикса ' + sg(dO) : 'фикс не задан', S.al.dO);
+  setChip('carga', S.carga, 2, S.fix ? 'Δ от фикса ' + sg(dC) : 'фикс не задан', S.al.dC);
+  setChip('kub', S.kub, 1, S.kub >= 70 ? 'конец на 98,5' : 'воду открыть на 70', S.al.kub);
+  setChip('pwr', S.pwr, 0, f(S.volt,0) + ' В · ' + f(S.amp,1) + ' А · ' + f(S.kwh,2) + ' кВт·ч', '');
+  setChip('voda', S.voda, 1, S.water ? 'порог 55' : 'вода не идёт', S.al.voda);
+  const jars = Math.floor(S.vol / 1000);
+  setChip('vol', S.vol, 0, 'банка №' + (jars + 1) + ' · скорость ' + ({heads:150, body:900}[S.stage] || 0) + ' мл/ч', '');
+
+  // уровень в банке (литровая) и в кубе
+  const lv = (S.vol % 1000) / 1000 * 96;
+  $('jarLiq').setAttribute('y', 440 - lv); $('jarLiq').setAttribute('height', Math.max(2, lv));
+  $('jarTxt').textContent = S.stage === 'heads' ? 'головы' : 'банка';
+  const kl = 46 - Math.min(20, S.vol / 300);
+  $('kubLiq').setAttribute('y', 606 - kl); $('kubLiq').setAttribute('height', kl);
+
+  // шапка
+  const stName = Object.fromEntries(STAGES)[S.stage];
+  $('pStage').textContent = stName;
+  $('pPress').textContent = f(S.press, 1);
+  $('pTime').textContent = hm(S.t);
+  $('pVol').textContent = f(S.vol / 1000, 2);
+  const pw = $('pWater'); pw.className = 'pill ' + (S.water ? 'on' : (S.waterAsk !== null ? 'off' : ''));
+  pw.innerHTML = 'Вода: <b>' + (S.water ? 'идёт' : 'нет') + '</b>';
+  $('bWater').textContent = S.water ? 'Воду выключил' : 'Воду включил';
+
+  // этапы
+  const idx = STAGES.findIndex(s => s[0] === S.stage);
+  $('stages').innerHTML = STAGES.map((s, i) =>
+    '<li class="' + (i < idx ? 'done' : i === idx ? 'cur' : '') + '">' + s[1] + '</li>').join('');
+  $('stageTxt').textContent = STXT[S.stage] + (S.pwr > 0 && S.kub > 78 && S.kub < 98.5
+    ? ' До конца по кубу осталось ' + f(98.5 - S.kub, 1) + ' °C.' : '');
+
+  // фикс
+  $('fxC').textContent = S.fix ? f(S.fix.carga, 2) : '—';
+  $('fxO').textContent = S.fix ? f(S.fix.otbor, 2) : '—';
+  $('dC').textContent = S.fix ? sg(dC) : '—'; $('dC').dataset.s = S.al.dC || '';
+  $('dO').textContent = S.fix ? sg(dO) : '—'; $('dO').dataset.s = S.al.dO || '';
+  $('bFix').classList.toggle('glow', S.stableSaid && !S.fix);
+
+  // тревоги и подсказки
+  const box = [];
+  (S.L || []).forEach(x => box.push(
+    '<div class="al ' + x[0] + '" role="alert"><span class="tag">' + (x[0] === 'a' ? 'Не норма' : 'Внимание') +
+    '</span><span class="msg"><b>' + x[1] + ':</b> ' + x[2] + '</span>' +
+    (x[0] === 'a' ? '<button class="btn" data-mute>' + (S.muted ? 'Заглушено' : 'Заглушить') + '</button>' : '') + '</div>'));
+  if (S.kub >= 70 && !S.water && S.pwr > 0 && !S.al.voda)
+    box.push('<div class="al i"><span class="tag">Подсказка</span><span class="msg">Куб 70 °C — открой воду на дефлегматор и нажми «Воду включил».</span></div>');
+  if (S.stableSaid && !S.fix)
+    box.push('<div class="al i"><span class="tag">Подсказка</span><span class="msg">Царга стоит ровно 10 минут — можно фиксировать.</span><button class="btn pri" data-fix>Зафиксировать</button></div>');
+  $('alarms').innerHTML = box.join('');
+  $('alarms').querySelectorAll('[data-mute]').forEach(b => b.onclick = () => { S.muted = true; paint(); });
+  $('alarms').querySelectorAll('[data-fix]').forEach(b => b.onclick = () => { doFix(); paint(); });
+
+  // события
+  $('ev').innerHTML = S.ev.map(e => '<li><span class="tm">' + hm(e.t) + '</span><span class="dot ' + e.c +
+    '"></span><span>' + e.txt + '</span></li>').join('');
+}
+
+/* ===== ГРАФИКИ ===== */
+const SER = [{k:'kub', n:'Куб', c:'--kub'}, {k:'carga', n:'Царга', c:'--carga'}, {k:'otbor', n:'Отбор', c:'--otbor'}];
+const hidden = {};
+function chart(id, o){
+  const s = $(id); s.innerHTML = '';
+  const X0 = 46, X1 = 430, Y0 = 12, Y1 = 180;
+  const sx = x => X0 + (x - o.x0) / (o.x1 - o.x0) * (X1 - X0);
+  const sy = y => Y1 - (Math.max(o.y0, Math.min(o.y1, y)) - o.y0) / (o.y1 - o.y0) * (Y1 - Y0);
+  el('rect', {x:X0, y:Y0, width:X1-X0, height:Y1-Y0, fill:'#fff', stroke:'#CBD5E1'}, s);
+  o.yt.forEach(v => {
+    el('line', {x1:X0, x2:X1, y1:sy(v), y2:sy(v), stroke:'#E2E8F0'}, s);
+    el('text', {x:X0-6, y:sy(v)+4, 'text-anchor':'end', 'font-size':12, fill:'#475569'}, s, f(v, o.yd));
+  });
+  for (let i = 0; i <= 4; i++){
+    const x = o.x0 + (o.x1 - o.x0) * i / 4;
+    el('text', {x:sx(x), y:Y1+16, 'text-anchor':'middle', 'font-size':12, fill:'#475569'}, s, hm(Math.max(0,x)));
+  }
+  (o.hl || []).forEach(h => {
+    el('line', {x1:X0, x2:X1, y1:sy(h.y), y2:sy(h.y), stroke:h.c, 'stroke-width':1.5, 'stroke-dasharray':h.d}, s);
+    el('text', {x:X0+6, y:sy(h.y)-5, 'font-size':12, 'font-weight':600, fill:h.c}, s, h.t);
+  });
+  o.ser.forEach(se => {
+    const pts = S.hist.filter(p => p.t >= o.x0 && p[se.k] !== null).map(p => sx(p.t).toFixed(1) + ',' + sy(p[se.k]).toFixed(1));
+    if (pts.length > 1) el('polyline', {points:pts.join(' '), fill:'none', stroke:css(se.c), 'stroke-width':2.2, 'stroke-linejoin':'round'}, s);
+  });
+  if (o.empty) el('text', {x:(X0+X1)/2, y:(Y0+Y1)/2, 'text-anchor':'middle', 'font-size':14, fill:'#475569'}, s, o.empty);
+}
+function charts(){
+  const x1 = Math.max(60, Math.ceil(S.t / 30) * 30);
+  chart('ch1', {x0:0, x1, y0:10, y1:100, yt:[20,40,60,80,100], yd:0,
+    hl:[{y:70, c:'#64748B', d:'5 4', t:'70 °C — открыть воду'}],
+    ser:SER.filter(s => !hidden[s.k])});
+  const a = Math.max(0, S.t - 60), b = Math.max(60, S.t);
+  chart('ch2', {x0:a, x1:b, y0:-0.2, y1:0.7, yt:[-0.2,0,0.2,0.4,0.6], yd:1,
+    hl:[{y:0.30, c:'#B45309', d:'2 3', t:'внимание +0,30'}, {y:0.50, c:'#DC2626', d:'6 4', t:'не норма +0,50'}],
+    ser:[{k:'dC', c:'--carga'}], empty:S.fix ? '' : 'фикс не поставлен'});
+  chart('ch3', {x0:a, x1:b, y0:-0.1, y1:0.3, yt:[-0.1,0,0.1,0.2,0.3], yd:1,
+    hl:[{y:0.10, c:'#B45309', d:'2 3', t:'внимание +0,10'}, {y:0.15, c:'#DC2626', d:'6 4', t:'не норма +0,15'}],
+    ser:[{k:'dO', c:'--otbor'}], empty:S.fix ? '' : 'фикс не поставлен'});
+}
+$('lg1').innerHTML = SER.map(s => '<button data-k="' + s.k + '"><i style="background:' + css(s.c) + '"></i>' + s.n + '</button>').join('');
+$('lg1').querySelectorAll('button').forEach(b => b.onclick = () => {
+  hidden[b.dataset.k] = !hidden[b.dataset.k]; b.classList.toggle('offl', hidden[b.dataset.k]); charts();
+});
+
+/* ===== СИРЕНА (по кнопке «Звук тревоги») ===== */
+let sound = false, actx = null, beepT = 0;
+$('bSound').onclick = () => {
+  sound = !sound;
+  $('bSound').textContent = 'Звук тревоги: ' + (sound ? 'вкл' : 'выкл');
+  $('bSound').setAttribute('aria-pressed', String(sound));
+  if (sound && !actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+};
+function siren(){
+  if (!sound || !actx || S.muted || !(S.L || []).some(x => x[0] === 'a')) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.frequency.value = (beepT++ % 2) ? 660 : 880; g.gain.value = 0.08;
+  o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime + 0.25);
+}
+
+/* ===== КНОПКИ ===== */
+$('bWater').onclick = () => { S.autoWater = false; setWater(!S.water, S.water ? 'Вода выключена' : 'Вода включена'); paint(); };
+$('bFix').onclick = () => { doFix(); paint(); };
+$('bUnfix').onclick = () => { if (S.fix){ S.fix = null; S.al.dC = S.al.dO = ''; log('i', 'Фикс сброшен'); paint(); } };
+document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => {
+  speed = +b.dataset.sp;
+  document.querySelectorAll('[data-sp]').forEach(x => x.classList.toggle('sel', x === b));
+});
+document.querySelectorAll('[data-sc]').forEach(b => b.onclick = () => {
+  const sc = b.dataset.sc;
+  if (sc === 'norm'){ reset(); }
+  if (sc === 'nowater'){
+    if (S.kub < 80) fastTo(() => S.stage === 'body' && S.stageT > 20);
+    S.autoWater = false; setWater(false, 'Вода пропала (сценарий демо)');
+  }
+  if (sc === 'tails'){ fastTo(() => S.stage === 'body' && S.kub >= 96.6); }
+  paint(); charts();
+});
+// прогнать модель вперёд до нужного места
+function fastTo(cond){ let n = 0; while (!cond() && n++ < 20000) step(0.1); }
+
+reset();
+let last = performance.now();
+setInterval(() => {
+  const now = performance.now();
+  let dt = (now - last) / 1000 * speed / 60; last = now;   // минуты погона
+  while (dt > 0){ const d = Math.min(dt, 0.1); step(d); dt -= d; }
+  paint();
+}, 250);
+setInterval(charts, 1000);
+setInterval(siren, 400);
+paint(); charts();
+</script>
+</body>
+</html>
