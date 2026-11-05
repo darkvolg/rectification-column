@@ -1,0 +1,1006 @@
+﻿<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Колонна: схема соединений, версия 2</title>
+<!--
+  ОБЩИЙ ШАБЛОН страниц-документов для Гены (инструкции, шпаргалки, отчёты, памятки) — ВСЕ проекты.
+  Подобран через скилл ui-ux-pro-max 26.10.2026 («Minimalism & Swiss» + палитра «Knowledge Base/Documentation», светлая спокойная).
+  Как пользоваться: скопировать файл в папку проекта, заменить <title> и содержимое <main>.
+  Стиль НЕ менять в отдельной странице. Нужна правка стиля -> править здесь, и новые страницы берут отсюда.
+  Сохранять UTF-8 с BOM. Без внешних шрифтов и скриптов (работает без интернета, на телефоне, печатается).
+  Компоненты: h2/h3, .toc, ol.st (шаги-карточки), .res (что должно быть), .ok/.warn/.bad, table в .wrap, .phs > figure.ph (фото с подписью), code/pre/kbd, .mut, .y.
+  Для шпаргалок: header.hero (.eyebrow, h1, .lead, .meta>span), .card, .qa > h3 > .qn (вопрос с номером),
+  .say (+ .lbl) — что говорить, .note — подсказка мелко, table.facts — «название: значение».
+  table.plan (+ .when) — широкая таблица, на телефоне строками-карточками; ячейкам нужен data-l.
+  nav.tabs + section.pane — документ как сайт: кнопки сверху переключают разделы (нужен скрипт в конце body).
+  .bars — диаграмма «из чего состоит целое» (полоса из долей) + .legend.
+  .ok/.warn/.bad — ТОЛЬКО по смыслу (можно / осторожно / нельзя), не для красоты.
+  Для телефонных шпаргалок с вкладками — добавить свою нижнюю панель вкладок, цвета брать из переменных ниже.
+-->
+<style>
+/* Стиль по ui-ux-pro-max: «Minimalism & Swiss», палитра «Knowledge Base/Documentation» (slate + синий).
+   26.10: блоки должны чётко отделяться от фона — фон страницы slate-300, карточки светлые с рамкой,
+   цветные блоки насыщенные с рамкой и толстой полосой, заголовки разделов на тёмной плашке.
+   Контраст текста 7–14:1. Офлайн, системный шрифт. */
+:root{
+  --page:#cbd5e1;--card:#f8fafc;--frame:#94a3b8;--line:#cbd5e1;
+  --fg:#1e293b;--fg-strong:#0f172a;--mut:#334155;--bar:#334155;--acc:#2563eb;--link:#1d4ed8;
+  --bad:#fee2e2;--badb:#dc2626;--badl:#fca5a5;--badt:#7f1d1d;
+  --ok:#dcfce7;--okb:#16a34a;--okl:#86efac;--okt:#14532d;
+  --warn:#fef3c7;--warnb:#d97706;--warnl:#fcd34d;--warnt:#78350f;
+  --code:#e2e8f0;--yel:#ffff00;--shadow:0 1px 2px rgba(15,23,42,.18);
+  --c1:#2563eb;--c2:#0d9488;--c3:#d97706;--c4:#7c3aed; /* ряды диаграмм: проверено validate_palette (light) */
+  color-scheme:light}
+*{box-sizing:border-box}
+body{background:var(--page);color:var(--fg);font:17px/1.65 "Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:32px 16px 64px}
+main{max-width:1060px;margin:auto}
+h1{font-size:30px;line-height:1.25;margin:0 0 .3em;color:var(--fg-strong);font-weight:700;letter-spacing:-.01em}
+h2{font-size:21px;margin:2.2em 0 .8em;padding:10px 16px;color:#fff;background:var(--bar);font-weight:700;border-radius:4px;border-left:6px solid var(--acc)}
+h3{font-size:18px;margin:1.6em 0 .5em;color:var(--fg-strong);font-weight:700}
+p{margin:.6em 0}
+b,strong{color:var(--fg-strong)}
+a{color:var(--link);text-underline-offset:3px}
+a:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.mut{color:var(--mut)}
+/* Текст, стоящий прямо на фоне страницы, кладём на карточку */
+main>p:not(.toc){background:var(--card);border:1px solid var(--frame);border-radius:4px;padding:10px 14px;box-shadow:var(--shadow)}
+main>ul{background:var(--card);border:1px solid var(--frame);border-radius:4px;padding:10px 14px 10px 34px;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:15px;background:var(--card);border:1px solid var(--frame);box-shadow:var(--shadow)}
+th,td{padding:9px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+td{font-variant-numeric:tabular-nums}
+td+td{border-left:1px solid var(--line)}
+th{background:var(--bar);color:#fff;font-weight:600;border-bottom:0}
+th+th{border-left:1px solid #475569}
+tr:nth-child(even) td{background:#eef2f7}
+tr:last-child td{border-bottom:0}
+.wrap{overflow-x:auto}
+/* Фото: .phs — ряд, внутри figure.ph (снимок + подпись). Файлы класть рядом со страницей, ужимать до ~1000 px. */
+.phs{display:flex;flex-wrap:wrap;gap:14px;margin:1em 0}
+.ph{flex:1 1 320px;margin:0;background:var(--card);border:1px solid var(--frame);border-radius:4px;padding:8px;box-shadow:var(--shadow)}
+.ph img{display:block;width:100%;height:auto;border-radius:3px;border:1px solid var(--line)}
+.ph figcaption{margin-top:7px;font-size:14px;color:var(--mut);line-height:1.45}
+code,kbd{font-family:Consolas,"Cascadia Mono","Courier New",monospace;font-size:15px}
+code{background:var(--code);color:var(--fg-strong);padding:1px 6px;border-radius:3px;border:1px solid var(--line)}
+kbd{background:#fff;color:var(--fg-strong);padding:1px 7px;border-radius:4px;border:1px solid var(--frame);border-bottom-width:3px;font-weight:600}
+pre{background:var(--code);color:var(--fg-strong);padding:12px 14px;border-radius:3px;overflow-x:auto;font-size:15px;border:1px solid var(--frame);border-left:4px solid var(--bar)}
+.warn,.bad,.ok{padding:12px 16px;margin:1em 0;border:1px solid;border-left-width:6px;border-radius:4px;box-shadow:var(--shadow)}
+.warn{background:var(--warn);border-color:var(--warnl);border-left-color:var(--warnb);color:var(--warnt)}
+.bad{background:var(--bad);border-color:var(--badl);border-left-color:var(--badb);color:var(--badt)}
+.ok{background:var(--ok);border-color:var(--okl);border-left-color:var(--okb);color:var(--okt)}
+.warn b,.bad b,.ok b{color:inherit}
+.bad ol,.bad ul{margin:.4em 0 0;padding-left:1.4em}
+/* Шаги: светлая карточка с рамкой на тёмном фоне, номер в синем кружке, квадрат для галочки */
+ol.st{counter-reset:s;list-style:none;padding-left:0;margin:.6em 0}
+ol.st>li{counter-increment:s;margin:12px 0;padding:14px 50px 14px 62px;position:relative;background:var(--card);border:1px solid var(--frame);border-radius:4px;box-shadow:var(--shadow)}
+ol.st>li::before{content:counter(s);position:absolute;left:14px;top:13px;width:32px;height:32px;border-radius:50%;background:var(--acc);color:#fff;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center}
+ol.st>li::after{content:"";position:absolute;right:16px;top:16px;width:22px;height:22px;border:2px solid #64748b;border-radius:3px;background:#fff}
+ol.st ol,ol.st ul{padding-left:1.3em;margin:.5em 0}
+ol.st li li{margin:.35em 0}
+.res{display:block;margin-top:8px;padding:6px 10px;background:var(--ok);border:1px solid var(--okl);border-left:4px solid var(--okb);border-radius:3px;color:var(--okt);font-weight:600}
+.res::before{content:"\2713\00a0 Должно быть: ";color:var(--okb)}
+.y{background:var(--yel);color:#000;padding:0 6px;border-radius:2px;border:1px solid #ca8a04}
+.toc{background:var(--card);border:1px solid var(--frame);border-radius:4px;padding:12px 16px;line-height:2.1;box-shadow:var(--shadow)}
+.toc a{display:inline-block;margin:0 4px 0 0;padding:0 10px;background:#fff;border:1px solid var(--frame);border-radius:3px;text-decoration:none;font-size:15px;line-height:30px;color:var(--fg);transition:border-color .2s,color .2s}
+.toc a:hover{border-color:var(--acc);color:var(--link)}
+/* Компоненты для шпаргалок (вопрос-ответ). Не удалять: на них стоят Поиск_работы/ОБО_МНЕ и ЗВОНОК_Котельниково */
+.hero{background:var(--card);border:1px solid var(--frame);border-radius:4px;padding:18px 20px;box-shadow:var(--shadow);margin-bottom:14px}
+.hero h1{margin:.1em 0 .2em}
+.eyebrow{margin:0;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--acc)}
+.lead{font-size:17px;color:var(--fg);margin:.3em 0 0}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.meta span{font-size:14px;padding:3px 12px;background:#fff;border:1px solid var(--frame);border-radius:999px;color:var(--fg)}
+.card,.qa{background:var(--card);border:1px solid var(--frame);border-radius:4px;padding:16px 20px;margin:12px 0;box-shadow:var(--shadow)}
+.card>:first-child,.qa>:first-child{margin-top:0}.card>:last-child,.qa>:last-child{margin-bottom:0}
+.qa h3{display:flex;gap:12px;align-items:flex-start;margin:0 0 10px;font-size:18px}
+.qn{flex:none;min-width:30px;height:30px;padding:0 7px;border-radius:4px;background:var(--acc);color:#fff;font-size:14px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+.say{background:#dbeafe;border:1px solid #93c5fd;border-left:6px solid var(--acc);border-radius:4px;padding:12px 16px;margin:12px 0;color:#0f172a}
+.say>:first-child{margin-top:0}.say>:last-child{margin-bottom:0}
+.lbl{display:block;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--link);margin:0 0 6px}
+.note{font-size:15px;color:var(--mut);margin:10px 0 0;padding:6px 12px;border-left:4px solid var(--frame);background:#fff;border-radius:0 4px 4px 0}
+main>p.note{border:1px solid var(--frame);border-left:4px solid var(--frame)}
+table.facts th{width:32%;font-weight:600}
+/* .tabs + .pane — страница-сайт: верхняя панель кнопок переключает разделы одного файла.
+   Разметка: <nav class="tabs"><a href="#tab-plan">План</a>…</nav> + <section class="pane" id="plan">…</section>
+   В конце body нужен маленький скрипт (см. образец внизу шаблона). На печати видны все разделы. */
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px;padding:10px 12px;background:var(--card);border:1px solid var(--frame);border-radius:4px;box-shadow:var(--shadow);position:sticky;top:0;z-index:20}
+.tabs a{display:block;padding:9px 14px;min-height:44px;line-height:26px;border:1px solid var(--frame);border-radius:4px;background:#fff;color:var(--fg-strong);font-weight:600;font-size:15px;text-decoration:none;cursor:pointer;transition:background .2s,color .2s,border-color .2s}
+.tabs a:hover{background:var(--code)}
+.tabs a:active{background:var(--line)}
+.tabs a[aria-current="page"]{background:var(--bar);border-color:var(--bar);color:#fff}
+.pane>h2:first-child{margin-top:0}
+/* .bars — горизонтальная диаграмма «из чего состоит целое» (палитра проверена validate_palette.js).
+   Разметка: .bars > .barrow > (.barname + .bar > span.seg.c1..c4 со style="flex:<число>"), затем .legend > span.key.cN */
+.bars{background:var(--card);border:1px solid var(--frame);border-radius:4px;box-shadow:var(--shadow);padding:14px 16px;margin:.8em 0;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.barrow{margin:0 0 14px}
+.barrow:last-of-type{margin-bottom:6px}
+.barname{font-weight:700;color:var(--fg-strong);margin:0 0 5px}
+.barname span{font-weight:400;color:var(--mut)}
+.bar{display:flex;gap:2px;height:38px;align-items:stretch}
+.seg{flex:1 1 0;min-width:2.6em;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
+.seg:first-child{border-radius:4px 0 0 4px}.seg:last-child{border-radius:0 4px 4px 0}
+.seg.pad{background:none;min-width:0}  /* пустой хвост: выравнивает строки по одной шкале */
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px;color:var(--fg)}
+.legend .key{display:flex;align-items:center;gap:7px}
+.legend .key::before{content:"";width:14px;height:14px;border-radius:3px;background:var(--line)}
+.c1{background:var(--c1)}.c2{background:var(--c2)}.c3{background:var(--c3)}.c4{background:var(--c4)}
+.legend .key.c1{background:none}.legend .key.c2{background:none}.legend .key.c3{background:none}.legend .key.c4{background:none}
+.legend .key.c1::before{background:var(--c1)}.legend .key.c2::before{background:var(--c2)}
+.legend .key.c3::before{background:var(--c3)}.legend .key.c4::before{background:var(--c4)}
+[hidden]{display:none}
+/* table.plan — широкая таблица (3+ колонки): на телефоне строки становятся карточками.
+   Каждой ячейке строки дают data-l="<заголовок колонки>"; первая колонка — без data-l, она шапка карточки.
+   Доп. класс .when — узкая первая колонка (срок/дата). Пустые ячейки «—» помечают class="no" — на телефоне скрыты. */
+table.plan th,table.plan td{overflow-wrap:break-word}
+table.plan.when{table-layout:fixed}
+table.plan.when th:first-child,table.plan.when td:first-child{width:9.5em}
+@media (max-width:600px){
+  table.plan{display:block;overflow:visible}
+  table.plan tbody,table.plan tr,table.plan th,table.plan td{display:block;width:auto}
+  table.plan.when td:first-child{width:auto}
+  table.plan tr:first-child{display:none}
+  table.plan tr{border:1px solid var(--frame);border-radius:4px;background:var(--card);box-shadow:var(--shadow);margin:0 0 10px}
+  table.plan td{border:0;border-top:1px solid var(--line);padding:8px 12px}
+  table.plan tr:nth-child(even) td{background:transparent}
+  table.plan td:first-child{background:var(--code);color:var(--fg-strong);font-weight:700;border-top:0}
+  table.plan td.no{display:none}
+  table.plan td[data-l]::before{content:attr(data-l);display:block;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--link);margin:0 0 3px}
+}
+@media (max-width:600px){.card,.qa,.hero{padding:12px 14px}.say{padding:10px 12px}
+  .tabs{position:static;padding:8px}.tabs a{padding:8px 12px;font-size:14px}
+  table.facts,table.facts tbody,table.facts tr{display:block}table.facts tr{border-bottom:1px solid var(--frame)}
+  table.facts th,table.facts td{display:block;width:auto;border:0}table.facts th{background:var(--code)}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:600px){body{font-size:16px;padding:20px 10px 48px}h1{font-size:24px}h2{font-size:18px}
+  ol.st>li{padding:12px 42px 12px 52px}ol.st>li::before{left:10px;width:28px;height:28px}
+  table{display:block;overflow-x:auto}}
+@media print{body{background:#fff;padding:0;font-size:12pt}h2{color:#000;background:#fff;border:2px solid #000}
+  main>p,main>ul,ol.st>li,.toc,.warn,.bad,.ok{box-shadow:none}ol.st>li{break-inside:avoid}.toc{display:none}
+  table,th,td{box-shadow:none}th{background:#fff;color:#000;border-bottom:2px solid #000}
+  td{border-bottom:1px solid #666}tr:nth-child(even) td{background:#fff}tr{break-inside:avoid}
+  .tabs{display:none}.pane[hidden]{display:block!important}}
+</style></head><body><main>
+
+<style>
+/* Только для рисунков этой страницы. Общий стиль — из шаблона выше. */
+.fig{background:var(--card);border:1px solid var(--frame);border-radius:4px;box-shadow:var(--shadow);padding:8px;overflow-x:auto;margin:.8em 0}
+.fig svg{display:block;width:100%;height:auto;min-width:980px;font-family:"Segoe UI",Arial,sans-serif}
+.legend-row{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;background:var(--card);border:1px solid var(--frame);border-radius:4px;padding:8px 14px;box-shadow:var(--shadow);font-size:15px}
+.legend-row i{display:inline-block;width:30px;height:6px;border-radius:3px;vertical-align:middle;margin-right:6px;border:1px solid #1e293b}
+.legend-row i.dash{background:repeating-linear-gradient(90deg,#64748b 0 7px,transparent 7px 11px)!important;border:0;height:4px}
+.ctl{display:flex;flex-wrap:wrap;gap:6px;margin:.8em 0 0}
+.ctl button{font:inherit;font-size:15px;font-weight:600;min-height:40px;padding:6px 12px;border:1px solid var(--frame);border-radius:4px;background:#fff;color:var(--fg-strong);cursor:pointer}
+.ctl button:hover{border-color:var(--acc)}
+.ctl button.on{background:var(--bar);border-color:var(--bar);color:#fff}
+.ctl button.play{border-color:var(--acc);color:var(--link)}
+#board .w{cursor:pointer}
+#board .w .core{transition:stroke-width .15s}
+#board .w.pale{opacity:.22}
+#board .w.hid{display:none}
+#board .w.dim{opacity:.1}
+#board .w.hl .core{stroke-width:4.6}
+#board .w.hl .halo{stroke:#2563eb;stroke-opacity:.35}
+#board .pt{cursor:pointer}
+#board .pt.dim{opacity:.3}
+#board .pt.sel>rect:first-of-type{stroke:#2563eb;stroke-width:3}
+#board .bus.hid{display:none}
+#board .bus.dim{opacity:.25}
+#board .mk.hid{display:none}
+#info{background:var(--card);border:1px solid var(--frame);border-radius:4px;box-shadow:var(--shadow);padding:12px 16px;margin:.6em 0}
+#info h3{margin:0 0 .4em}
+#info ol{margin:.3em 0;padding-left:0;list-style:none}
+#info li{display:flex;gap:10px;align-items:flex-start;padding:5px 0;border-bottom:1px solid var(--line);cursor:pointer}
+#info li:last-child{border-bottom:0}
+#info li .n{flex:none;width:26px;height:26px;border-radius:50%;background:#fff;border:2px solid #b91c1c;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center}
+#info li input{flex:none;width:20px;height:20px;margin:3px 0 0}
+#info li.done{color:#64748b}
+#info li.hl{background:#dbeafe}
+#info .chk{margin:.6em 0 0}
+#tbl tr{cursor:pointer}
+#tbl tr.hl td{background:#dbeafe}
+#tbl .sw{display:inline-block;width:22px;height:6px;border-radius:3px;border:1px solid #1e293b;vertical-align:middle;margin-right:6px}
+#auto{font-size:14px}
+</style>
+
+<h1>Колонна: схема соединений прибора, версия 2</h1>
+<p class="mut">Черновик-дубль от 05.11.2026. Пока паяешь — паяй по старой странице «Схема_соединений.html». Эта страница рисует ту же плату заново: всё, что на ней есть (рисунок, шаги, списки, таблица), строится из одного списка соединений, поэтому рисунок и списки не могут разойтись.</p>
+
+<div class="bad"><b>Главные правила безопасности.</b><ol>
+<li>PZEM и всё, что связано с 220 В, — в коробке регулятора ТЭНа, не в корпусе платы. С платой его связывает только разъём GX12 (5 В и два сигнала).</li>
+<li>Прошивать по USB — только когда колонна полностью отключена от сети. Разъём GX12 втыкать и вынимать только при выключенном питании платы.</li>
+<li>На ноги ESP32 нельзя подавать 5 В. Сигналы от датчика протока и от PZEM идут только через свои резисторы-делители. Экран и барометр — только от 3,3 В.</li>
+<li>Питание — 12 В из блока регулятора, плата понижает их модулем LM2596. Выставить на LM2596 ровно 5,00 В <b>до</b> того, как вставлять ESP32.</li>
+</ol></div>
+
+<p class="toc"><b>Разделы:</b> <a href="#r1">1. Как читать</a> <a href="#r2">2. Куда подключаются датчики</a> <a href="#r3">3. Шины</a> <a href="#r4">4. Плата по шагам</a> <a href="#r5">5. Таблица соединений</a> <a href="#r6">6. Транзистор</a> <a href="#r7">7. Что изменилось</a> <a href="#r8">8. Что сверить</a></p>
+
+<h2 id="r1">1. Как читать рисунок</h2>
+<ul>
+<li><b>Цвет провода = напряжение</b>, везде одинаково. Пунктир — провод уходит с платы на крышку (экран, кнопка).</li>
+<li><b>Нажми на деталь</b> — светятся только её провода, остальное бледнеет. Под рисунком появится, куда идёт каждый её вывод. Нажми на пустое место платы — всё вернётся.</li>
+<li><b>Нажми на провод</b> или на строку в списке — провод подсветится.</li>
+<li><b>Шаги</b>: яркие провода — паять сейчас, бледные — уже припаяны, будущих не видно. Номер в кружке = номер строки в списке под рисунком.</li>
+<li>Провод подключён только там, где кончается на контакте. Прошёл поверх другого провода или голой жилы — мимо, это не соединение.</li>
+<li>Подключать по надписи у контакта: порядок ног на рисунке условный, на твоей плате он может быть другим. Рисунок не в масштабе.</li>
+</ul>
+<div class="legend-row" id="legend"></div>
+
+<h2 id="r2">2. Куда подключаются датчики</h2>
+<p>Всё, что снаружи, приходит кабелями в винтовые клеммники по нижнему краю платы. Сверху — винты клеммника и что под ними написано, снизу — прибор и какая его жила идёт под этот винт.</p>
+<div class="fig"><svg id="terms" role="img" aria-label="Клеммники платы и какой кабель на какой винт"></svg></div>
+<ul>
+<li>Пять датчиков температуры идут на одни и те же три винта: все красные жилы вместе, все жёлтые вместе, все чёрные вместе.</li>
+<li>Экран и кнопка стоят на крышке, в клеммники не идут: их провода паяются прямо к плате (на рисунке платы — пунктир).</li>
+<li>У разъёма GX12 номера контактов отлиты на пластике у штырей. Кабель паять по номерам: 1 к 1, 2 к 2.</li>
+</ul>
+
+<h2 id="r3">3. Шины: что это и как сделать</h2>
+<p>Шина — место, куда сходятся все провода одного питания. Как нулевая шина в щитке: одна общая полоса, к ней каждый провод своим винтом. Здесь шина — голая медная жила, уложенная вдоль ряда отверстий на той же макетке и прихваченная припоем через несколько отверстий. Отдельная плата не нужна.</p>
+<div class="fig"><svg id="busfig" viewBox="0 0 1000 250" role="img" aria-label="Как сделана шина из голой жилы"></svg></div>
+<ul>
+<li>Шин три: <b>GND</b> и <b>+5 В</b> — голые жилы, <b>+3,3 В</b> — провод в изоляции, с которого в нужных местах снята изоляция.</li>
+<li>Номер точки на шине — просто счёт для списка. Паять можно в любом удобном месте жилы.</li>
+</ul>
+
+<h2 id="r4">4. Плата по шагам: куда паять каждый провод</h2>
+<p>Сначала расставь и впаяй детали, как на рисунке, и уложи шины. Потом иди по шагам. После каждого шага — проверка, только потом следующий.</p>
+<div class="ctl" id="steps"></div>
+<div class="fig"><svg id="board" role="img" aria-label="Монтажная плата: детали и провода по шагам"></svg></div>
+<div id="info"></div>
+
+<h2 id="r5">5. Таблица соединений: деталь → вывод → куда</h2>
+<p>Это и есть источник всей страницы: рисунок, шаги и список строятся из неё. Нажми на строку — провод подсветится на рисунке.</p>
+<div class="wrap"><table id="tbl"></table></div>
+
+<h2 id="r6">6. Транзистор Q1 (IRLZ44N): какая нога куда</h2>
+<p>Держи транзистор надписью к себе, ногами вниз. Ноги слева направо: 1 — затвор (З), 2 — сток (С), 3 — исток (И). Это из паспорта производителя (корпус TO-220AB).</p>
+<div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+<svg viewBox="0 0 330 290" width="330" style="max-width:100%;flex:0 0 auto;background:var(--card);border:1px solid var(--frame);border-radius:4px" font-family="Segoe UI, Arial, sans-serif" role="img" aria-label="IRLZ44N, вид спереди: ноги 1 затвор, 2 сток, 3 исток">
+<rect x="105" y="12" width="120" height="58" rx="3" fill="#c9ccd1" stroke="#6b7280" stroke-width="1.5"/>
+<circle cx="165" cy="38" r="12" fill="#f8fafc" stroke="#6b7280" stroke-width="1.5"/>
+<rect x="105" y="66" width="120" height="86" rx="3" fill="#1f2937"/>
+<text x="165" y="100" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">IRLZ44N</text>
+<text x="165" y="120" text-anchor="middle" font-size="11" fill="#cbd5e1">надпись к себе</text>
+<g stroke="#9ca3af" stroke-width="5" stroke-linecap="round"><path d="M135 152V215M165 152V215M195 152V215"/></g>
+<g font-size="15" font-weight="700" text-anchor="middle" fill="#1e293b"><text x="135" y="236">1</text><text x="165" y="236">2</text><text x="195" y="236">3</text></g>
+<g font-size="12" font-weight="700" text-anchor="middle" fill="#334155"><text x="125" y="256">затвор</text><text x="165" y="274">сток</text><text x="205" y="256">исток</text></g>
+<path d="M228 30H252" stroke="#b91c1c" stroke-width="1.5"/>
+<text x="256" y="27" font-size="11" font-weight="700" fill="#b91c1c">пластина</text>
+<text x="256" y="41" font-size="11" font-weight="700" fill="#b91c1c">= сток (2)</text>
+</svg>
+<div style="flex:1 1 320px;min-width:280px">
+<div class="wrap"><table>
+<tr><th>Нога</th><th>Куда паять</th></tr>
+<tr><td><b>1 — затвор</b></td><td>от нижней ноги резистора <b>100 Ом</b>. Верхняя нога 100 Ом — от ноги <b>D23</b>, туда же резистор <b>10 кОм</b> на жилу GND</td></tr>
+<tr><td><b>2 — сток</b></td><td>→ контакт <b>«−» клеммника «Сирена»</b></td></tr>
+<tr><td><b>3 — исток</b></td><td>→ жила <b>GND</b></td></tr>
+<tr><td>контакт «+» «Сирена»</td><td>→ жила <b>+5 В</b></td></tr>
+</table></div>
+<div class="warn">Металлическая пластина с дыркой соединена со стоком (ногой 2). Она не должна касаться жилы GND и голых проводов, иначе сирена будет пищать без остановки.</div>
+<p class="note">Резистор 10 кОм держит транзистор закрытым, пока ESP32 загружается, поэтому сирена не пикает при включении. Транзистор — IRLZ44N, не IRFZ44N: тот от 3,3 В открывается плохо. Перед пайкой коснись рукой чего-нибудь заземлённого: затвор боится статики.</p>
+</div></div>
+
+<h2 id="r7">7. Чем версия 2 отличается от старой схемы</h2>
+<p>Все ноги ESP32, номиналы резисторов и клеммники — те же, взяты из прошивки <code>kolonna_p0.yaml</code> (версия 0.5.0) и из старой схемы. Электрически плата та же. Отличаются только места, где сходятся два провода, — по правилу «провод идёт от контакта к контакту, а не врезается в другой провод»:</p>
+<div class="wrap"><table>
+<tr><th>Что</th><th>В старой схеме</th><th>В версии 2</th></tr>
+<tr><td>Нога D4 (датчики температуры)</td><td>на контакт DATA клеммника, туда же нога резистора 4,7 кОм</td><td>на нижнюю ногу резистора 4,7 кОм, от неё один провод на DATA</td></tr>
+<tr><td>Экран: + и −</td><td>на контакты «3,3 В» и GND барометра</td><td>прямо на шины +3,3 В и GND у правого края</td></tr>
+<tr><td>Кнопка, второй контакт</td><td>«на чёрный провод GND над ней» — в середину провода</td><td>на контакт GND модуля карты (две жилы на одном контакте)</td></tr>
+<tr><td>Резистор 10 кОм у сирены</td><td>на рисунке платы — со стороны D23, на общей схеме — со стороны затвора</td><td>со стороны D23, как на рисунке платы</td></tr>
+</table></div>
+<p class="note">Если по старой схеме уже припаяно — так и оставить: работает одинаково. Переделывать ничего не нужно.</p>
+
+<h2 id="r8">8. Что сверить с живой платой</h2>
+<div class="warn"><ul style="margin:0;padding-left:1.2em">
+<li>Расстановка деталей взята со старого рисунка. Пока не сверена с твоей платой. Сфотографируй плату сверху — подгоню рисунок под неё, и тогда старую страницу можно убрать.</li>
+<li>Цвета жил у датчиков температуры и протока условные — сверить со своими.</li>
+<li>У PZEM на плате — клеммник или провода прямо на гнездо GX12? На рисунке это 4 контакта у края с номерами 1–4.</li>
+<li>Нога 18 оставлена под счётчик капель, на рисунке его нет (необязателен). Ноги 0, 2, 12, 15 не заняты: они мешают загрузке платы. Ноги 6–11 не трогать совсем.</li>
+<li>Если от датчика протока нет импульсов — добавить резистор 10 кОм с сигнального провода на +5 В.</li>
+</ul></div>
+<p class="note" id="auto">Автопроверка рисунка: считается…</p>
+</main>
+<script>
+(function () {
+'use strict';
+/* ════════════════════════════════════════════════════════════════════
+   ИСТОЧНИК ВСЕЙ СТРАНИЦЫ: детали (P), шины, провода (W), шаги (S).
+   Координаты — в клетках сетки (одна клетка = одно отверстие макетки,
+   на рисунке 12 px). Координат проводов здесь нет: провод прокладывается
+   сам от контакта к контакту (функция route ниже).
+   Ноги ESP32 — из esphome/kolonna_p0.yaml 0.5.0, раздел «РАСПИНОВКА».
+   ════════════════════════════════════════════════════════════════════ */
+var C = 12, BW = 94, BH = 62;
+var VOLT = {
+  sig: { c: '#facc15', n: 'сигнал' },
+  v33: { c: '#dc2626', n: '+3,3 В' },
+  v5:  { c: '#f97316', n: '+5 В' },
+  v12: { c: '#7f1d1d', n: '+12 В' },
+  gnd: { c: '#374151', n: 'минус, GND' }
+};
+
+var P = {}, ORDER = [];
+function part(id, o) { o.id = id; o.pins = {}; o.pinList = []; P[id] = o; ORDER.push(id); return o; }
+function pin(p, id, x, y, lab, o) {
+  var q = { id: id, part: p.id, x: x, y: y, lab: lab };
+  if (o) for (var k in o) q[k] = o[k];
+  p.pins[id] = q; p.pinList.push(q); return q;
+}
+
+// ── ESP32 DevKit 30 ног, USB влево, шелкография вверх ──
+var esp = part('esp', { k: 'mcu', t: 'ESP32 DevKit', full: 'плата ESP32', x: 17, y: 17, w: 49, h: 19 });
+['VIN', 'GND', 'D13', 'D12', 'D14', 'D27', 'D26', 'D25', 'D33', 'D32', 'D35', 'D34', 'VN', 'VP', 'EN'].forEach(function (n, i) {
+  pin(esp, i === 1 ? 'GNDt' : n, 20 + 3 * i, 17, n, { row: 'верхний', idx: i + 1, side: 'T' });
+});
+['3V3', 'GND', 'D15', 'D2', 'D4', 'D16', 'D17', 'D5', 'D18', 'D19', 'D21', 'RX0', 'TX0', 'D22', 'D23'].forEach(function (n, i) {
+  pin(esp, n, 20 + 3 * i, 35, n, { row: 'нижний', idx: i + 1, side: 'B', sub: n === 'D16' ? 'RX2' : n === 'D17' ? 'TX2' : '' });
+});
+part('usb', { k: 'usb', t: 'USB', x: 13, y: 24, w: 4, h: 5 });
+
+// ── Модуль microSD над ESP32 (питание 3,3 В) ──
+var sd = part('sd', { k: 'mod', t: 'Модуль microSD', full: 'модуль microSD', fill: '#2f5d2f', x: 23, y: 2, w: 22, h: 8, out: true });
+[['3V3', 26], ['CS', 29], ['MOSI', 32], ['CLK', 35], ['MISO', 38], ['GND', 41]].forEach(function (a) { pin(sd, a[0], a[1], 10, a[0], { side: 'B' }); });
+
+// ── На крышке: кнопка и экран ──
+var btn = part('btn', { k: 'lid', t: 'Кнопка', full: 'кнопка (на крышке)', x: 46, y: 2, w: 9, h: 5, out: true });
+pin(btn, 'b', 48, 7, '2', { side: 'B' }); pin(btn, 'a', 52, 7, '1', { side: 'B' });
+var scr = part('scr', { k: 'lid', t: 'Экран OLED 0,96″', full: 'экран (на крышке)', x: 69, y: 1, w: 24, h: 6, out: true });
+[['SDA', 71], ['SCL', 74], ['VCC', 90], ['GND', 92]].forEach(function (a) { pin(scr, a[0], a[1], 7, a[0], { side: 'B' }); });
+
+// ── Барометр BMP180 справа ──
+var bmp = part('bmp', { k: 'mod', t: 'BMP180', full: 'барометр BMP180', fill: '#3b2f6b', x: 75, y: 19, w: 12, h: 11, out: true });
+pin(bmp, 'SCL', 74, 22, 'SCL', { side: 'L' }); pin(bmp, 'SDA', 74, 26, 'SDA', { side: 'L' });
+pin(bmp, 'VCC', 87, 22, 'VCC', { side: 'R' }); pin(bmp, 'GND', 87, 26, 'GND', { side: 'R' });
+
+// ── LM2596: 12 В → 5 В, слева у клеммника «Питание» ──
+var lm = part('lm', { k: 'mod', t: 'LM2596', full: 'модуль LM2596', sub: '12 → 5 В', fill: '#1e4fa3', x: 1, y: 41, w: 10, h: 6, out: true });
+[['INp', 2, 'IN+'], ['INm', 5, 'IN−'], ['OUTm', 7, 'OUT−'], ['OUTp', 9, 'OUT+']].forEach(function (a) { pin(lm, a[0], a[1], 47, a[2], { side: 'B' }); });
+
+// ── Резисторы: стоят вертикально, верхняя нога — y-1, нижняя — y+4 ──
+function res(id, x, val, full) {
+  var r = part(id, { k: 'res', t: val, full: full, x: x, y: 43, w: 1, h: 4, out: true });
+  pin(r, 'a', x, 42, 'верх', { side: 'T' }); pin(r, 'b', x, 47, 'низ', { side: 'B' });
+  return r;
+}
+res('R7', 24, '4,7 кОм', 'резистор 4,7 кОм');
+res('R6', 33, '2 кОм', 'резистор 2 кОм');
+res('R5', 35, '1 кОм', 'резистор 1 кОм');
+res('R4', 45, '20 кОм', 'резистор 20 кОм');
+res('R3', 47, '10 кОм', 'резистор 10 кОм у протока');
+res('R2', 60, '10 кОм', 'резистор 10 кОм у сирены');
+res('R1', 62, '100 Ом', 'резистор 100 Ом');
+
+// ── Транзистор сирены ──
+var q1 = part('q1', { k: 'q', t: 'Q1', sub: 'IRLZ44N', full: 'транзистор Q1', x: 65, y: 43, w: 9, h: 4, out: true });
+pin(q1, 'G', 66, 47, 'З', { side: 'B', say: 'нога З (затвор)' });
+pin(q1, 'D', 69, 47, 'С', { side: 'B', say: 'нога С (сток)' });
+pin(q1, 'S', 72, 47, 'И', { side: 'B', say: 'нога И (исток)' });
+
+// ── Клеммники по нижнему краю. ext — что приходит снаружи ──
+function term(id, x0, x1, title, pins, ext) {
+  var t = part(id, { k: 'term', t: title, full: 'клеммник «' + title + '»', x: x0, y: 56, w: x1 - x0 + 1, h: 5, out: true, ext: ext });
+  pins.forEach(function (a) { pin(t, a[0], a[1], 55, a[2], { side: 'T', jila: a[3], jv: a[4] }); });
+  return t;
+}
+term('tv', 0, 7, 'Питание', [['p', 2, '+12 В', 'плюс', 'v12'], ['m', 5, '−', 'минус', 'gnd']], ['БП 12 В', 'в блоке регулятора']);
+term('tw', 19, 29, 'Датчики', [['p', 21, '3,3 В', 'красная', 'v33'], ['d', 24, 'DATA', 'жёлтая', 'sig'], ['g', 27, 'GND', 'чёрная', 'gnd']], ['Пять датчиков', 'DS18B20']);
+term('tp', 30, 43, 'PZEM · GX12', [['p', 32, '1: +5 В', '5V', 'v5'], ['tx', 35, '2: от TX', 'TX', 'sig'], ['rx', 38, '3: на RX', 'RX', 'sig'], ['g', 41, '4: GND', 'GND', 'gnd']], ['PZEM-004T', 'в коробке регулятора']);
+term('tf', 45, 55, 'Проток', [['p', 47, '5 В', 'красная', 'v5'], ['s', 50, 'сигнал', 'жёлтая', 'sig'], ['g', 53, 'GND', 'чёрная', 'gnd']], ['Датчик протока', 'YF-S201C']);
+term('ts', 64, 71, 'Сирена', [['p', 66, '+', 'плюс', 'v5'], ['m', 69, '−', 'минус', 'sig']], ['Зуммер', '5 В']);
+
+// ── Шины ──
+var BUS = {};
+function bus(id, v, y, x0, x1, name, step, lx, say) {
+  var b = { id: id, k: 'bus', v: v, y: y, x0: x0, x1: x1, t: name, step: step, lx: lx, say: say, used: {}, ends: [] };
+  BUS[id] = b; P[id] = b; return b;
+}
+bus('b3', 'v33', 40, 11, 90, 'шина +3,3 В', 2, 76, 'провод +3,3 В: в изоляции, вдоль всей платы под ESP32. В местах пайки снять изоляцию.');
+bus('bg', 'gnd', 50, 7, 92, 'шина GND', 1, 76, 'голая жила GND: вдоль всей платы над клеммниками. Прихватить к плате в нескольких местах.');
+bus('b5', 'v5', 52, 8, 90, 'шина +5 В', 1, 76, 'голая жила +5 В: на два ряда ниже жилы GND, вдоль клеммников. Жилы не должны касаться друг друга.');
+
+// ════ ПРОВОДА (от какого контакта к какому), по шагам ════
+var W = [], st = 0;
+function w(a, b, v, o) { var x = { a: a, b: b, v: v, step: st }; if (o) for (var k in o) x[k] = o[k]; W.push(x); }
+
+st = 2;
+w('esp.VIN', 'b5', 'v5', { pri: 1, note: 'вверх, влево мимо USB и вниз по левому краю' });
+w('esp.GND', 'bg', 'gnd');
+w('esp.3V3', 'b3', 'v33');
+
+st = 3;
+w('tv.p', 'lm.INp', 'v12', { note: 'это 12 В — на жилу +5 В его НЕ паять' });
+w('tv.m', 'lm.INm', 'gnd', { note: 'на жилу GND отдельно не тянуть: IN− и OUT− внутри модуля соединены' });
+w('lm.OUTm', 'bg', 'gnd');
+w('lm.OUTp', 'b5', 'v5');
+w('tw.p', 'b3', 'v33');
+w('tw.g', 'bg', 'gnd');
+w('tp.p', 'b5', 'v5');
+w('tp.g', 'bg', 'gnd');
+w('tf.p', 'b5', 'v5');
+w('tf.g', 'bg', 'gnd');
+w('ts.p', 'b5', 'v5');
+
+st = 4;
+w('R7.a', 'b3', 'v33');
+w('R7.b', 'tw.d', 'sig');
+w('esp.D4', 'R7.b', 'sig', { note: 'на ту же нижнюю ногу резистора, второй жилой' });
+
+st = 5;
+w('esp.D17', 'tp.rx', 'sig');
+w('esp.D16', 'R5.a', 'sig');
+w('R5.b', 'tp.tx', 'sig');
+w('R6.a', 'R5.a', 'sig', { note: 'вторая жила на верхнюю ногу 1 кОм: со стороны ноги D16' });
+w('R6.b', 'bg', 'gnd');
+
+st = 6;
+w('esp.D19', 'R3.a', 'sig');
+w('R3.b', 'tf.s', 'sig');
+w('R4.a', 'R3.a', 'sig', { note: 'вторая жила на верхнюю ногу 10 кОм: со стороны ноги D19' });
+w('R4.b', 'bg', 'gnd');
+
+st = 7;
+w('esp.D23', 'R1.a', 'sig');
+w('R2.a', 'R1.a', 'sig', { note: 'вторая жила на верхнюю ногу 100 Ом' });
+w('R2.b', 'bg', 'gnd');
+w('R1.b', 'q1.G', 'sig');
+w('q1.S', 'bg', 'gnd');
+w('q1.D', 'ts.m', 'sig');
+
+st = 8;
+w('sd.MOSI', 'esp.D14', 'sig');
+w('sd.CLK', 'esp.D27', 'sig');
+w('sd.MISO', 'esp.D26', 'sig');
+w('sd.CS', 'esp.D25', 'sig', { note: 'вправо мимо трёх ног: порядок контактов модуля не совпадает с порядком ног' });
+w('sd.3V3', 'b3', 'v33', { note: 'влево и вниз по левому краю' });
+w('sd.GND', 'bg', 'gnd');
+w('esp.D22', 'bmp.SCL', 'sig');
+w('esp.D21', 'bmp.SDA', 'sig');
+w('bmp.VCC', 'b3', 'v33');
+w('bmp.GND', 'bg', 'gnd');
+
+st = 9;
+w('scr.SCL', 'bmp.SCL', 'sig', { lid: 1, note: 'та же линия, что идёт на ногу D22' });
+w('scr.SDA', 'bmp.SDA', 'sig', { lid: 1, note: 'та же линия, что идёт на ногу D21' });
+w('scr.VCC', 'b3', 'v33', { lid: 1, note: 'только 3,3 В, не 5!' });
+w('scr.GND', 'bg', 'gnd', { lid: 1 });
+w('btn.a', 'esp.D32', 'sig', { lid: 1 });
+w('btn.b', 'sd.GND', 'gnd', { lid: 1, note: 'вторая жила на контакт GND карты' });
+
+// ════ ШАГИ ════
+var S = [
+  { t: 'Шаг 1. Две голые жилы — шины GND и +5 В', c: 'Жилы не касаются друг друга и ног клеммников. Прозвонить: между ними соединения нет.' },
+  { t: 'Шаг 2. Питание самой ESP32', c: 'ESP32 пока не вставлять. Прозвонить +5 В и GND: короткого быть не должно. Провод +3,3 В тоже не звонит ни с GND, ни с +5 В.' },
+  { t: 'Шаг 3. Клеммники и LM2596 — к шинам', c: 'Каждый винт GND звонит с жилой GND, каждый винт «5 В» — с жилой +5 В. Винт «+12 В» с жилой +5 В звенеть НЕ должен. Подать 12 В и подстроечником LM2596 выставить ровно 5,00 В на жиле +5 В, каплей клея зафиксировать подстроечник. Только после этого вставлять ESP32.' },
+  { t: 'Шаг 4. Датчики температуры', c: 'Резистор 4,7 кОм обязателен: без него датчики не отвечают. Зажать датчик в кулаке — его температура должна пойти вверх.' },
+  { t: 'Шаг 5. PZEM (разъём GX12)', c: 'Подать 5 В на контакт 2 «от TX» и измерить на ноге D16: должно быть 3,3 В, не 5. D16 и D17 на некоторых платах подписаны RX2 и TX2 — это они же. Без сети 220 В PZEM молчит — это нормально.' },
+  { t: 'Шаг 6. Датчик протока', c: 'Подать 5 В на контакт «сигнал» и измерить на ноге D19: должно быть 3,3 В, не 5. Подуть в датчик — в журнале платы дёрнется Water Flow.' },
+  { t: 'Шаг 7. Сирена', c: 'Транзистор надписью к клеммникам. Пластина не касается жилы GND. После прошивки включить Siren: зуммер должен запищать. Молчит — транзистор не открылся.' },
+  { t: 'Шаг 8. Карта microSD и барометр', c: 'Оба модуля — от 3,3 В. Провода карты CS и MISO прозвонить отдельно, их легче всего перепутать. Контакт CLK модуля — это SCK.' },
+  { t: 'Шаг 9. Экран и кнопка на крышке', c: 'Экран — только от 3,3 В. В журнале платы поиск по шине I2C должен найти два адреса: 0x77 (барометр) и 0x3C (экран). Кнопке резистор не нужен.' }
+];
+
+/* ════════════════════════════════════════════════════════════════════
+   ПРОКЛАДКА ПРОВОДОВ ПО СЕТКЕ
+   Правила: только горизонталь и вертикаль; через корпус детали нельзя;
+   через чужой контакт нельзя; одна клетка-дорожка — один провод (поверх
+   другого провода или шины — только поперёк и прямо); провод кончается
+   только на контакте или на шине своего напряжения.
+   ════════════════════════════════════════════════════════════════════ */
+var N = BW * BH;
+var body = new Int16Array(N).fill(-1);   // номер детали, чей корпус в клетке
+var pinAt = {};                          // клетка → контакт
+var busAt = {};                          // клетка → шина
+var cellUse = {};                        // клетка → {w, t:'h'|'v'|'b'|'x'}
+var edgeUse = {};
+var soft = {};                           // клетки под подписями шин — не трогать
+function key(x, y) { return y * BW + x; }
+ORDER.forEach(function (id, n) {
+  var p = P[id], x, y;
+  for (x = p.x; x < p.x + p.w; x++) for (y = p.y; y < p.y + p.h; y++) body[key(x, y)] = n;
+  p.pinList.forEach(function (q) { pinAt[key(q.x, q.y)] = q; body[key(q.x, q.y)] = -1; });
+});
+Object.keys(BUS).forEach(function (id) {
+  var b = BUS[id];
+  for (var x = b.x0; x <= b.x1; x++) busAt[key(x, b.y)] = b;
+  for (x = b.lx; x < b.lx + 8; x++) soft[key(x, b.id === 'b5' ? b.y + 1 : b.y - 1)] = 1;
+});
+
+function ref(s) {
+  if (BUS[s]) return { bus: BUS[s] };
+  var a = s.split('.'); return { pin: P[a[0]].pins[a[1]] };
+}
+function ekey(x1, y1, x2, y2) { return x1 < x2 || y1 < y2 ? x1 + ',' + y1 + ',' + x2 + ',' + y2 : x2 + ',' + y2 + ',' + x1 + ',' + y1; }
+
+// Простая двоичная куча для поиска пути
+function Heap() { this.a = []; }
+Heap.prototype.push = function (n) { var a = this.a; a.push(n); var i = a.length - 1; while (i) { var j = (i - 1) >> 1; if (a[j][0] <= a[i][0]) break; var t = a[i]; a[i] = a[j]; a[j] = t; i = j; } };
+Heap.prototype.pop = function () {
+  var a = this.a, top = a[0], last = a.pop();
+  if (a.length) { a[0] = last; var i = 0; for (;;) { var l = 2 * i + 1, r = l + 1, m = i; if (l < a.length && a[l][0] < a[m][0]) m = l; if (r < a.length && a[r][0] < a[m][0]) m = r; if (m === i) break; var t = a[i]; a[i] = a[m]; a[m] = t; i = m; } }
+  return top;
+};
+
+var DIRS = [[1, 0, 1], [-1, 0, 1], [0, 1, 2], [0, -1, 2]];
+function route(wi) {
+  var wr = W[wi], A = ref(wr.a), B = ref(wr.b);
+  if (A.bus) { var t = A; A = B; B = t; }
+  var sp = A.pin, own = {};
+  own[key(sp.x, sp.y)] = 1;
+  if (B.pin) own[key(B.pin.x, B.pin.y)] = 1;
+  function isTarget(x, y, d) {
+    var k = key(x, y);
+    if (B.pin) return B.pin.x === x && B.pin.y === y;
+    var b = busAt[k];
+    return b === B.bus && d === 2 && !b.used[k];
+  }
+  function h(x, y) {
+    if (B.pin) return Math.abs(B.pin.x - x) + Math.abs(B.pin.y - y);
+    var b = B.bus; return Math.abs(b.y - y) + Math.max(0, b.x0 - x, x - b.x1);
+  }
+  function pinPenalty(x, y) {
+    var s = 0;
+    for (var i = 0; i < 4; i++) {
+      var nx = x + DIRS[i][0], ny = y + DIRS[i][1], k = key(nx, ny);
+      if (pinAt[k] && !own[k]) s += 3;
+    }
+    return s;
+  }
+  var best = {}, prev = {}, open = new Heap();
+  var s0 = key(sp.x, sp.y) * 6;
+  best[s0] = 0; open.push([h(sp.x, sp.y), 0, sp.x, sp.y, 0, 0, s0]);
+  var goal = null;
+  while (open.a.length) {
+    var cur = open.pop(), g = cur[1], x = cur[2], y = cur[3], d = cur[4], must = cur[5], sk = cur[6];
+    if (g > best[sk]) continue;
+    if (sk !== s0 && isTarget(x, y, d)) { goal = sk; break; }
+    for (var i = 0; i < 4; i++) {
+      var nd = DIRS[i][2], nx = x + DIRS[i][0], ny = y + DIRS[i][1];
+      if (must && nd !== d) continue;
+      if (nx < 0 || ny < 0 || nx >= BW || ny >= BH) continue;
+      if (edgeUse[ekey(x, y, nx, ny)]) continue;
+      var k = key(nx, ny), cost = 1 + (d && nd !== d ? 4 : 0), nm = 0;
+      if (isTarget(nx, ny, nd)) {
+        if (B.bus && (B.bus.used[k - 1] || B.bus.used[k + 1])) cost += 3;
+      } else {
+        if (body[k] >= 0 || pinAt[k] || soft[k]) continue;
+        var b = busAt[k];
+        if (b) {
+          if (b.v === wr.v || b.used[k] || nx === b.x0 || nx === b.x1 || nd !== 2) continue;
+          nm = 1; cost += 2;
+        } else if (cellUse[k]) {
+          var u = cellUse[k].t;
+          if (!((u === 'h' && nd === 2) || (u === 'v' && nd === 1))) continue;
+          nm = 1; cost += 14;
+        }
+        cost += pinPenalty(nx, ny);
+      }
+      var nk = k * 6 + nd * 2 + nm, ng = g + cost;
+      if (best[nk] !== undefined && best[nk] <= ng) continue;
+      best[nk] = ng; prev[nk] = sk;
+      open.push([ng + h(nx, ny), ng, nx, ny, nd, nm, nk]);
+    }
+  }
+  if (goal === null) { wr.fail = 1; return; }
+  var cells = [], s = goal;
+  while (s !== undefined) { var c = Math.floor(s / 6); cells.unshift([c % BW, Math.floor(c / BW)]); s = prev[s]; }
+  // занять клетки и дорожки
+  var crosses = 0;
+  for (i = 0; i < cells.length; i++) {
+    var c0 = cells[i];
+    if (i > 0) edgeUse[ekey(cells[i - 1][0], cells[i - 1][1], c0[0], c0[1])] = 1;
+    if (i === 0 || i === cells.length - 1) continue;
+    var kk = key(c0[0], c0[1]), bb = busAt[kk];
+    if (bb) { bb.used[kk] = 1; continue; }
+    var hz = cells[i - 1][1] === c0[1] && cells[i + 1][1] === c0[1];
+    var vt = cells[i - 1][0] === c0[0] && cells[i + 1][0] === c0[0];
+    if (cellUse[kk]) { cellUse[kk].t = 'x'; crosses++; }
+    else cellUse[kk] = { w: wi, t: hz ? 'h' : vt ? 'v' : 'b' };
+  }
+  var end = cells[cells.length - 1], ek = key(end[0], end[1]);
+  if (B.bus) { B.bus.used[ek] = 1; B.bus.ends.push({ w: wi, x: end[0] }); wr.busEnd = end[0]; }
+  wr.cells = cells; wr.cross = crosses;
+  if (A.pin !== ref(wr.a).pin) wr.rev = 1;   // проложен от b к a
+}
+
+// Порядок прокладки: короткие и прямые сначала — они занимают естественные дорожки
+var orderIdx = W.map(function (x, i) { return i; });
+function dist(wr) {
+  var A = ref(wr.a), B = ref(wr.b);
+  if (A.bus) { var t = A; A = B; B = t; }
+  if (B.pin) return Math.abs(A.pin.x - B.pin.x) + Math.abs(A.pin.y - B.pin.y);
+  return Math.abs(B.bus.y - A.pin.y);
+}
+orderIdx.sort(function (i, j) { return (W[j].pri || 0) - (W[i].pri || 0) || dist(W[i]) - dist(W[j]) || i - j; });
+orderIdx.forEach(route);
+// номера точек на шинах — слева направо
+Object.keys(BUS).forEach(function (id) {
+  BUS[id].ends.sort(function (a, b) { return a.x - b.x; }).forEach(function (e, n) { W[e.w].busNum = n + 1; });
+});
+
+/* ════ Слова для списков ════ */
+function say(s, wr) {
+  if (BUS[s]) return '<b>' + BUS[s].t + '</b>, точка ' + (wr.busNum || '?');
+  var a = s.split('.'), p = P[a[0]], q = p.pins[a[1]];
+  if (p.k === 'mcu') return 'ESP32, нога <b>' + q.lab + '</b>' + (q.sub ? ' (' + q.sub + ')' : '') + ' — ' + q.row + ' ряд, ' + q.idx + '-я от USB';
+  if (p.k === 'res') return p.full + ', <b>' + (a[1] === 'a' ? 'верхняя' : 'нижняя') + ' нога</b>';
+  if (p.k === 'term') return p.full + ', контакт <b>' + q.lab + '</b>';
+  if (q.say) return p.full + ', <b>' + q.say + '</b>';
+  return p.full + ', контакт <b>' + q.lab + '</b>';
+}
+function plain(s) { return s.replace(/<[^>]+>/g, ''); }
+
+/* ════ РИСУНОК ПЛАТЫ ════ */
+var NS = 'http://www.w3.org/2000/svg';
+var X = function (x) { return x * C + C / 2; };
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+function txt(x, y, s, o) {
+  o = o || {};
+  return '<text x="' + x + '" y="' + y + '" font-size="' + (o.fs || 9) + '"' + (o.a ? ' text-anchor="' + o.a + '"' : ' text-anchor="middle"') +
+    ' font-weight="' + (o.fw || 700) + '" fill="' + (o.fill || '#0f172a') + '"' +
+    (o.halo ? ' stroke="' + o.halo + '" stroke-width="3" paint-order="stroke"' : '') +
+    (o.rot ? ' class="rot" transform="rotate(-90 ' + x + ' ' + y + ')"' : '') + '>' + esc(s) + '</text>';
+}
+var board = document.getElementById('board');
+board.setAttribute('viewBox', '0 0 ' + BW * C + ' ' + BH * C);
+var svg = '<defs><pattern id="holes" width="' + C + '" height="' + C + '" patternUnits="userSpaceOnUse"><circle cx="' + C / 2 + '" cy="' + C / 2 + '" r="1.4" fill="#d6ccb0"/></pattern></defs>';
+svg += '<rect id="bg" x="1" y="1" width="' + (BW * C - 2) + '" height="' + (BH * C - 2) + '" rx="10" fill="#fbf7ea" stroke="#475569" stroke-width="2"/>';
+svg += '<rect x="4" y="4" width="' + (BW * C - 8) + '" height="' + (BH * C - 8) + '" fill="url(#holes)" pointer-events="none"/>';
+
+// шины
+Object.keys(BUS).forEach(function (id) {
+  var b = BUS[id], c = VOLT[b.v].c, y = X(b.y);
+  svg += '<g class="bus" data-b="' + id + '">';
+  if (b.v === 'v33') svg += '<path d="M' + X(b.x0) + ' ' + y + 'H' + X(b.x1) + '" stroke="#1e293b" stroke-width="7" stroke-linecap="round"/><path d="M' + X(b.x0) + ' ' + y + 'H' + X(b.x1) + '" stroke="' + c + '" stroke-width="4.5" stroke-linecap="round"/>';
+  else svg += '<path d="M' + X(b.x0) + ' ' + y + 'H' + X(b.x1) + '" stroke="' + c + '" stroke-width="7" stroke-linecap="round"/><path d="M' + X(b.x0) + ' ' + y + 'H' + X(b.x1) + '" stroke="#e5e7eb" stroke-width="2.4" stroke-linecap="round"/>';
+  var ly = b.id === 'b5' ? y + 12 : y - 9;
+  svg += txt(X(b.lx) - C / 2, ly + 3, b.t, { a: 'start', fs: 10, fill: b.v === 'gnd' ? '#111827' : '#7f1d1d' });
+  svg += '</g>';
+});
+
+// детали
+ORDER.forEach(function (id) {
+  var p = P[id], x0 = p.x * C, y0 = p.y * C, w = p.w * C, h = p.h * C, cx = x0 + w / 2;
+  svg += '<g class="pt" data-p="' + id + '">';
+  if (p.k === 'mcu') {
+    svg += '<rect x="' + (x0 + 1) + '" y="' + (y0 + 1) + '" width="' + (w - 2) + '" height="' + (h - 2) + '" rx="5" fill="#1f4d2e" stroke="#0f2a19" stroke-width="2"/>';
+    svg += '<rect x="' + (x0 + w - 230) + '" y="' + (y0 + 70) + '" width="190" height="88" rx="4" fill="#b8bcc0" stroke="#6b6f73" stroke-width="1.5"/>';
+    svg += txt(x0 + w - 135, y0 + 119, 'ESP32', { fs: 13, fill: '#334155' });
+    svg += txt(x0 + 120, y0 + 119, p.t, { fs: 13, fill: '#e2e8f0' });
+  } else if (p.k === 'usb') {
+    svg += '<rect x="' + x0 + '" y="' + y0 + '" width="' + w + '" height="' + h + '" rx="2" fill="#94a3b8" stroke="#475569" stroke-width="1.3"/>';
+    svg += txt(cx, y0 + h / 2 + 4, 'USB', { fs: 10 });
+  } else if (p.k === 'res') {
+    svg += '<rect x="' + (x0 + 1) + '" y="' + (y0 - 3) + '" width="' + (w - 2) + '" height="' + (h + 6) + '" rx="5" fill="#e7cf9f" stroke="#8a6d3a" stroke-width="1.3"/>';
+    svg += txt(cx + 3, y0 + h / 2, p.t, { fs: 8.5, rot: 1 });
+  } else if (p.k === 'q') {
+    svg += '<rect x="' + (x0 + 6) + '" y="' + (y0 - 8) + '" width="' + (w - 12) + '" height="14" rx="2" fill="#c9ccd1" stroke="#6b7280"/>';
+    svg += '<rect x="' + x0 + '" y="' + (y0 + 4) + '" width="' + w + '" height="' + (h - 6) + '" rx="3" fill="#1f2937"/>';
+    svg += txt(cx, y0 + 18, p.t + ' ' + p.sub, { fs: 9.5, fill: '#fff' });
+  } else if (p.k === 'term') {
+    svg += '<rect x="' + (x0 + 2) + '" y="' + y0 + '" width="' + (w - 4) + '" height="' + h + '" rx="4" fill="#3d8b40" stroke="#1f4d22" stroke-width="1.5"/>';
+    svg += txt(cx, y0 + h - 6, p.t, { fs: 10, fill: '#fff' });
+  } else {
+    var lid = p.k === 'lid';
+    svg += '<rect x="' + (x0 + 1) + '" y="' + (y0 + 1) + '" width="' + (w - 2) + '" height="' + (h - 2) + '" rx="4" fill="' + (lid ? '#e2e8f0' : p.fill) + '" stroke="' + (lid ? '#475569' : '#0f172a') + '" stroke-width="1.5"' + (lid ? ' stroke-dasharray="6 4"' : '') + '/>';
+    var fc = lid ? '#0f172a' : '#fff';
+    svg += txt(cx, y0 + (p.k === 'lid' ? 15 : p.id === 'bmp' ? h / 2 : 18), p.t, { fs: 10.5, fill: fc });
+    if (lid) svg += txt(cx, y0 + 27, 'на крышке', { fs: 8.5, fw: 400, fill: '#334155' });
+    if (p.sub) svg += txt(cx, y0 + 30, p.sub, { fs: 8.5, fw: 400, fill: fc });
+  }
+  // контакты
+  p.pinList.forEach(function (q) {
+    var px = X(q.x), py = X(q.y), used = false;
+    W.forEach(function (x) { if (x.a === id + '.' + q.id || x.b === id + '.' + q.id) used = true; });
+    if (p.out) {   // ножка от корпуса до площадки
+      var ex = q.side === 'L' ? x0 : q.side === 'R' ? x0 + w : px, ey = q.side === 'T' ? y0 : q.side === 'B' ? y0 + h : py;
+      if (p.k !== 'res') svg += '<path d="M' + ex + ' ' + ey + 'L' + px + ' ' + py + '" stroke="#9ca3af" stroke-width="2.5"/>';
+      else svg += '<path d="M' + px + ' ' + (q.side === 'T' ? y0 - 3 : y0 + h + 3) + 'L' + px + ' ' + py + '" stroke="#9ca3af" stroke-width="2"/>';
+    }
+    svg += '<rect class="pad" x="' + (px - 4) + '" y="' + (py - 4) + '" width="8" height="8" rx="1.5" fill="' + (used ? '#e3b23c' : '#9aa79f') + '" stroke="#7a5a12" stroke-width="' + (used ? 1 : 0) + '"/>';
+    // подписи контактов — внутри корпуса
+    if (p.k === 'mcu') {
+      var ty = q.side === 'T' ? py + 17 : py - 10;
+      svg += txt(px, ty, q.lab, { fs: 8.5, fw: used ? 700 : 400, fill: used ? '#fff' : '#8fa89a' });
+      if (q.sub) svg += txt(px, ty - 10, q.sub, { fs: 7.5, fw: 400, fill: '#cbd5e1' });
+    } else if (p.k === 'term') {
+      svg += txt(px, y0 + 17, q.lab, { fs: q.lab.length > 5 ? 7.5 : 8.5, fill: '#fff' });
+    } else if (p.k === 'q') {
+      svg += txt(px, y0 + h - 4, q.lab, { fs: 9, fill: '#fff' });
+    } else if (p.k === 'mod' || p.k === 'lid') {
+      var fc2 = p.k === 'lid' ? '#0f172a' : '#e5e7eb';
+      if (q.side === 'B') svg += txt(px, y0 + h - 6, q.lab, { fs: 8, fill: fc2 });
+      else if (q.side === 'L') svg += txt(x0 + 5, py + 3, q.lab, { fs: 8, a: 'start', fill: fc2 });
+      else if (q.side === 'R') svg += txt(x0 + w - 5, py + 3, q.lab, { fs: 8, a: 'end', fill: fc2 });
+    }
+  });
+  svg += '</g>';
+});
+
+// провода
+function pathD(cells) {
+  var d = 'M' + X(cells[0][0]) + ' ' + X(cells[0][1]);
+  for (var i = 1; i < cells.length; i++) {
+    var last = i === cells.length - 1, a = cells[i - 1], b = cells[i], c = cells[i + 1];
+    if (!last && ((a[0] === b[0] && b[0] === c[0]) || (a[1] === b[1] && b[1] === c[1]))) continue;
+    d += 'L' + X(b[0]) + ' ' + X(b[1]);
+  }
+  return d;
+}
+W.forEach(function (wr, i) {
+  if (!wr.cells) return;
+  wr.d = pathD(wr.cells);
+  var col = VOLT[wr.v].c;
+  svg += '<g class="w" data-i="' + i + '" fill="none" stroke-linejoin="round" stroke-linecap="round">' +
+    '<path class="halo" d="' + wr.d + '" stroke="#fbf7ea" stroke-width="8"/>' +
+    '<path d="' + wr.d + '" stroke="#1e293b" stroke-width="5"' + (wr.lid ? ' stroke-dasharray="8 5"' : '') + '/>' +
+    '<path class="core" d="' + wr.d + '" stroke="' + col + '" stroke-width="3"' + (wr.lid ? ' stroke-dasharray="8 5"' : '') + '/></g>';
+});
+svg += '<g id="marks"></g>';
+board.innerHTML = svg;
+
+// место для кружка с номером: середина самого длинного прямого куска
+W.forEach(function (wr) {
+  if (!wr.cells) return;
+  var best = null, run = [wr.cells[0]];
+  function flush() { if (!best || run.length > best.length) best = run.slice(); }
+  for (var i = 1; i < wr.cells.length; i++) {
+    var a = wr.cells[i - 1], b = wr.cells[i];
+    if (run.length > 1) { var r0 = run[run.length - 2]; if ((r0[0] === a[0]) !== (a[0] === b[0])) { flush(); run = [a]; } }
+    run.push(b);
+  }
+  flush();
+  var m = best[Math.floor(best.length / 2)];
+  wr.mk = [X(m[0]), X(m[1])];
+});
+
+/* ════ Легенда ════ */
+document.getElementById('legend').innerHTML = ['sig', 'v33', 'v5', 'v12', 'gnd'].map(function (v) {
+  return '<span><i style="background:' + VOLT[v].c + '"></i>' + VOLT[v].n + '</span>';
+}).join('') + '<span><i class="dash"></i>провод на крышку</span>';
+
+/* ════ Управление: шаги, выбор детали, «собрать заново» ════ */
+var cur = 0, selPart = null, selWire = -1, timer = null;
+var DONE = {};
+try { DONE = JSON.parse(localStorage.getItem('kolonna_v2_done') || '{}'); } catch (e) { DONE = {}; }
+function saveDone() { try { localStorage.setItem('kolonna_v2_done', JSON.stringify(DONE)); } catch (e) {} }
+function wiresOf(id) { return W.map(function (x, i) { return i; }).filter(function (i) { var x = W[i]; return x.a === id || x.b === id || x.a.split('.')[0] === id || x.b.split('.')[0] === id; }); }
+function stepWires(n) { return W.map(function (x, i) { return i; }).filter(function (i) { return W[i].step === n; }); }
+
+function paint() {
+  var gs = board.querySelectorAll('.w'), i;
+  var focus = null;
+  if (selPart) focus = wiresOf(selPart);
+  if (selWire >= 0) focus = [selWire];
+  for (i = 0; i < gs.length; i++) {
+    var k = +gs[i].getAttribute('data-i'), s = W[k].step;
+    gs[i].classList.remove('pale', 'hid', 'dim', 'hl');
+    if (focus) { gs[i].classList.add(focus.indexOf(k) >= 0 ? 'hl' : 'dim'); continue; }
+    if (cur > 0 && s > cur) gs[i].classList.add('hid');
+    else if (cur > 0 && s < cur) gs[i].classList.add('pale');
+  }
+  var bs = board.querySelectorAll('.bus');
+  for (i = 0; i < bs.length; i++) {
+    var b = BUS[bs[i].getAttribute('data-b')];
+    bs[i].classList.toggle('hid', !focus && cur > 0 && b.step > cur);
+    bs[i].classList.toggle('dim', !!focus && !(selPart === b.id || (selWire >= 0 && (W[selWire].a === b.id || W[selWire].b === b.id))));
+  }
+  var ps = board.querySelectorAll('.pt');
+  var near = {};
+  if (focus) focus.forEach(function (k) { near[W[k].a.split('.')[0]] = 1; near[W[k].b.split('.')[0]] = 1; });
+  for (i = 0; i < ps.length; i++) {
+    var id = ps[i].getAttribute('data-p');
+    ps[i].classList.toggle('dim', !!focus && !near[id]);
+    ps[i].classList.toggle('sel', id === selPart);
+  }
+  // кружки с номерами
+  var m = '', list = focus || (cur > 0 ? stepWires(cur) : []);
+  list.forEach(function (k, j) {
+    var p = W[k].mk; if (!p) return;
+    m += '<g pointer-events="none"><circle cx="' + p[0] + '" cy="' + p[1] + '" r="8.5" fill="#fff" stroke="#b91c1c" stroke-width="2"/>' +
+      '<text x="' + p[0] + '" y="' + (p[1] + 3.6) + '" text-anchor="middle" font-size="10" font-weight="700" fill="#0f172a">' + (j + 1) + '</text></g>';
+  });
+  document.getElementById('marks').innerHTML = m;
+  var btns = document.querySelectorAll('#steps button[data-s]');
+  for (i = 0; i < btns.length; i++) btns[i].classList.toggle('on', !focus && +btns[i].getAttribute('data-s') === cur);
+  info(focus);
+}
+
+function line(k, j) {
+  var x = W[k];
+  return '<li data-i="' + k + '"' + (DONE[k] ? ' class="done"' : '') + '><span class="n">' + (j + 1) + '</span>' +
+    '<input type="checkbox" aria-label="припаян"' + (DONE[k] ? ' checked' : '') + '>' +
+    '<span>' + say(x.a, x) + ' → ' + say(x.b, x) + (x.note ? ' <span class="mut">— ' + x.note + '</span>' : '') + '</span></li>';
+}
+function info(focus) {
+  var el = document.getElementById('info'), h = '';
+  if (selPart) {
+    var p = P[selPart];
+    h = '<h3>' + (p.k === 'bus' ? p.t : p.full.charAt(0).toUpperCase() + p.full.slice(1)) + ': куда идут провода</h3><ol>' + focus.map(line).join('') + '</ol>' +
+      '<p class="chk mut">Нажми на пустое место платы, чтобы вернуться к шагам.</p>';
+  } else if (selWire >= 0) {
+    h = '<h3>Провод из шага ' + W[selWire].step + '</h3><ol>' + line(selWire, 0) + '</ol><p class="chk mut">Нажми на пустое место платы, чтобы вернуться к шагам.</p>';
+  } else if (cur > 0) {
+    var s = S[cur - 1], ks = stepWires(cur);
+    h = '<h3>' + s.t + '</h3>';
+    var bl = Object.keys(BUS).filter(function (id) { return BUS[id].step === cur; });
+    if (bl.length) h += '<ul>' + bl.map(function (id) { return '<li style="cursor:default"><span><b>' + BUS[id].t + '</b>: ' + BUS[id].say + '</span></li>'; }).join('') + '</ul>';
+    if (ks.length) h += '<ol>' + ks.map(line).join('') + '</ol>';
+    h += '<div class="res chk">' + s.c + '</div>';
+  } else {
+    h = '<h3>Вся плата</h3><p>Выбери шаг — здесь появится список проводов этого шага. Или нажми на деталь.</p>';
+  }
+  el.innerHTML = h;
+}
+
+var stb = '<button type="button" data-s="0">Вся плата</button>';
+S.forEach(function (s, i) { stb += '<button type="button" data-s="' + (i + 1) + '">Шаг ' + (i + 1) + '</button>'; });
+stb += '<button type="button" class="play" id="replay">▶ Собрать заново</button>';
+document.getElementById('steps').innerHTML = stb;
+document.getElementById('steps').addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  if (b.id === 'replay') { replay(); return; }
+  stop(); selPart = null; selWire = -1; cur = +b.getAttribute('data-s'); paint();
+});
+board.addEventListener('click', function (e) {
+  stop();
+  var g = e.target.closest('.w'), p = e.target.closest('.pt'), bu = e.target.closest('.bus');
+  if (g) { selWire = +g.getAttribute('data-i'); selPart = null; }
+  else if (p && P[p.getAttribute('data-p')].k !== 'usb') { selPart = p.getAttribute('data-p'); selWire = -1; }
+  else if (bu) { selPart = bu.getAttribute('data-b'); selWire = -1; }
+  else { selPart = null; selWire = -1; }
+  paint();
+});
+document.getElementById('info').addEventListener('click', function (e) {
+  var li = e.target.closest('li[data-i]'); if (!li) return;
+  var k = +li.getAttribute('data-i');
+  if (e.target.tagName === 'INPUT') { if (e.target.checked) DONE[k] = 1; else delete DONE[k]; saveDone(); li.classList.toggle('done', !!DONE[k]); return; }
+  var g = board.querySelector('.w[data-i="' + k + '"]');
+  var lis = document.querySelectorAll('#info li[data-i]');
+  for (var i = 0; i < lis.length; i++) lis[i].classList.toggle('hl', lis[i] === li);
+  var gs = board.querySelectorAll('.w.hl'); for (i = 0; i < gs.length; i++) if (!selPart && selWire < 0) gs[i].classList.remove('hl');
+  if (g) { g.classList.add('hl'); g.parentNode.appendChild(g); board.appendChild(document.getElementById('marks')); }
+});
+
+// «Собрать заново»: провода дорисовываются по очереди, шаг за шагом
+function stop() { if (timer) { clearTimeout(timer); timer = null; } }
+function replay() {
+  stop(); selPart = null; selWire = -1;
+  var seq = [];
+  for (var s = 1; s <= S.length; s++) seq = seq.concat(stepWires(s));
+  cur = 0; paint();
+  var gs = board.querySelectorAll('.w'), i;
+  for (i = 0; i < gs.length; i++) gs[i].classList.add('hid');
+  var bs = board.querySelectorAll('.bus'); for (i = 0; i < bs.length; i++) bs[i].classList.add('hid');
+  var n = 0;
+  (function next() {
+    if (n >= seq.length) { timer = null; cur = 0; paint(); return; }
+    var k = seq[n++], g = board.querySelector('.w[data-i="' + k + '"]');
+    Object.keys(BUS).forEach(function (id) { if (BUS[id].step <= W[k].step) board.querySelector('.bus[data-b="' + id + '"]').classList.remove('hid'); });
+    g.classList.remove('hid');
+    var ps = g.querySelectorAll('path');
+    for (var j = 0; j < ps.length; j++) {
+      var L = ps[j].getTotalLength ? ps[j].getTotalLength() : 0;
+      ps[j].style.transition = 'none'; ps[j].style.strokeDasharray = L + ' ' + L; ps[j].style.strokeDashoffset = L;
+      ps[j].getBoundingClientRect();
+      ps[j].style.transition = 'stroke-dashoffset .35s linear'; ps[j].style.strokeDashoffset = '0';
+    }
+    (function (ps) { setTimeout(function () { for (var j = 0; j < ps.length; j++) { ps[j].style.strokeDasharray = ''; ps[j].style.strokeDashoffset = ''; ps[j].style.transition = ''; } }, 420); })(ps);
+    timer = setTimeout(next, 380);
+  })();
+}
+
+/* ════ Таблица «деталь → вывод → куда» ════ */
+(function () {
+  var rows = '<tr><th>Деталь</th><th>Вывод</th><th>Куда (на плате)</th><th>Провод</th><th>Шаг</th></tr>';
+  ORDER.forEach(function (id) {
+    var p = P[id];
+    p.pinList.forEach(function (q) {
+      var r = id + '.' + q.id;
+      W.forEach(function (x, i) {
+        if (x.a !== r && x.b !== r) return;
+        var other = x.a === r ? x.b : x.a;
+        rows += '<tr data-i="' + i + '"><td>' + p.full + '</td><td><b>' + (q.say || (p.k === 'res' ? (q.id === 'a' ? 'верхняя нога' : 'нижняя нога') : q.lab)) + '</b></td><td>' + say(other, x) + '</td>' +
+          '<td><span class="sw" style="background:' + VOLT[x.v].c + '"></span>' + VOLT[x.v].n + (x.lid ? ', на крышку' : '') + '</td><td>' + x.step + '</td></tr>';
+      });
+    });
+  });
+  var t = document.getElementById('tbl');
+  t.innerHTML = rows;
+  t.addEventListener('click', function (e) {
+    var tr = e.target.closest('tr[data-i]'); if (!tr) return;
+    stop(); selPart = null; selWire = +tr.getAttribute('data-i'); paint();
+    var trs = t.querySelectorAll('tr'); for (var i = 0; i < trs.length; i++) trs[i].classList.toggle('hl', trs[i] === tr);
+    board.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+})();
+
+/* ════ Рисунок «куда подключаются датчики» — из тех же клеммников ════ */
+(function () {
+  var T = ORDER.filter(function (id) { return P[id].k === 'term'; }).map(function (id) { return P[id]; });
+  var x = 30, PW = 70, s = '';
+  T.forEach(function (t) {
+    var n = t.pinList.length, w = n * PW + 16, cx = x + w / 2;
+    s += '<rect x="' + x + '" y="40" width="' + w + '" height="86" rx="6" fill="#3d8b40" stroke="#1f4d22" stroke-width="2"/>';
+    s += '<text x="' + cx + '" y="117" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">' + esc(t.t) + '</text>';
+    t.pinList.forEach(function (q, i) {
+      var px = x + 8 + PW / 2 + i * PW, col = VOLT[q.jv].c;
+      s += '<path d="M' + px + ' 126V248" stroke="#1e293b" stroke-width="8"/><path d="M' + px + ' 126V248" stroke="' + col + '" stroke-width="5"/>';
+      s += '<circle cx="' + px + '" cy="64" r="13" fill="#eef0ec" stroke="#4a524e" stroke-width="1.5"/><path d="M' + (px - 8) + ' 64h16" stroke="#4a524e" stroke-width="2"/>';
+      s += '<text x="' + px + '" y="96" text-anchor="middle" font-size="' + (q.lab.length > 6 ? 11 : 12) + '" font-weight="700" fill="#fff">' + esc(q.lab) + '</text>';
+      s += '<text x="' + px + '" y="196" text-anchor="middle" font-size="12" font-weight="700" fill="#0f172a" stroke="#f8fafc" stroke-width="5" paint-order="stroke">' + esc(q.jila) + '</text>';
+    });
+    s += '<rect x="' + (x - 4) + '" y="248" width="' + (w + 8) + '" height="60" rx="6" fill="#e2e8f0" stroke="#64748b" stroke-width="1.5"/>';
+    s += '<text x="' + cx + '" y="272" text-anchor="middle" font-size="13" font-weight="700" fill="#0f172a">' + esc(t.ext[0]) + '</text>';
+    s += '<text x="' + cx + '" y="291" text-anchor="middle" font-size="12" fill="#334155">' + esc(t.ext[1]) + '</text>';
+    x += w + 26;
+  });
+  var tw = x + 4;
+  s = '<rect x="10" y="10" width="' + (tw - 20) + '" height="128" rx="8" fill="#fbf7ea" stroke="#94a3b8" stroke-width="1.5"/><text x="24" y="30" font-size="13" font-weight="700" fill="#334155">нижний край платы</text>' + s;
+  var el = document.getElementById('terms');
+  el.setAttribute('viewBox', '0 0 ' + tw + ' 320');
+  el.innerHTML = s;
+})();
+
+/* ════ Рисунок «как сделана шина» ════ */
+(function () {
+  var s = '<rect x="20" y="20" width="560" height="190" rx="8" fill="#dcae54" stroke="#a9792b" stroke-width="2"/>';
+  for (var hx = 50; hx <= 550; hx += 25) for (var hy = 45; hy <= 190; hy += 25) s += '<circle cx="' + hx + '" cy="' + hy + '" r="3" fill="#8a6420"/>';
+  s += '<path d="M50 120H550" stroke="#64748b" stroke-width="11" stroke-linecap="round"/><path d="M50 120H550" stroke="#e5e7eb" stroke-width="5" stroke-linecap="round"/>';
+  [50, 175, 300, 425, 550].forEach(function (x) { s += '<circle cx="' + x + '" cy="120" r="8" fill="#d1d5db" stroke="#64748b" stroke-width="1.5"/>'; });
+  [[125, 45], [225, 195], [350, 45], [475, 195]].forEach(function (a, i) {
+    s += '<path d="M' + a[0] + ' 120V' + a[1] + '" stroke="#1e293b" stroke-width="6"/><path d="M' + a[0] + ' 120V' + a[1] + '" stroke="#374151" stroke-width="3.5"/>';
+    s += '<circle cx="' + a[0] + '" cy="120" r="10" fill="#fff" stroke="#0f172a" stroke-width="2"/><text x="' + a[0] + '" y="124" text-anchor="middle" font-size="11" font-weight="700" fill="#0f172a">' + (i + 1) + '</text>';
+  });
+  var t = ['Светлая полоса — голая жила.', 'Прихвачена припоем к макетке', 'через несколько отверстий (серые кружки).', '', 'Кружок с цифрой — сюда припаян провод:', '«точка 1, 2, 3…» из списка проводов.', '', 'Провод поверх жилы без кружка —', 'проходит мимо, он в изоляции.'];
+  t.forEach(function (l, i) { s += '<text x="605" y="' + (40 + i * 21) + '" font-size="14" fill="#0f172a">' + esc(l) + '</text>'; });
+  document.getElementById('busfig').innerHTML = s;
+})();
+
+/* ════ АВТОПРОВЕРКА РИСУНКА ════ */
+(function () {
+  var err = [], warn = [];
+  W.forEach(function (x, i) { if (x.fail) err.push('провод не проложен: ' + plain(say(x.a, x)) + ' → ' + plain(say(x.b, x))); });
+  // каждый конец — на настоящем контакте
+  W.forEach(function (x) { [x.a, x.b].forEach(function (s) { if (!BUS[s]) { var a = s.split('.'); if (!P[a[0]] || !P[a[0]].pins[a[1]]) err.push('нет контакта ' + s); } }); });
+  // провод не проходит через корпус
+  W.forEach(function (x) {
+    if (!x.cells) return;
+    x.cells.forEach(function (c, j) { if (j && j < x.cells.length - 1 && body[key(c[0], c[1])] >= 0) err.push('провод через деталь ' + ORDER[body[key(c[0], c[1])]]); });
+  });
+  // одна дорожка — один провод
+  var seen = {}, dup = 0;
+  W.forEach(function (x) { if (!x.cells) return; for (var j = 1; j < x.cells.length; j++) { var e = ekey(x.cells[j - 1][0], x.cells[j - 1][1], x.cells[j][0], x.cells[j][1]); if (seen[e]) dup++; seen[e] = 1; } });
+  if (dup) err.push('два провода на одной дорожке: ' + dup);
+  // подписи не наезжают друг на друга и на провода
+  var texts = [].slice.call(board.querySelectorAll('text:not(.rot)')).filter(function (t) { return t.closest('#marks') === null; });
+  var bx = texts.map(function (t) { var b = t.getBBox(); return { x: b.x + 0.8, y: b.y + 1.5, X: b.x + b.width - 0.8, Y: b.y + b.height - 1.5, s: t.textContent }; });
+  var tt = 0;
+  for (var i = 0; i < bx.length; i++) for (var j = i + 1; j < bx.length; j++) {
+    var a = bx[i], b = bx[j];
+    if (a.x < b.X && b.x < a.X && a.y < b.Y && b.y < a.Y) { tt++; if (tt < 6) warn.push('подписи «' + a.s + '» и «' + b.s + '» наезжают'); }
+  }
+  var tw = 0;
+  W.forEach(function (x) {
+    if (!x.cells) return;
+    for (var j = 1; j < x.cells.length; j++) {
+      var x1 = Math.min(X(x.cells[j - 1][0]), X(x.cells[j][0])) - 1.5, x2 = Math.max(X(x.cells[j - 1][0]), X(x.cells[j][0])) + 1.5;
+      var y1 = Math.min(X(x.cells[j - 1][1]), X(x.cells[j][1])) - 1.5, y2 = Math.max(X(x.cells[j - 1][1]), X(x.cells[j][1])) + 1.5;
+      bx.forEach(function (b) { if (b.x < x2 && x1 < b.X && b.y < y2 && y1 < b.Y) { tw++; if (tw < 6) warn.push('провод через подпись «' + b.s + '»'); } });
+    }
+  });
+  // строк в таблице = проводов на рисунке
+  var nDraw = board.querySelectorAll('.w').length, rs = {};
+  [].forEach.call(document.querySelectorAll('#tbl tr[data-i]'), function (tr) { rs[tr.getAttribute('data-i')] = 1; });
+  var nRow = Object.keys(rs).length;
+  if (nDraw !== W.length) err.push('на рисунке ' + nDraw + ' проводов, в списке ' + W.length);
+  if (nRow !== W.length) err.push('в таблице ' + nRow + ' соединений, в списке ' + W.length);
+  var cr = W.reduce(function (s, x) { return s + (x.cross || 0); }, 0);
+  var el = document.getElementById('auto');
+  el.innerHTML = '<b>Автопроверка рисунка:</b> проводов ' + W.length + ', на рисунке ' + nDraw + '; ошибок ' + err.length + '; подписи наезжают ' + tt + '; провод через подпись ' + tw +
+    '; пересечений проводов ' + cr + ' (провод в изоляции поверх другого — можно).' + (err.length || warn.length ? '<br>' + err.concat(warn).map(esc).join('<br>') : '');
+  el.setAttribute('data-err', err.length); el.setAttribute('data-tt', tt); el.setAttribute('data-tw', tw); el.setAttribute('data-cr', cr);
+  // для проверки снаружи: какие провода пересекаются
+  el.setAttribute('data-crw', W.map(function (x, i) { return x.cross ? i + ':' + x.a + '>' + x.b + '=' + x.cross : ''; }).filter(Boolean).join(' '));
+})();
+
+paint();
+})();
+</script>
+</body></html>
