@@ -42,7 +42,7 @@ const CH = {
   'sensor/Current':      {k:'amp',   n:'Ток ТЭНа',        i:'',         u:'А',    d:2, ms:0.5, lo:0,   hi:20,   norm:[0,16]},
   'sensor/Pressure mmHg':{k:'press', n:'Давление',        i:'',         u:'мм',   d:1, ms:2, lo:720, hi:790,  norm:[730,780]},
   'sensor/T Boil Correction':{k:'tbc', n:'Поправка кипения', i:'по давлению', u:'°C', d:2, ms:0.05, lo:-1, hi:1, norm:[-0.5,0.5]},
-  'sensor/Box Temp':     {k:'box',   n:'В коробке',       i:'барометр', u:'°C',   d:1, ms:1, lo:0,   hi:70,   norm:[10,50],   hiWarn:55},
+  'sensor/Box Temp':     {k:'box',   n:'Температура платы', i:'барометр', u:'°C',   d:1, ms:1, lo:0,   hi:70,   norm:[10,50],   hiWarn:55},
   'sensor/Otbor Rate':   {k:'rate',  n:'Скорость отбора', i:'модуль 2', u:'мл/ч', d:0, ms:50, lo:0,   hi:1500, norm:[100,140]},
   'sensor/Log Rows':     {k:'logrows',n:'Журнал контроллера',i:'',u:'зап.', d:0, ms:50, lo:0,   hi:2000, norm:[0,2000]},
   'sensor/Otbor Volume': {k:'vol',   n:'Отобрано',        i:'модуль 2', u:'мл',   d:0, ms:50, lo:0,   hi:1200, norm:[0,400]}
