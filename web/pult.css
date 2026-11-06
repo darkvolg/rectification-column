@@ -143,8 +143,8 @@ h2:first-child{margin-top:6px}
 .alm .sym{font-size:19px; line-height:1; color:var(--alarm); flex:none}
 .alm.w .sym{color:var(--warn)}
 .alm .txt{flex:1; min-width:0}
-.alm .t{font-weight:600; font-size:15px}
-.alm .d{font-size:13.5px; color:var(--ink-2); margin-top:2px}
+.alm .t{display:block; font-weight:600; font-size:15px}
+.alm .d{display:block; font-size:13.5px; color:var(--ink-2); margin-top:2px}
 
 .quiet{
   display:flex; align-items:center; gap:10px; padding:12px 16px; margin-bottom:16px;
