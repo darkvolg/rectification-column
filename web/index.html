@@ -226,6 +226,8 @@
       <div class="row" id="st_sens"><span class="led"></span><span class="n">Датчики</span><span class="v">—</span></div>
       <div class="row" id="st_link"><span class="led"></span><span class="n">Данные</span><span class="v">—</span></div>
       <div class="row" id="st_pwrw"><span class="led"></span><span class="n">Баланс мощности</span><span class="v">—</span></div>
+      <div class="row" id="st_baro"><span class="led"></span><span class="n">Барометр</span><span class="v">—</span></div>
+      <div class="row" id="st_box"><span class="led"></span><span class="n">В коробке</span><span class="v">—</span></div>
     </div>
   </div>
 
@@ -358,6 +360,15 @@ function paint(){
 const pwWatts = w => (w === undefined || !isFinite(w)) ? '—' : w.toFixed(0) + ' Вт';
 
 function paintStatus(pwEst, pwW){
+  // Барометр: давление и на сколько оно сдвигает точку кипения.
+  // Без него поправки нет, и смена погоды выглядит как приход хвостов.
+  if (V.press === undefined) setRow('st_baro', 'bad', 'нет данных');
+  else setRow('st_baro', 'on', V.press.toFixed(1) + ' мм' +
+    (V.tbc === undefined ? '' : ' · ' + (V.tbc >= 0 ? '+' : '') + V.tbc.toFixed(2) + ' °C'));
+  // Температура внутри прибора — с того же барометра.
+  if (V.box === undefined) setRow('st_box', '', '—');
+  else setRow('st_box', V.box > 55 ? 'bad' : 'on', V.box.toFixed(1) + ' °C');
+
   // Нагрев: реле пока нет, судим по мощности
   if (V.pwr === undefined) setRow('st_heat','', '—');
   else setRow('st_heat', V.pwr > 50 ? 'on' : 'off',

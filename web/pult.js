@@ -41,6 +41,8 @@ const CH = {
   'sensor/Voltage':      {k:'volt',  n:'Сеть',            i:'',         u:'В',    d:1, ms:5, lo:180, hi:260,  norm:[205,240]},
   'sensor/Current':      {k:'amp',   n:'Ток ТЭНа',        i:'',         u:'А',    d:2, ms:0.5, lo:0,   hi:20,   norm:[0,16]},
   'sensor/Pressure mmHg':{k:'press', n:'Давление',        i:'',         u:'мм',   d:1, ms:2, lo:720, hi:790,  norm:[730,780]},
+  'sensor/T Boil Correction':{k:'tbc', n:'Поправка кипения', i:'по давлению', u:'°C', d:2, ms:0.05, lo:-1, hi:1, norm:[-0.5,0.5]},
+  'sensor/Box Temp':     {k:'box',   n:'В коробке',       i:'барометр', u:'°C',   d:1, ms:1, lo:0,   hi:70,   norm:[10,50],   hiWarn:55},
   'sensor/Otbor Rate':   {k:'rate',  n:'Скорость отбора', i:'модуль 2', u:'мл/ч', d:0, ms:50, lo:0,   hi:1500, norm:[100,140]},
   'sensor/Log Rows':     {k:'logrows',n:'Журнал контроллера',i:'',u:'зап.', d:0, ms:50, lo:0,   hi:2000, norm:[0,2000]},
   'sensor/Otbor Volume': {k:'vol',   n:'Отобрано',        i:'модуль 2', u:'мл',   d:0, ms:50, lo:0,   hi:1200, norm:[0,400]}
@@ -79,9 +81,10 @@ const CLR = {
   voda:'--s1',  otbor:'--s2', vodaIn:'--s3', carga:'--s4',
   press:'--s5', flow:'--s6',  pwr:'--s7',    kub:'--s8',
   wtot:'--s1',  rate:'--s2',  volt:'--s3',   trend:'--s4',
-  vol:'--s5',   amp:'--s6',   pwrW:'--s7',   delta:'--s8'
+  vol:'--s5',   amp:'--s6',   pwrW:'--s7',   delta:'--s8',
+  tbc:'--s5',   box:'--s3'
 };
-const DASHED = {wtot:1, rate:1, volt:1, trend:1, vol:1, amp:1, pwrW:1, delta:1};
+const DASHED = {wtot:1, rate:1, volt:1, trend:1, vol:1, amp:1, pwrW:1, delta:1, tbc:1};
 function dashOf(k){ return DASHED[k] ? [6, 4] : []; }
 
 /* Уставки в КОНТРОЛЛЕРЕ — те, по которым орёт сирена.
