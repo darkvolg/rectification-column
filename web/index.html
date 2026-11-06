@@ -360,11 +360,9 @@ function paint(){
 const pwWatts = w => (w === undefined || !isFinite(w)) ? '—' : w.toFixed(0) + ' Вт';
 
 function paintStatus(pwEst, pwW){
-  // Барометр: давление и на сколько оно сдвигает точку кипения.
-  // Без него поправки нет, и смена погоды выглядит как приход хвостов.
+  // Барометр: только давление. Поправку кипения плата учитывает сама.
   if (V.press === undefined) setRow('st_baro', 'bad', 'нет данных');
-  else setRow('st_baro', 'on', V.press.toFixed(1) + ' мм' +
-    (V.tbc === undefined ? '' : ' · ' + (V.tbc >= 0 ? '+' : '') + V.tbc.toFixed(2) + ' °C'));
+  else setRow('st_baro', 'on', V.press.toFixed(1) + ' мм');
   // Температура внутри прибора — с того же барометра.
   if (V.box === undefined) setRow('st_box', '', '—');
   else setRow('st_box', V.box > 55 ? 'bad' : 'on', V.box.toFixed(1) + ' °C');
