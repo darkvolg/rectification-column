@@ -69,7 +69,7 @@
     в нужной строке.</p>
 
     <table class="slots" id="slottab">
-      <thead><tr><th>Слот</th><th>Показывает</th></tr></thead>
+      <thead><tr><th>Слот</th><th>Сырое, без поправки</th></tr></thead>
       <tbody></tbody>
     </table>
 
@@ -342,7 +342,10 @@ function drawRoles(){
     if (el.value !== st.state) el.value = st.state;
     const n = parseInt((st.state || '').replace(/\D/g, ''), 10);
     const v = PULT.SLOT[n];
-    now.textContent = (v === null || v === undefined) ? '' : v.toFixed(2) + ' °C';
+    // В строке роли — показание С ПОПРАВКОЙ (то, что видит пульт и сирена).
+    // Сырое значение датчика — в таблице слотов выше.
+    const cal = PULT.CAL[r.cal] || 0;
+    now.textContent = (v === null || v === undefined) ? '' : (v + cal).toFixed(2) + ' °C';
 
     // К какому железу привязана роль. Номер слота — это лишь место на
     // шине, оно уезжает при добавлении датчика; адрес не уезжает.
