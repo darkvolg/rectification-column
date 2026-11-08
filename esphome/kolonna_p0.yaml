@@ -562,7 +562,9 @@ sensor:
       // Роль привязана к АДРЕСУ датчика, а не к его месту на шине:
       // зачем так и чем это грозит иначе — в kolonna_slots.h.
       // Датчик пропал с шины — NAN, а не показания соседнего.
-      return kolonna_slots::by_addr(id(addr_kub));
+      // Поправка роли (CAL …) идёт за датчиком, а не за слотом.
+      float v = kolonna_slots::by_addr(id(addr_kub));
+      return std::isnan(v) ? v : v + id(cal_kub).state;
 
   - platform: template
     name: "T2 Carga"
@@ -576,7 +578,9 @@ sensor:
       // Роль привязана к АДРЕСУ датчика, а не к его месту на шине:
       // зачем так и чем это грозит иначе — в kolonna_slots.h.
       // Датчик пропал с шины — NAN, а не показания соседнего.
-      return kolonna_slots::by_addr(id(addr_carga));
+      // Поправка роли (CAL …) идёт за датчиком, а не за слотом.
+      float v = kolonna_slots::by_addr(id(addr_carga));
+      return std::isnan(v) ? v : v + id(cal_carga).state;
 
   - platform: template
     name: "T3 Otbor"
@@ -590,7 +594,9 @@ sensor:
       // Роль привязана к АДРЕСУ датчика, а не к его месту на шине:
       // зачем так и чем это грозит иначе — в kolonna_slots.h.
       // Датчик пропал с шины — NAN, а не показания соседнего.
-      return kolonna_slots::by_addr(id(addr_otbor));
+      // Поправка роли (CAL …) идёт за датчиком, а не за слотом.
+      float v = kolonna_slots::by_addr(id(addr_otbor));
+      return std::isnan(v) ? v : v + id(cal_otbor).state;
 
   - platform: template
     name: "T4 Voda"
@@ -604,7 +610,9 @@ sensor:
       // Роль привязана к АДРЕСУ датчика, а не к его месту на шине:
       // зачем так и чем это грозит иначе — в kolonna_slots.h.
       // Датчик пропал с шины — NAN, а не показания соседнего.
-      return kolonna_slots::by_addr(id(addr_voda));
+      // Поправка роли (CAL …) идёт за датчиком, а не за слотом.
+      float v = kolonna_slots::by_addr(id(addr_voda));
+      return std::isnan(v) ? v : v + id(cal_voda).state;
 
   - platform: template
     name: "T5 Voda Vhod"
@@ -618,7 +626,9 @@ sensor:
       // Роль привязана к АДРЕСУ датчика, а не к его месту на шине:
       // зачем так и чем это грозит иначе — в kolonna_slots.h.
       // Датчик пропал с шины — NAN, а не показания соседнего.
-      return kolonna_slots::by_addr(id(addr_voda_in));
+      // Поправка роли (CAL …) идёт за датчиком, а не за слотом.
+      float v = kolonna_slots::by_addr(id(addr_voda_in));
+      return std::isnan(v) ? v : v + id(cal_voda_in).state;
 
   # ---------- Проток охлаждающей воды: YF-S201C ----------
   # Турбинка с датчиком Холла. Ставится на ХОЛОДНЫЙ ВХОД, до дефлегматора.
@@ -1050,6 +1060,77 @@ select:
           id(addr_voda_in) = kolonna_slots::addr_by_index(i);
 
 number:
+  # ---------- Поправки датчиков по ролям ----------
+  # Снимаются в стакане воды / во льду (0 °C) / в кипятке на плите.
+  # Пишется то, что надо ПРИБАВИТЬ: датчик показывает 99,9 при эталоне
+  # 100,28 — поправка +0,38. Хранится в плате и живёт вместе с ролью,
+  # то есть с адресом датчика: слоты при добавлении датчиков переезжают,
+  # поправка — нет. Старые offset у слотов оставлены нулевыми.
+  - platform: template
+    name: "CAL T1 Kub"
+    id: cal_kub
+    optimistic: true
+    restore_value: true
+    initial_value: 0
+    min_value: -5
+    max_value: 5
+    step: 0.01
+    unit_of_measurement: "°C"
+    mode: box
+    entity_category: config
+
+  - platform: template
+    name: "CAL T2 Carga"
+    id: cal_carga
+    optimistic: true
+    restore_value: true
+    initial_value: 0
+    min_value: -5
+    max_value: 5
+    step: 0.01
+    unit_of_measurement: "°C"
+    mode: box
+    entity_category: config
+
+  - platform: template
+    name: "CAL T3 Otbor"
+    id: cal_otbor
+    optimistic: true
+    restore_value: true
+    initial_value: 0
+    min_value: -5
+    max_value: 5
+    step: 0.01
+    unit_of_measurement: "°C"
+    mode: box
+    entity_category: config
+
+  - platform: template
+    name: "CAL T4 Voda"
+    id: cal_voda
+    optimistic: true
+    restore_value: true
+    initial_value: 0
+    min_value: -5
+    max_value: 5
+    step: 0.01
+    unit_of_measurement: "°C"
+    mode: box
+    entity_category: config
+
+  - platform: template
+    name: "CAL T5 Voda Vhod"
+    id: cal_voda_in
+    optimistic: true
+    restore_value: true
+    initial_value: 0
+    min_value: -5
+    max_value: 5
+    step: 0.01
+    unit_of_measurement: "°C"
+    mode: box
+    entity_category: config
+
   - platform: template
     name: "SET Voda Max"
     id: set_voda_max
