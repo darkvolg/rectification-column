@@ -94,13 +94,14 @@ function dashOf(k){ return DASHED[k] ? [6, 4] : []; }
    Роль живёт в контроллере (select с restore_value), поэтому переживает
    перезагрузку и одинакова для всех, кто откроет пульт. */
 const ROLES = [
-  {sel:'SLOT T1 Kub',       t:'Куб · T1',         bind:'BIND T1 Kub'},
-  {sel:'SLOT T2 Carga',     t:'Царга 2/3 · T2',   bind:'BIND T2 Carga'},
-  {sel:'SLOT T3 Otbor',     t:'Отбор · T3',       bind:'BIND T3 Otbor'},
-  {sel:'SLOT T4 Voda',      t:'Вода выход · T4',  bind:'BIND T4 Voda'},
-  {sel:'SLOT T5 Voda Vhod', t:'Вода вход · T5',   bind:'BIND T5 Voda Vhod'}
+  {sel:'SLOT T1 Kub',       t:'Куб · T1',         bind:'BIND T1 Kub',       cal:'CAL T1 Kub'},
+  {sel:'SLOT T2 Carga',     t:'Царга 2/3 · T2',   bind:'BIND T2 Carga',     cal:'CAL T2 Carga'},
+  {sel:'SLOT T3 Otbor',     t:'Отбор · T3',       bind:'BIND T3 Otbor',     cal:'CAL T3 Otbor'},
+  {sel:'SLOT T4 Voda',      t:'Вода выход · T4',  bind:'BIND T4 Voda',      cal:'CAL T4 Voda'},
+  {sel:'SLOT T5 Voda Vhod', t:'Вода вход · T5',   bind:'BIND T5 Voda Vhod', cal:'CAL T5 Voda Vhod'}
 ];
 const SEL = {};    // 'SLOT T1 Kub' -> {state, options}
+const CAL = {};    // 'CAL T1 Kub' -> поправка °C, хранится в плате
 const BIND = {};   // 'BIND T1 Kub' -> «слот 2 · 0x3b…» либо «ПРОПАЛ 0x…»
 const SLOT = {};   // 1..6 -> градусы, чтобы видеть, какой датчик греется
 
@@ -395,6 +396,12 @@ function connect(addr){
     if (NUM[d.id]){
       const nv = parseFloat(d.value);
       if (isFinite(nv)){ N[NUM[d.id].k] = nv; subs.forEach(f => f('num')); }
+      return;
+    }
+    // Поправка датчика по роли — число в плате, идёт за адресом датчика.
+    if (d.id.indexOf('number/CAL ') === 0){
+      const cv = parseFloat(d.value);
+      if (isFinite(cv)){ CAL[d.id.slice(7)] = cv; subs.forEach(f => f('role')); }
       return;
     }
     if (d.id.indexOf('select/') === 0){
@@ -1843,7 +1850,7 @@ window.PULT = {
   push, slice, range, severity, col, saveHist, clearHist, histInfo, kubAbv, ABV_MIN_T,
   lim, setLim, resetLim, limUser, thrKind, editor, armEditors, NUMOF, toHexColor,
   lineColor, dashOf, setPal, resetPal, palUser, setNumber,
-  ROLES, SEL, SLOT, BIND, setSelect,
+  ROLES, SEL, SLOT, BIND, CAL, setSelect,
   jrnLoad, jrnSave, jrnRow, jrnAdd, jrnMark, jrnInfo, jrnEvery,
   jrnMergeRows, jrnSrcName, jrnBucket, jrnHHMM, jrnFmtVal, jrnHasData, JREAL,
   pogArchive, pogList, pogDel, pogRestore, pogSummary,

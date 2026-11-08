@@ -51,7 +51,7 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card wide">
     <h3>Какой датчик где стоит</h3>
     <p>Прошивка не знает заранее, какой датчик куда вкручен. Она видит только
     то, что нашла на шине — <strong>слоты</strong>. Роль назначается здесь и
@@ -313,10 +313,21 @@ function drawRoles(){
       '<div class="rolerow"><label>' + r.t +
         '<span class="bind" data-bind="' + r.sel + '"></span></label>' +
       '<select data-sel="' + r.sel + '"></select>' +
-      '<span class="now" data-now="' + r.sel + '"></span></div>').join('');
+      '<span class="now" data-now="' + r.sel + '"></span>' +
+      '<span class="cal">поправка <input type="number" step="0.01" min="-5" max="5" ' +
+        'inputmode="decimal" data-cal="' + r.cal + '" aria-label="Поправка ' + r.t + ', °C"> °C</span></div>').join('');
     box.dataset.built = '1';
     box.querySelectorAll('select').forEach(el => {
       el.onchange = () => PULT.setSelect(el.dataset.sel, el.value);
+    });
+    // Поправка: сколько ПРИБАВИТЬ к показаниям датчика (снимается в кипятке
+    // или во льду). Пишется в плату и идёт за датчиком, а не за слотом.
+    box.querySelectorAll('input[data-cal]').forEach(el => {
+      el.onchange = async () => {
+        const v = parseFloat(String(el.value).replace(',', '.'));
+        if (!isFinite(v) || v < -5 || v > 5){ PULT.toast('Поправка от −5 до +5 °C'); return; }
+        if (await PULT.setNumber(el.dataset.cal, v.toFixed(2))) PULT.toast('Поправка записана в контроллер');
+      };
     });
   }
   PULT.ROLES.forEach(r => {
@@ -335,6 +346,10 @@ function drawRoles(){
 
     // К какому железу привязана роль. Номер слота — это лишь место на
     // шине, оно уезжает при добавлении датчика; адрес не уезжает.
+    const ci = box.querySelector('[data-cal="' + r.cal + '"]');
+    const cv = PULT.CAL[r.cal];
+    if (ci && document.activeElement !== ci) ci.value = (cv === undefined) ? '' : cv.toFixed(2);
+
     const b = box.querySelector('[data-bind="' + r.sel + '"]');
     const txt = PULT.BIND[r.bind];
     if (b){
