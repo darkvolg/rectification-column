@@ -5,6 +5,9 @@ CRED = r"C:\Users\Dark\Desktop\Проекты\Password\credentials.md"
 tok = re.search(r"long-lived token \(192\.168\.0\.74:8123, выдан 08\.09\.2026\): (\S+)",
                 open(CRED, encoding="utf-8").read()).group(1)
 
+KUB = "#8e24aa"   # куб — фиолетовый: оранжевый уже у Пара 2/3
+
+
 def tile(name, sensor, color, digits, limit=None, unit="°C", ref=False):
     """Табло как в правой колонке TempMeter: название, крупная цифра, порог и кружок."""
     s = f"sensor.kolonna_{sensor}"
@@ -79,13 +82,30 @@ CONFIG = {
                          {"entity": "sensor.kolonna_voda", "name": "Вода", "yaxis_id": "voda", "color": "#3dad00",
                           "stroke_width": 3, "curve": "straight", "extend_to": "now"},
                      ],
-                     "apex_config": {"chart": {"height": 140}, "legend": {"show": True, "fontSize": "14px"},
+                     "apex_config": {"chart": {"height": 150}, "legend": {"show": True, "fontSize": "14px"},
+                                     "tooltip": {"x": {"format": "HH:mm:ss"}}}},
+                    # куб (12.11) — со старой платы: TempMeter → kolonna_watch 2.3.0. Своя полоска
+                    # и своя шкала: куб 80–100 °C, вода 50–60 — на общей обе сплющатся (Гена).
+                    # Высоты 320/150/150: полоски по 90 px вышли нечитаемыми, подписи шкалы
+                    # слиплись (Гена 12.11) — карточки ниже пусть опустятся
+                    {"type": "custom:apexcharts-card", "graph_span": "1h",
+                     "header": {"show": False},
+                     "yaxis": [
+                         {"id": "kub", "min": "|-1|", "max": "|+1|", "decimals": 1,
+                          "apex_config": {"tickAmount": 3, "labels": {"style": {"colors": KUB}}}},
+                     ],
+                     "series": [
+                         {"entity": "sensor.kolonna_kub", "name": "Куб", "yaxis_id": "kub", "color": KUB,
+                          "stroke_width": 3, "curve": "straight", "extend_to": "now"},
+                     ],
+                     "apex_config": {"chart": {"height": 150}, "legend": {"show": True, "fontSize": "14px"},
                                      "tooltip": {"x": {"format": "HH:mm:ss"}}}},
                 ]},
                 {"type": "vertical-stack", "grid_options": {"columns": 6}, "cards": [
                     tile("Пар", "par", "#e53935", 2, limit="par_max"),
                     tile("Пар 2/3", "par23", "#fb8c00", 2, limit="par23_max"),
                     tile("Вода", "voda", "#3dad00", 1, limit="voda_max"),
+                    tile("Куб", "kub", KUB, 1),
                     tile("Атм. давление", "davl", "#fdd835", 1, unit="мм"),
                 ]},
             ]},
@@ -127,7 +147,7 @@ CONFIG = {
                       "action_name": "Открыть",
                       "tap_action": {"action": "navigate", "navigation_path":
                                      "/history?entity_id=sensor.kolonna_par%2Csensor.kolonna_par23"
-                                     "%2Csensor.kolonna_voda%2Csensor.kolonna_davl"}},
+                                     "%2Csensor.kolonna_voda%2Csensor.kolonna_kub%2Csensor.kolonna_davl"}},
                      # конец погона: гасит тревогу, программа на ноуте и сторож замолкают
                      # до следующего погона (закрыл TempMeter — Алиса не зовёт)
                      {"type": "button", "name": "Погон закончен", "icon": "mdi:flag-checkered",
