@@ -5,7 +5,7 @@
 # Запускается сам при входе в Windows (ярлык в автозагрузке, окно свёрнуто) и молча
 # ждёт, пока TempMeter начнёт писать лог. Ключ HA лежит рядом в token.txt.
 
-$Version = '2.1.2'
+$Version = '2.2.0'
 
 # ---------- настройки ----------
 $LogDir     = 'C:\Users\Dark\Desktop\колонна\tma1037.jar'
@@ -319,6 +319,8 @@ $lastWaterAlert = [datetime]::MinValue
 $waterHotNow = $false
 $lastPush = [datetime]::MinValue
 $btnSeen = Get-HaState 'input_button.kolonna_ref'
+$finSeen = Get-HaState 'input_button.kolonna_finish'
+$finished = $false   # нажали «Погон закончен»: ждать, пока лог замолчит, и только потом новый погон
 $fazaSeen = $null
 $journal = $null; $journalAt = [datetime]::MinValue
 $excelPhaseSeen = $null; $journalFileSeen = $null
@@ -351,9 +353,22 @@ while ($true) {
         try { Post '/api/states/sensor.kolonna_status' @{ state = $st; attributes = @{ friendly_name = 'Колонна программа на ноуте'; version = $Version } } } catch { }
     }
 
+    # --- кнопка «Погон закончен» на странице HA ---
+    $fin = Get-HaState 'input_button.kolonna_finish'
+    if ($fin -and $fin -notin 'unknown', 'unavailable' -and $fin -ne $finSeen) {
+        $finSeen = $fin
+        if ($active) {
+            Note 'Нажали «Погон закончен» — жду следующего погона'   # вслух говорит HA
+            $active = $false; $stalled = $false; $stallCount = 0; $finished = $true
+            Start-Sleep -Seconds 5; continue
+        }
+    }
+    # TempMeter закрыли (лог замолчал) — следующий свежий лог уже новый погон
+    if ($finished -and $silent -ge $StallSec) { $finished = $false }
+
     # --- ждём начала погона ---
     if (-not $active) {
-        if ($newest -and $silent -lt $StallSec) {
+        if ($newest -and $silent -lt $StallSec -and -not $finished) {
             $active = $true; $stalled = $false; $stallCount = 0
             $refPar = $null; $refP = $null
             $lastParAlert = [datetime]::MinValue; $lastDeltaAlert = [datetime]::MinValue

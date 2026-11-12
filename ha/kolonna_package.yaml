@@ -21,6 +21,11 @@ kolonna_pkg:
     kolonna_alarm_active:
       name: "Колонна — тревога ждёт «Принял»"
       icon: mdi:bell-ring
+    # включает кнопка «Погон закончен»: голос и тревоги колонны молчат.
+    # Выключается сам, когда программа на ноуте начнёт новый погон (ждёт → идёт)
+    kolonna_done:
+      name: "Колонна — погон закончен"
+      icon: mdi:flag-checkered
 
   input_text:
     kolonna_alarm_text:
@@ -46,6 +51,11 @@ kolonna_pkg:
     kolonna_ack:
       name: "Принял тревогу"
       icon: mdi:check-bold
+    # «Погон закончен»: гасит тревогу, сторож ноута молчит до нового погона,
+    # программа на ноуте говорит одну фразу и ждёт следующего погона
+    kolonna_finish:
+      name: "Погон закончен"
+      icon: mdi:flag-checkered
 
   input_number:
     # громкость фраз колонны; после фразы станция возвращается к своей громкости.
@@ -96,7 +106,14 @@ kolonna_pkg:
         voice:
           description: "Говорить на станциях (false = промолчать)"
           example: true
+        force:
+          description: "Сказать даже после «Погон закончен»"
+          example: false
       sequence:
+        # погон закончен — колонна молчит (старая программа на ноуте ещё
+        # кричала бы «лог не пишется», пока её не обновят)
+        - condition: template
+          value_template: "{{ force | default(false) | bool or is_state('input_boolean.kolonna_done', 'off') }}"
         - variables:
             st: >-
               {% set ns = namespace(l=[]) %}
@@ -154,6 +171,9 @@ kolonna_pkg:
           description: "Текст тревоги"
           example: "Пар ушёл вверх"
       sequence:
+        - condition: state
+          entity_id: input_boolean.kolonna_done
+          state: "off"
         - action: input_text.set_value
           target:
             entity_id: input_text.kolonna_alarm_text
@@ -269,6 +289,45 @@ kolonna_pkg:
           data:
             message: "Принято."
 
+    - id: kolonna_finish
+      alias: "Колонна — погон закончен"
+      mode: single
+      triggers:
+        - trigger: state
+          entity_id: input_button.kolonna_finish
+      actions:
+        - action: input_boolean.turn_on
+          target:
+            entity_id: input_boolean.kolonna_done
+        - action: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.kolonna_alarm_active
+        - action: script.kolonna_say
+          data:
+            force: true
+            message: "Погон закончен. Колонна молчит до следующего погона."
+
+    - id: kolonna_new_run
+      alias: "Колонна — начался новый погон"
+      mode: single
+      triggers:
+        - trigger: state
+          entity_id: sensor.kolonna_status
+          from: "ждёт"
+          to: "идёт"
+      conditions:
+        - condition: state
+          entity_id: input_boolean.kolonna_done
+          state: "on"
+      actions:
+        - action: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.kolonna_done
+        # «Слежу за колонной» программы попало на заглушку — сказать за неё
+        - action: script.kolonna_say
+          data:
+            message: "Начался новый погон. Слежу за колонной."
+
     # сторож ноута: программа на ноуте раз в 30 с шлёт sensor.kolonna_status.
     # Посреди погона сигнал пропал на 3 минуты — завис ноут или упала программа.
     # «Лог молчит» программа объявляет сама; «ждёт» (погон закончен) — не тревожим
@@ -281,6 +340,11 @@ kolonna_pkg:
             {% set s = states.sensor.kolonna_status %}
             {{ s is not none and s.state in ['идёт', 'лог молчит']
                and (now() - s.last_reported).total_seconds() > 180 }}
+      # после «Погон закончен» молчать до нового погона
+      conditions:
+        - condition: state
+          entity_id: input_boolean.kolonna_done
+          state: "off"
       actions:
         - action: script.kolonna_alarm
           data:

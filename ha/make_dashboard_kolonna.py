@@ -119,6 +119,14 @@ CONFIG = {
                       "tap_action": {"action": "navigate", "navigation_path":
                                      "/history?entity_id=sensor.kolonna_par%2Csensor.kolonna_par23"
                                      "%2Csensor.kolonna_voda%2Csensor.kolonna_davl"}},
+                     # конец погона: гасит тревогу, программа на ноуте и сторож замолкают
+                     # до следующего погона (закрыл TempMeter — Алиса не зовёт)
+                     {"type": "button", "name": "Погон закончен", "icon": "mdi:flag-checkered",
+                      "action_name": "Закончил",
+                      "tap_action": {"action": "perform-action", "perform_action": "input_button.press",
+                                     "target": {"entity_id": "input_button.kolonna_finish"},
+                                     "confirmation": {"text": "Закончить погон? Тревоги колонны замолчат "
+                                                      "до следующего погона, TempMeter можно закрывать."}}},
                  ]},
             ]},
             {"type": "grid", "cards": [
