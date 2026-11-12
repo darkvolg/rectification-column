@@ -663,9 +663,17 @@ sensor:
     timeout: 5s
     filters:
       - lambda: return x / ${pulses_per_liter};
-      - exponential_moving_average:
-          alpha: 0.3
-          send_every: 1
+      # Сглаживание своё, а не exponential_moving_average. Штатное на
+      # таймауте получало от pulse_meter один-единственный ноль, делало из
+      # него 70 % прошлого значения и на этом замирало: вода встала, а
+      # проток навсегда «5,75 л/мин» (поймано 12.11 на висящем в воздухе
+      # датчике). Авария «Вода встала» при этом не сработала бы НИКОГДА.
+      # Здесь ноль проходит сразу и сбрасывает сглаживание.
+      - lambda: |-
+          static float ema = NAN;
+          if (x <= 0.0f || std::isnan(x)) { ema = NAN; return 0.0f; }
+          ema = std::isnan(ema) ? x : ema + 0.3f * (x - ema);
+          return ema;
     total:
       name: "Water Total"
       id: water_total
