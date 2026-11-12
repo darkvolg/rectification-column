@@ -138,6 +138,8 @@ static bool sd_tried = false;
 static char fname[64] = "";   // имя файла текущего погона, без /sd
 static uint32_t sd_rows = 0;  // сколько строк ушло на карту
 static sdmmc_card_t *card_info = nullptr;
+// Почему карта не поднялась — для строки «SD Status». Код ошибки ESP-IDF.
+static const char *sd_err = "ещё не пробовали";
 
 inline void reserve() {
   if (buf.size() < CAP) {
@@ -149,6 +151,10 @@ inline void reserve() {
 inline size_t rows() { return count; }
 inline uint32_t rows_sd() { return sd_rows; }
 inline bool card() { return sd_ok; }
+inline std::string sd_status() {
+  if (sd_ok) return "пишется";
+  return std::string("нет: ") + sd_err;
+}
 inline const char *filename() { return fname; }
 
 inline const Row &at(size_t i) {
@@ -225,6 +231,7 @@ inline bool sd_mount() {
   esp_err_t err = spi_bus_initialize(SPI3_HOST, &bus, SPI_DMA_CH_AUTO);
   if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
     ESP_LOGW(TAG, "шина SPI не поднялась: %s", esp_err_to_name(err));
+    sd_err = esp_err_to_name(err);
     return false;
   }
 
@@ -255,12 +262,14 @@ inline bool sd_mount() {
     } else {
       ESP_LOGD(TAG, "карты по-прежнему нет (%s)", esp_err_to_name(err));
     }
+    sd_err = esp_err_to_name(err);
     card_info = nullptr;
     return false;
   }
   uint64_t mb = ((uint64_t) card_info->csd.capacity) * card_info->csd.sector_size
                 / (1024ULL * 1024ULL);
   ESP_LOGI(TAG, "карта на месте, %llu МБ", (unsigned long long) mb);
+  sd_err = "";
   return true;
 }
 
