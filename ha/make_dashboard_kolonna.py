@@ -45,9 +45,9 @@ CONFIG = {
         "type": "sections",
         "max_columns": 4,
         "sections": [
-            # главный график на всю ширину. Пар и Пар 2/3 в одном поле, у каждого своя шкала
-            # и своя полоса по высоте: Пар сверху, Пар 2/3 снизу. Иначе на общей оси 57–78
-            # Пар расплющивается в прямую. Полосы задаются запасом шкалы над/под данными.
+            # главный график на всю ширину. Пар и Пар 2/3 на одной общей шкале слева
+            # (12.11 Гена: две шкалы рядом непонятны). На погоне они близко, 78–80 °C,
+            # шкала подстраивается под оба с запасом 0,1.
             # Вода — отдельной полоской под ним со своей шкалой слева (12.11: на общем поле
             # растущая вода залезала на Пар и казалась выше 70). Высота двух графиков вместе
             # как у прежнего одного — карточки ниже не сдвигаются.
@@ -58,15 +58,13 @@ CONFIG = {
                     {"type": "custom:apexcharts-card", "graph_span": "1h",
                      "header": {"show": True, "title": "Колонна, последний час", "show_states": False},
                      "yaxis": [
-                         {"id": "par", "min": "|-0.6|", "max": "|+0.05|", "decimals": 2,
-                          "apex_config": {"tickAmount": 6, "labels": {"style": {"colors": "#e53935"}}}},
-                         {"id": "par23", "min": "|-0.05|", "max": "|+0.6|", "decimals": 2,
-                          "apex_config": {"tickAmount": 6, "labels": {"style": {"colors": "#fb8c00"}}}},
+                         {"id": "par", "min": "|-0.1|", "max": "|+0.1|", "decimals": 2,
+                          "apex_config": {"tickAmount": 6}},
                      ],
                      "series": [
                          {"entity": "sensor.kolonna_par", "name": "Пар", "yaxis_id": "par", "color": "#e53935",
                           "stroke_width": 3, "curve": "straight", "extend_to": "now"},
-                         {"entity": "sensor.kolonna_par23", "name": "Пар 2/3", "yaxis_id": "par23",
+                         {"entity": "sensor.kolonna_par23", "name": "Пар 2/3", "yaxis_id": "par",
                           "color": "#fb8c00", "stroke_width": 3, "curve": "straight", "extend_to": "now"},
                      ],
                      "apex_config": {"chart": {"height": 320}, "legend": {"show": True, "fontSize": "14px"},
