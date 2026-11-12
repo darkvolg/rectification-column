@@ -5,7 +5,7 @@
 # Запускается сам при входе в Windows (ярлык в автозагрузке, окно свёрнуто) и молча
 # ждёт, пока TempMeter начнёт писать лог. Ключ HA лежит рядом в token.txt.
 
-$Version = '2.2.0'
+$Version = '2.3.0'
 
 # ---------- настройки ----------
 $LogDir     = 'C:\Users\Dark\Desktop\колонна\tma1037.jar'
@@ -101,6 +101,7 @@ function Push-Sensors($s, $ref) {
         @('sensor.kolonna_par',     'Колонна Пар',             $s.Par,   '°C',   'temperature'),
         @('sensor.kolonna_par23',   'Колонна Пар 2/3',         $s.Par23, '°C',   'temperature'),
         @('sensor.kolonna_voda',    'Колонна Вода',            $s.Water, '°C',   'temperature'),
+        @('sensor.kolonna_kub',     'Колонна Куб',             $s.Kub,   '°C',   'temperature'),
         @('sensor.kolonna_davl',    'Колонна давление',        $s.P,     'mmHg', 'pressure'),
         @('sensor.kolonna_par_ref', 'Колонна рабочий уровень', $ref,     '°C',   'temperature')
     )
@@ -122,7 +123,9 @@ function ConvertFrom-Header($line) {
     $h = $line.Split(';'); $m = @{}
     for ($i = 0; $i -lt $h.Count; $i++) {
         $n = $h[$i].Trim()
-        if ($n -match '2/3|2_3')           { $m.Par23 = $i }
+        # куб первым: подпись может быть «Пар в кубе», её не должен забрать «Пар»
+        if ($n -match 'куб|kub|cube')      { $m.Kub = $i }
+        elseif ($n -match '2/3|2_3')       { $m.Par23 = $i }
         elseif ($n -match 'Вод')           { $m.Water = $i }
         elseif ($n -match 'Pressure|Давл') { $m.P = $i }
         elseif ($n -match 'Пар')           { $m.Par = $i }
@@ -167,7 +170,7 @@ function Read-New {
         if (-not [datetime]::TryParseExact($p[0].Trim(), 'yyyy-MM-dd HH:mm:ss', $Inv, 'None', [ref]$ts)) { continue }
         $s = [pscustomobject]@{
             T = $ts; Par = (Val $p $script:cols.Par); Par23 = (Val $p $script:cols.Par23)
-            Water = (Val $p $script:cols.Water); P = (Val $p $script:cols.P) }
+            Water = (Val $p $script:cols.Water); P = (Val $p $script:cols.P); Kub = (Val $p $script:cols.Kub) }
         $samples.Add($s)
         # поминутные суммы Пара и давления за последний час с лишним — для подсказки
         # «пошло тело». Копятся и из уже записанного лога, поэтому после перезапуска
@@ -613,7 +616,7 @@ while ($true) {
     if (($now - $lastPush).TotalSeconds -ge $PushSec) {
         $lastPush = $now
         $smooth = [pscustomobject]@{}
-        foreach ($f in 'Par', 'Par23', 'Water', 'P') {
+        foreach ($f in 'Par', 'Par23', 'Water', 'P', 'Kub') {
             $v = Avg $f $SmoothMin 0
             if ($null -eq $v) { $v = $newest.$f }
             $smooth | Add-Member -NotePropertyName $f -NotePropertyValue $v
