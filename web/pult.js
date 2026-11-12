@@ -57,8 +57,10 @@ const AL = {
     d:'Вода на выходе выше 55 °C. Пары спирта пойдут в комнату.'},
   'binary_sensor/ALARM Kub Hot':     {c:'a', sym:'▲', t:'Куб 98.5 °C',
     d:'Тело закончилось. Закрыть отбор, выключить ТЭН.'},
-  'binary_sensor/ALARM Sensor Fault':{c:'a', sym:'▲', t:'Обрыв датчика',
-    d:'Один из DS18B20 не отвечает. Показания недостоверны.'},
+  /* soft — «внимание», а не авария: плашка жёлтая, компьютер не звонит,
+     плата пищит редко. Чаще всего это роль, датчик которой не ставили. */
+  'binary_sensor/ALARM Sensor Fault':{c:'a', soft:true, sym:'▲', t:'Обрыв датчика',
+    d:'Датчик роли не отвечает (какой — на экране платы). Не ставили специально — в Настройках роль = «нет».'},
   'binary_sensor/WARN Power':        {c:'w', sym:'◆', t:'Мощность у порога захлёба',
     d:'Выше 1300 Вт. Расчётный порог для Ø33 РПН — около 1370 Вт.'},
   'binary_sensor/WARN Front':        {c:'w', sym:'●', t:'Фронт тронулся',
@@ -473,6 +475,17 @@ async function ack(btn){
     toast('Звук заглушен. До платы не достучались');
   }
   if (btn) setTimeout(() => { btn.disabled = false; }, 1500);
+}
+
+/* Нажать кнопку платы по имени (проба сирены и т. п.). */
+async function pressBtn(name, okMsg){
+  if (!ip){ toast('Сначала задать адрес ESP32'); return false; }
+  try{
+    const r = await fetch('http://' + ip + '/button/' + encodeURIComponent(name) + '/press',
+                          {method:'POST', body:''});
+    toast(r.ok ? okMsg : 'Плата ответила ' + r.status);
+    return r.ok;
+  }catch(_){ toast('Нет связи с контроллером'); return false; }
 }
 
 /* ============================================================
@@ -1810,7 +1823,7 @@ function notifyState(){
 let mutedIds = [];
 
 function hardActive(){
-  return Object.keys(AL).filter(id => A[id] && AL[id].c === 'a');
+  return Object.keys(AL).filter(id => A[id] && AL[id].c === 'a' && !AL[id].soft);
 }
 
 /* Глушит звук ЗДЕСЬ, на этом компьютере. Контроллер и его сирена —
@@ -1850,7 +1863,7 @@ window.PULT = {
   push, slice, range, severity, col, saveHist, clearHist, histInfo, kubAbv, ABV_MIN_T,
   lim, setLim, resetLim, limUser, thrKind, editor, armEditors, NUMOF, toHexColor,
   lineColor, dashOf, setPal, resetPal, palUser, setNumber,
-  ROLES, SEL, SLOT, BIND, CAL, setSelect,
+  ROLES, SEL, SLOT, BIND, CAL, setSelect, pressBtn,
   jrnLoad, jrnSave, jrnRow, jrnAdd, jrnMark, jrnInfo, jrnEvery,
   jrnMergeRows, jrnSrcName, jrnBucket, jrnHHMM, jrnFmtVal, jrnHasData, JREAL,
   pogArchive, pogList, pogDel, pogRestore, pogSummary,

@@ -164,6 +164,23 @@
   </div>
 
   <div class="card">
+    <h3>Сирена на колонне</h3>
+    <p>Зуммер на плате умеет один тон, поэтому различаются ритмом. Авария
+    (вода, охлаждение, куб) — частый ритм, его выбираешь здесь. Обрыв датчика
+    и незаглушённая ушедшая авария — короткий «пи» раз в 4 секунды.</p>
+    <div class="fld">
+      <label for="rhythm">Ритм аварии</label>
+      <select id="rhythm">
+        <option>Тройки</option><option>Двойки</option><option>Частый</option>
+      </select>
+    </div>
+    <div class="btnrow">
+      <button class="btn" id="sirtest">Проверить сирену на колонне</button>
+    </div>
+    <p class="jhint">Проба 9 секунд: сначала выбранный ритм аварии, потом «внимание».</p>
+  </div>
+
+  <div class="card">
     <h3>Оформление</h3>
     <p>По умолчанию как в системе: днём светлое, ночью тёмное.</p>
     <div class="seg" role="group" aria-label="Оформление">
@@ -377,6 +394,16 @@ $('#snd').onchange = e => {
 $('#sndtest').onclick = () => {
   if (PULT.testSound()) PULT.toast('Так это звучит');
 };
+
+/* ---------- Сирена на колонне ---------- */
+function rhythmView(){
+  const st = PULT.SEL['SET Siren Rhythm'];
+  if (st && st.state && document.activeElement !== $('#rhythm')) $('#rhythm').value = st.state;
+}
+$('#rhythm').onchange = e => PULT.setSelect('SET Siren Rhythm', e.target.value);
+$('#sirtest').onclick = () => PULT.pressBtn('Siren Test', 'Слушай колонну');
+PULT.onUpdate(what => { if (what === 'role') rhythmView(); });
+rhythmView();
 
 /* Уведомление рабочего стола — второй канал на случай наушников
    или свёрнутого окна. Разрешение спрашивается только по кнопке:

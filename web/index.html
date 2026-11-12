@@ -408,7 +408,7 @@ function paintAlarms(){
   document.getElementById('quiet').style.display = act.length ? 'none' : '';
   box.innerHTML = act.map(id => {
     const a = AL[id];
-    return '<div class="alm ' + (a.c === 'w' ? 'w' : '') + '" role="alert">' +
+    return '<div class="alm ' + (a.c === 'w' || a.soft ? 'w' : '') + '" role="alert">' +
              '<span class="sym" aria-hidden="true">' + a.sym + '</span>' +
              '<span class="txt"><span class="t">' + a.t + '</span>' +
              '<span class="d">' + a.d + '</span></span>' +

@@ -1059,6 +1059,17 @@ select:
           if (kolonna_slots::all.empty()) return;   // ещё не загрузились
           id(addr_voda_in) = kolonna_slots::addr_by_index(i);
 
+  # Ритм аварийной сирены. Три на выбор — какой лучше слышно в своём
+  # доме, решает ухо, а не прошивка. Проба — кнопкой «Siren Test».
+  - platform: template
+    name: "SET Siren Rhythm"
+    id: sel_rhythm
+    optimistic: true
+    restore_value: true
+    entity_category: config
+    options: ["Тройки", "Двойки", "Частый"]
+    initial_option: "Тройки"
+
 number:
   # ---------- Поправки датчиков по ролям ----------
   # Снимаются в стакане воды / во льду (0 °C) / в кипятке на плите.
@@ -1384,11 +1395,29 @@ binary_sensor:
 # обновляется, интернет лёг — сирена всё равно орёт.
 # Пуш в телефон идёт вторым каналом, а не вместо.
 
-switch:
+#
+# Зуммер SFM-27 — АКТИВНЫЙ: генератор внутри, тон один (~3 кГц), умеет
+# только «есть питание / нет». Мелодию на нём не сыграть, а вот ритм —
+# да. Ровный писк без пауз ухо перестаёт замечать через минуту, и по
+# нему не понять, что случилось. Поэтому два рисунка:
+#   АВАРИЯ   (проток, охлаждение, куб) — частый, выбирается в SET Siren Rhythm
+#   ВНИМАНИЕ (обрыв датчика, или авария ушла, а сирену не заглушили)
+#            — одиночный короткий «пи» раз в 4 секунды
+#
+# Поэтому «Siren» теперь не нога, а флажок «сирена взведена». Ногой
+# GPIO23 дёргает таймер ритма ниже, в interval. Имя и id прежние —
+# пульт и Home Assistant ничего не заметили.
+
+output:
   - platform: gpio
     pin: GPIO23
+    id: siren_out
+
+switch:
+  - platform: template
     name: "Siren"
     id: siren
+    optimistic: true
     restore_mode: ALWAYS_OFF     # после перезагрузки молчит, пока авария не повторится
 
 
@@ -1441,6 +1470,12 @@ globals:
   # Не restore_value: после перезагрузки экран должен быть в своём
   # обычном состоянии — тёмном, а не «разбуженном час назад».
   - id: disp_wake
+    type: uint32_t
+    restore_value: false
+    initial_value: '0'
+
+  # До какого момента (millis) идёт проба сирены кнопкой «Siren Test».
+  - id: siren_test
     type: uint32_t
     restore_value: false
     initial_value: '0'
@@ -1504,22 +1539,83 @@ interval:
           id(t_prev) = t;
           id(t_carga_trend).publish_state(d);
 
+  # ---------- Ритм сирены ----------
+  # Рисунок — строка, один знак = 50 мс: «1» звук, «0» тишина.
+  # Так ритм видно глазами и правится он без арифметики.
+  - interval: 50ms
+    then:
+      - lambda: |-
+          static const char *const HARD[] = {
+            // Тройки: пи-пи-пи — пауза, 1,3 с на круг
+            "11100111001110000000000000",
+            // Двойки: пиии-пиии — пауза, 1,4 с
+            "1111110000111111000000000000",
+            // Частый: 5 раз в секунду без пауз — самый злой
+            "1100",
+          };
+          // Внимание: короткий «пи» раз в 4 секунды
+          static const char *const SOFT =
+            "111"
+            "0000000000000000000000000000000000000000"
+            "0000000000000000000000000000000000000";
+          static const char *last = nullptr;
+          static uint32_t tick = 0;
+          static bool pin = false;
+
+          const uint32_t now = millis();
+          const bool hard = id(alm_flow).state || id(alm_cooling).state
+                         || id(alm_kub).state;
+          size_t r = id(sel_rhythm).active_index().value_or(0);
+          if (r > 2) r = 0;
+
+          const char *pat = nullptr;
+          int32_t test = (int32_t)(id(siren_test) - now);
+          if (test > 4500)                   pat = HARD[r];  // проба: сперва авария
+          else if (test > 0)                 pat = SOFT;     // потом внимание
+          else if (id(siren).state && hard)  pat = HARD[r];
+          else if (id(siren).state)          pat = SOFT;
+
+          // Сменился рисунок — начинаем его с первого знака, а не с середины
+          if (pat != last) { last = pat; tick = 0; }
+
+          bool on = false;
+          if (pat) { on = pat[tick % strlen(pat)] == '1'; tick++; }
+          if (on != pin) {
+            pin = on;
+            if (on) id(siren_out).turn_on(); else id(siren_out).turn_off();
+          }
+
   # ---------- Кто сейчас на экране ----------
   # Одно место, где решается видимое состояние, и решается заново каждую
   # секунду. Приоритет сверху вниз, без флагов и без гонок: любое событие
   # просто меняет условия, а картинку выбирает эта лестница.
+  #
+  # Главное правило (Гена 12.11): тревога НЕ закрывает данные. Причина
+  # видна в инверсной строке внизу основного экрана, температуры над ней.
+  # Большой экран аварии — только пока сирена орёт, и то вперемешку с
+  # данными: 3 с причина, 3 с цифры.
   - interval: 1s
     then:
       - lambda: |-
           const uint32_t now = millis();
 
-          // Будят экран только те четыре, что поднимают сирену.
-          // Предупреждения (мощность, фронт) живут в нижней строке
-          // основного экрана и спать ему не мешают.
-          const bool wailing = id(alm_flow).state    || id(alm_cooling).state
-                            || id(alm_kub).state     || id(alm_sensor).state;
+          const bool hard = id(alm_flow).state || id(alm_cooling).state
+                         || id(alm_kub).state;
+          const bool soft = id(alm_sensor).state;
+          const bool loud = id(siren).state;
 
-          if (wailing)        { id(oled).show_page(id(pg_alarm)); return; }
+          // Настоящая авария, не заглушена: человеку надо сразу понять
+          // «почему орёт», и при этом видеть цифры.
+          if (hard && loud) {
+            id(oled).show_page((now / 3000) % 2 ? id(pg_main) : id(pg_alarm));
+            return;
+          }
+          // Авария заглушена, но не ушла — экран горит, данные + строка.
+          if (hard)           { id(oled).show_page(id(pg_main));  return; }
+          // Обрыв датчика до кнопки — данные + строка «обрыв: какой».
+          // После кнопки экран спит как обычно: роль, которую не ставили
+          // специально, больше не дёргает. Строка видна, если разбудить.
+          if (soft && loud)   { id(oled).show_page(id(pg_main));  return; }
 
           // Стартовый экран с адресом — первые двадцать секунд после
           // включения. Отдельный счётчик не нужен: millis() и есть
@@ -1635,7 +1731,28 @@ display:
           row(17, "ЦАРГА", id(t_carga).state);
           row(34, "ОТБОР", id(t_otbor).state);
 
-          // Нижняя строка: мощность, предупреждения, часы.
+          // Нижняя строка. Есть авария или обрыв — она становится
+          // инверсной плашкой с причиной, цифры над ней остаются.
+          const char *why = nullptr;
+          if      (id(alm_flow).state)    why = "! НЕТ ПРОТОКА";
+          else if (id(alm_cooling).state) why = "! НЕТ ОХЛАЖДЕНИЯ";
+          else if (id(alm_kub).state)     why = "! КУБ НА ПРЕДЕЛЕ";
+          else if (id(alm_sensor).state) {
+            auto br = [](uint64_t a, float v) { return a != 0 && isnan(v); };
+            if      (br(id(addr_kub),     id(t_kub).state))     why = "ОБРЫВ: КУБ";
+            else if (br(id(addr_carga),   id(t_carga).state))   why = "ОБРЫВ: ЦАРГА";
+            else if (br(id(addr_otbor),   id(t_otbor).state))   why = "ОБРЫВ: ОТБОР";
+            else if (br(id(addr_voda),    id(t_voda).state))    why = "ОБРЫВ: ВОДА ВЫХ";
+            else if (br(id(addr_voda_in), id(t_voda_in).state)) why = "ОБРЫВ: ВОДА ВХ";
+            else                                                why = "ОБРЫВ ДАТЧИКА";
+          }
+          if (why) {
+            it.filled_rectangle(0, 51, 128, 13);
+            it.printf(64, 52, id(f_txt), COLOR_OFF, TextAlign::TOP_CENTER, "%s", why);
+            return;
+          }
+
+          // Обычная нижняя строка: мощность, предупреждения, часы.
           if (isnan(id(power_calc).state)) it.printf(0, 52, id(f_txt), "-- Вт");
           else it.printf(0, 52, id(f_txt), "%.0f Вт", id(power_calc).state);
 
@@ -1682,6 +1799,15 @@ button:
     id: btn_ack
     on_press:
       - switch.turn_off: siren
+
+  # Проба сирены: 4,5 с аварийный ритм (тот, что выбран), потом 4,5 с
+  # «внимание». Слушать, не дожидаясь настоящей аварии.
+  - platform: template
+    name: "Siren Test"
+    id: btn_siren_test
+    entity_category: config
+    on_press:
+      - lambda: 'id(siren_test) = millis() + 9000;'
 
   # Очистка журнала. Жать перед новым погоном, иначе в файле окажутся
   # хвосты прошлого — а их потом примут за начало этого.
