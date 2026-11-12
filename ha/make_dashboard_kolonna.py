@@ -45,34 +45,45 @@ CONFIG = {
         "type": "sections",
         "max_columns": 4,
         "sections": [
-            # главный график на всю ширину. Одно поле, как в TempMeter, но у каждой линии
-            # своя шкала и своя полоса по высоте: Пар сверху, Пар 2/3 посередине, вода снизу.
-            # Иначе на общей оси 57–78 Пар расплющивается в прямую, а на одинаковых осях
-            # линии ложатся друг на друга. Полосы задаются запасом шкалы над/под данными.
-            # блок на всю строку: сетка 12 × 4 = 48 колонок — 42 графику, 6 узкому
+            # главный график на всю ширину. Пар и Пар 2/3 в одном поле, у каждого своя шкала
+            # и своя полоса по высоте: Пар сверху, Пар 2/3 снизу. Иначе на общей оси 57–78
+            # Пар расплющивается в прямую. Полосы задаются запасом шкалы над/под данными.
+            # Вода — отдельной полоской под ним со своей шкалой слева (12.11: на общем поле
+            # растущая вода залезала на Пар и казалась выше 70). Высота двух графиков вместе
+            # как у прежнего одного — карточки ниже не сдвигаются.
+            # блок на всю строку: сетка 12 × 4 = 48 колонок — 42 графикам, 6 узкому
             # столбику табло справа, как в TempMeter. На узком экране табло уйдут вниз
             {"type": "grid", "column_span": 4, "cards": [
-                {"type": "custom:apexcharts-card", "graph_span": "1h",
-                 "grid_options": {"columns": 42},
-                 "header": {"show": True, "title": "Колонна, последний час", "show_states": False},
-                 "yaxis": [
-                     {"id": "par", "min": "|-0.6|", "max": "|+0.05|", "decimals": 2,
-                      "apex_config": {"tickAmount": 6, "labels": {"style": {"colors": "#e53935"}}}},
-                     {"id": "par23", "min": "|-0.3|", "max": "|+0.35|", "decimals": 2,
-                      "apex_config": {"tickAmount": 6, "labels": {"style": {"colors": "#fb8c00"}}}},
-                     {"id": "voda", "opposite": True, "min": "|-0.5|", "max": "|+8|", "decimals": 1,
-                      "apex_config": {"tickAmount": 6, "labels": {"style": {"colors": "#3dad00"}}}},
-                 ],
-                 "series": [
-                     {"entity": "sensor.kolonna_par", "name": "Пар", "yaxis_id": "par", "color": "#e53935",
-                      "stroke_width": 3, "curve": "straight", "extend_to": "now"},
-                     {"entity": "sensor.kolonna_par23", "name": "Пар 2/3", "yaxis_id": "par23",
-                      "color": "#fb8c00", "stroke_width": 3, "curve": "straight", "extend_to": "now"},
-                     {"entity": "sensor.kolonna_voda", "name": "Вода", "yaxis_id": "voda", "color": "#3dad00",
-                      "stroke_width": 3, "curve": "straight", "extend_to": "now"},
-                 ],
-                 "apex_config": {"chart": {"height": 480}, "legend": {"show": True, "fontSize": "14px"},
-                                 "tooltip": {"x": {"format": "HH:mm:ss"}}}},
+                {"type": "vertical-stack", "grid_options": {"columns": 42}, "cards": [
+                    {"type": "custom:apexcharts-card", "graph_span": "1h",
+                     "header": {"show": True, "title": "Колонна, последний час", "show_states": False},
+                     "yaxis": [
+                         {"id": "par", "min": "|-0.6|", "max": "|+0.05|", "decimals": 2,
+                          "apex_config": {"tickAmount": 6, "labels": {"style": {"colors": "#e53935"}}}},
+                         {"id": "par23", "min": "|-0.05|", "max": "|+0.6|", "decimals": 2,
+                          "apex_config": {"tickAmount": 6, "labels": {"style": {"colors": "#fb8c00"}}}},
+                     ],
+                     "series": [
+                         {"entity": "sensor.kolonna_par", "name": "Пар", "yaxis_id": "par", "color": "#e53935",
+                          "stroke_width": 3, "curve": "straight", "extend_to": "now"},
+                         {"entity": "sensor.kolonna_par23", "name": "Пар 2/3", "yaxis_id": "par23",
+                          "color": "#fb8c00", "stroke_width": 3, "curve": "straight", "extend_to": "now"},
+                     ],
+                     "apex_config": {"chart": {"height": 320}, "legend": {"show": True, "fontSize": "14px"},
+                                     "tooltip": {"x": {"format": "HH:mm:ss"}}}},
+                    {"type": "custom:apexcharts-card", "graph_span": "1h",
+                     "header": {"show": False},
+                     "yaxis": [
+                         {"id": "voda", "min": "|-1|", "max": "|+1|", "decimals": 1,
+                          "apex_config": {"tickAmount": 3, "labels": {"style": {"colors": "#3dad00"}}}},
+                     ],
+                     "series": [
+                         {"entity": "sensor.kolonna_voda", "name": "Вода", "yaxis_id": "voda", "color": "#3dad00",
+                          "stroke_width": 3, "curve": "straight", "extend_to": "now"},
+                     ],
+                     "apex_config": {"chart": {"height": 140}, "legend": {"show": True, "fontSize": "14px"},
+                                     "tooltip": {"x": {"format": "HH:mm:ss"}}}},
+                ]},
                 {"type": "vertical-stack", "grid_options": {"columns": 6}, "cards": [
                     tile("Пар", "par", "#e53935", 2, limit="par_max"),
                     tile("Пар 2/3", "par23", "#fb8c00", 2, limit="par23_max"),
