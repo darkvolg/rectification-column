@@ -1099,6 +1099,20 @@ select:
     options: ["Тройки", "Двойки", "Частый"]
     initial_option: "Тройки"
 
+  # Режим работы (Гена 12.11). «Перегон сырца» — простой перегон браги
+  # до воды, часто на другом аппарате, где вода охлаждения идёт мимо
+  # датчика протока: авария «Вода встала» в этом режиме выключена,
+  # остальное (куб на пределе = «дошёл до воды», обрыв датчика) работает.
+  # restore_value: false — после перезагрузки всегда «Колонна»: защиту
+  # по воде нельзя забыть выключенной на следующем погоне.
+  - platform: template
+    name: "SET Mode"
+    id: sel_mode
+    optimistic: true
+    restore_value: false
+    options: ["Колонна", "Перегон сырца"]
+    initial_option: "Колонна"
+
 number:
   # ---------- Поправки датчиков по ролям ----------
   # Снимаются в стакане воды / во льду (0 °C) / в кипятке на плите.
@@ -1286,6 +1300,8 @@ binary_sensor:
     name: "ALARM No Flow"
     id: alm_flow
     lambda: |-
+      // Перегон сырца: вода может идти мимо датчика протока
+      if (id(sel_mode).active_index().value_or(0) == 1) return false;
       if (isnan(id(t_kub).state) || isnan(id(water_flow).state)) return {};
       float arm = id(set_kub_arm).state;
       float lim = id(set_flow_min).state;
@@ -1829,6 +1845,8 @@ display:
           // отбор тела подряд и свёл бы на нет всю затею с чёрным экраном.
           if      (id(warn_front).state) it.printf(64, 52, id(f_txt), TextAlign::TOP_CENTER, "ФРОНТ");
           else if (id(warn_power).state) it.printf(64, 52, id(f_txt), TextAlign::TOP_CENTER, "МОЩНОСТЬ");
+          else if (id(sel_mode).active_index().value_or(0) == 1)
+            it.printf(64, 52, id(f_txt), TextAlign::TOP_CENTER, "СЫРЕЦ");
 
           auto now = id(sntp_time).now();
           if (now.is_valid())

@@ -426,6 +426,10 @@ function paintStrip(){
   $('#today').textContent = DD[d.getDay()] + ', ' + d.getDate() + ' ' + MM[d.getMonth()];
   $('#clock').textContent = p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
   $('#press').textContent = V.press === undefined ? '—' : V.press.toFixed(1);
+  const md = (PULT.SEL['SET Mode'] || {}).state;
+  document.querySelector('.strip .mode').textContent = md === 'Перегон сырца'
+    ? 'Перегон сырца · авария по протоку выключена'
+    : 'Наблюдение · управления нет';
   const h = PULT.histInfo().hours;
   $('#hdepth').textContent = h >= 1 ? h.toFixed(1) + ' ч' : Math.round(h * 60) + ' мин';
 }

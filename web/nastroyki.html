@@ -164,6 +164,19 @@
   </div>
 
   <div class="card">
+    <h3>Режим работы</h3>
+    <p><b>Колонна</b> — все защиты. <b>Перегон сырца</b> — простой перегон браги
+    до воды: выключена только авария «Вода встала» (вода может идти мимо
+    датчика протока). Конец перегона — авария «Куб на пределе», порог
+    «Куб, конец тела» (для «до воды» 98,5–99 °C).</p>
+    <div class="fld">
+      <label for="mode">Режим</label>
+      <select id="mode"><option>Колонна</option><option>Перегон сырца</option></select>
+    </div>
+    <p class="jhint">После перезагрузки плата сама возвращается в «Колонну».</p>
+  </div>
+
+  <div class="card">
     <h3>Сирена на колонне</h3>
     <p>Зуммер на плате умеет один тон, поэтому выбирается ритм. Он один на
     любую тревогу: что случилось — видно на экране платы и здесь, в пульте.</p>
@@ -398,7 +411,10 @@ $('#sndtest').onclick = () => {
 function rhythmView(){
   const st = PULT.SEL['SET Siren Rhythm'];
   if (st && st.state && document.activeElement !== $('#rhythm')) $('#rhythm').value = st.state;
+  const md = PULT.SEL['SET Mode'];
+  if (md && md.state && document.activeElement !== $('#mode')) $('#mode').value = md.state;
 }
+$('#mode').onchange = e => PULT.setSelect('SET Mode', e.target.value);
 $('#rhythm').onchange = e => PULT.setSelect('SET Siren Rhythm', e.target.value);
 $('#sirtest').onclick = () => PULT.pressBtn('Siren Test', 'Слушай колонну');
 PULT.onUpdate(what => { if (what === 'role') rhythmView(); });
