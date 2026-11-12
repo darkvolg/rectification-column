@@ -156,6 +156,10 @@ esp32:
       # HEAP, а не STACK: буфер имени в куче, стек задачи не раздувает.
       CONFIG_FATFS_LFN_HEAP: y
       CONFIG_FATFS_MAX_LFN: "64"
+      # stat/opendir/readdir/unlink. ESPHome 2026 выключает это ради
+      # размера, и запись на карту шла, а прочитать её было нельзя:
+      # stat → errno 88 (ENOSYS), список погонов пуст. Найдено 12.11.2026.
+      CONFIG_VFS_SUPPORT_DIR: y
 
 logger:
   # Рабочий уровень. DEBUG нужен разово — снять адреса датчиков
@@ -1414,6 +1418,16 @@ binary_sensor:
             - logger.log: "кнопка: сирена квитирована"
           else:
             - logger.log: "кнопка: экран разбужен"
+    # Долгое нажатие (1–5 с) — второй экран и обратно. Короткое
+    # (on_press выше) срабатывает и тут, но оно только будит/глушит.
+    on_click:
+      - min_length: 1s
+        max_length: 5s
+        then:
+          - lambda: |-
+              id(disp_page) = id(disp_page) ? 0 : 1;
+              id(disp_wake) = millis() + 30000;
+          - logger.log: "кнопка: другой экран"
 
 
 # ============================================================
@@ -1497,6 +1511,12 @@ globals:
   # обычном состоянии — тёмном, а не «разбуженном час назад».
   - id: disp_wake
     type: uint32_t
+    restore_value: false
+    initial_value: '0'
+
+  # Какой экран данных: 0 — температуры, 1 — давление/вода/отбор
+  - id: disp_page
+    type: uint8_t
     restore_value: false
     initial_value: '0'
 
@@ -1684,6 +1704,8 @@ interval:
             return;
           }
 
+          // Погас — в следующий раз проснётся на первом, главном экране
+          id(disp_page) = 0;
           id(oled).show_page(id(pg_blank));
 
 
@@ -1772,17 +1794,29 @@ display:
       # ---------- Что показывает кнопка ----------
       - id: pg_main
         lambda: |-
-          // Прочерк вместо числа — это честное «датчика здесь нет»,
-          // а не ноль и не прошлое значение. Пока живёт один кубовый,
-          // две строки из трёх будут в прочерках, и так и должно быть.
-          auto row = [&](int y, const char *label, float v) {
-            it.printf(0, y + 4, id(f_txt), "%s", label);
-            if (isnan(v)) it.printf(128, y, id(f_big), TextAlign::TOP_RIGHT, "--.-");
-            else          it.printf(128, y, id(f_big), TextAlign::TOP_RIGHT, "%.1f", v);
+          // Два экрана, четыре клетки 2×2 на каждом (Гена 12.11).
+          // Долгое нажатие кнопки листает. Прочерк вместо числа — честное
+          // «датчика здесь нет», а не ноль и не прошлое значение.
+          //   1: ЦАРГА 2/3 | ОТБОР  — главное при отборе
+          //      КУБ       | ВОДА   — вода на выходе из дефлегматора
+          //   2: ДАВЛЕНИЕ  | ПРОТОК
+          //      ВОДА ВХ   | ОТОБРАНО
+          auto cell = [&](int x, int y, const char *label, float v, const char *fmt) {
+            it.printf(x, y, id(f_txt), "%s", label);
+            if (isnan(v)) it.printf(x, y + 10, id(f_big), "--");
+            else          it.printf(x, y + 10, id(f_big), fmt, v);
           };
-          row(0,  "КУБ",   id(t_kub).state);
-          row(17, "ЦАРГА", id(t_carga).state);
-          row(34, "ОТБОР", id(t_otbor).state);
+          if (id(disp_page) == 0) {
+            cell(0,  0,  "ЦАРГА",  id(t_carga).state, "%.1f");
+            cell(66, 0,  "ОТБОР",  id(t_otbor).state, "%.1f");
+            cell(0,  25, "КУБ",    id(t_kub).state,   "%.1f");
+            cell(66, 25, "ВОДА",   id(t_voda).state,  "%.1f");
+          } else {
+            cell(0,  0,  "ДАВЛ, мм",   id(atm_mmhg).state,     "%.1f");
+            cell(66, 0,  "ПРОТОК л/м", id(water_flow).state,   "%.2f");
+            cell(0,  25, "ВОДА ВХ",    id(t_voda_in).state,    "%.1f");
+            cell(66, 25, "ОТОБР, мл",  id(otbor_volume).state, "%.0f");
+          }
 
           // Нижняя строка. Есть авария или обрыв — она становится
           // инверсной плашкой с причиной, цифры над ней остаются.

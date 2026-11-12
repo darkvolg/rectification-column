@@ -57,6 +57,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <cstdio>
+#include <cerrno>
 #include <cstring>
 #include <cmath>
 #include <ctime>
@@ -483,7 +484,10 @@ class LogHandler : public AsyncWebHandler {
     std::string path = full_path(name.c_str());
     struct stat st;
     if (stat(path.c_str(), &st) != 0) {
-      req->send(404, "text/plain; charset=utf-8", "нет такого файла");
+      // Код errno в ответе: «нет такого файла» бывает по разным причинам
+      // (2 — правда нет, 22 — имя не принято файловой системой, 5 — карта)
+      std::string m = "нет такого файла (" + path + ", errno " + std::to_string(errno) + ")";
+      req->send(404, "text/plain; charset=utf-8", m.c_str());
       return;
     }
 
@@ -518,7 +522,7 @@ class LogHandler : public AsyncWebHandler {
 
   static void each_csv(const std::function<void(const char *, long)> &fn) {
     DIR *d = opendir(MOUNT);
-    if (!d) return;
+    if (!d) { ESP_LOGW(TAG, "opendir %s: errno %d", MOUNT, errno); return; }
     struct dirent *e;
     while ((e = readdir(d)) != nullptr) {
       const char *nm = e->d_name;
