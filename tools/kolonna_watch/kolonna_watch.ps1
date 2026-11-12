@@ -5,7 +5,7 @@
 # Запускается сам при входе в Windows (ярлык в автозагрузке, окно свёрнуто) и молча
 # ждёт, пока TempMeter начнёт писать лог. Ключ HA лежит рядом в token.txt.
 
-$Version = '2.3.0'
+$Version = '2.4.0'
 
 # ---------- настройки ----------
 $LogDir     = 'C:\Users\Dark\Desktop\колонна\tma1037.jar'
@@ -34,6 +34,7 @@ $SettleMin  = 20     # после перехода на тело / смены о
 $PhaseOrder = @{ 'Прогрев' = 0; 'Головы' = 1; 'Тело' = 2; 'Хвосты' = 3 }
 $PushSec    = 5      # как часто отдавать показания в HA (по ним HA проверяет пороги)
 $SmoothMin  = 0.5    # в HA уходит среднее за столько минут — график без зубцов
+$NoLogSec   = 90     # TempMeter открыт столько секунд, а журнал пустой — подсказать
 # --------------------------------
 
 $Dir   = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -189,6 +190,20 @@ function Read-New {
     foreach ($k in @($buckets.Keys | Where-Object { $_ -lt $oldB })) { [void]$buckets.Remove($k) }
 }
 
+# TempMeter открыт, а журнал с его запуска не пополнялся: у датчика не стоит
+# «Журналировать Температуру» или выключено «Начать Журналирование». Файл лога
+# TempMeter создаёт при запуске всё равно — пустой (12.11: новый датчик куба без
+# галочки, полчаса в HA «нет данных» у всех). Возвращает PID такого TempMeter
+function Get-SilentTempMeter {
+    $p = Get-CimInstance Win32_Process -Filter "Name='javaw.exe'" -ErrorAction SilentlyContinue |
+         Where-Object { $_.CommandLine -match 'tma1037' } | Sort-Object CreationDate | Select-Object -Last 1
+    if (-not $p -or ((Get-Date) - $p.CreationDate).TotalSeconds -lt $NoLogSec) { return $null }
+    $f = Get-ChildItem $LogDir -Filter 'tmlog-*.log' -ErrorAction SilentlyContinue |
+         Sort-Object LastWriteTime | Select-Object -Last 1
+    if ($f -and $f.Length -gt 0 -and $f.LastWriteTime -gt $p.CreationDate) { return $null }
+    return $p.ProcessId
+}
+
 # ---------- журнал ректификации (Excel) ----------
 # Норма голов = объём СС (C5) × крепость (C6) × % голов (C10), отобрано — максимум
 # столбца H «Отбор мл» (нарастающий) по строкам с фазой «Головы». Видно только то,
@@ -328,6 +343,7 @@ $fazaSeen = $null
 $journal = $null; $journalAt = [datetime]::MinValue
 $excelPhaseSeen = $null; $journalFileSeen = $null
 $lastBeat = [datetime]::MinValue
+$lastNoLogCheck = [datetime]::MinValue; $noLogSaid = $null   # PID TempMeter, про который уже сказали
 $driftSaid = $false; $lastP23Say = [datetime]::MinValue
 $settling = $false; $settleFrom = Get-Date; $bodyFrom = Get-Date
 $hintSaid = @{}; $hintPhase = $null   # какие подсказки уже сказаны в текущей фазе
@@ -378,7 +394,19 @@ while ($true) {
             $msg = 'Слежу за колонной.'
             if ($null -ne $newest.Par) { $msg += " Пар $(Num $newest.Par 2), вода $(Num $newest.Water 1)." }
             Say $msg
-        } else { Start-Sleep -Seconds 5; continue }
+            if ((Get-HaState 'sensor.kolonna_hint') -like 'TempMeter*') { Set-Hint 'нет' }
+        } else {
+            if (($now - $lastNoLogCheck).TotalSeconds -ge 30) {
+                $lastNoLogCheck = $now
+                $tm = Get-SilentTempMeter
+                if ($tm -and $tm -ne $noLogSaid) {
+                    $noLogSaid = $tm
+                    $txt = 'TempMeter открыт, но журнал пустой. Проверь у датчиков галочку «Журналировать температуру» и в настройках «Начать журналирование».'
+                    Say $txt; Set-Hint $txt
+                }
+            }
+            Start-Sleep -Seconds 5; continue
+        }
     }
 
     # --- лог молчит ---
