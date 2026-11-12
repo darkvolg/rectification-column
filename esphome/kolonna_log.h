@@ -299,6 +299,7 @@ inline bool sd_open_file(uint32_t ts) {
   FILE *f = fopen(path.c_str(), "w");
   if (!f) {
     ESP_LOGE(TAG, "не открыть %s", path.c_str());
+    sd_err = "файл не создаётся";
     sd_ok = false;
     fname[0] = 0;
     return false;
@@ -328,6 +329,7 @@ inline void sd_append(const Row &r) {
     // Карту выдернули посреди погона — не паникуем, кольцо в памяти
     // продолжает писаться, и это видно в диагностике.
     ESP_LOGW(TAG, "запись не удалась, карта потеряна");
+    sd_err = "запись не удалась";
     sd_ok = false;
     return;
   }
