@@ -241,6 +241,12 @@ h2:first-child{margin-top:6px}
 .card p:last-child{margin-bottom:0}
 .fld{margin-bottom:14px}
 .fld label{display:block; font-size:13px; font-weight:500; color:var(--ink-2); margin-bottom:6px}
+.fld select{
+  width:100%; height:48px; padding:0 14px; border-radius:10px;
+  border:1px solid var(--line); background:var(--surface-2); color:var(--ink);
+  font:500 15px/1 var(--sans); cursor:pointer;
+}
+.fld select option{background:var(--surface); color:var(--ink)}
 .fld input{
   width:100%; height:48px; padding:0 14px; border-radius:10px;
   border:1px solid var(--line); background:var(--surface-2); color:var(--ink);
@@ -517,6 +523,9 @@ nav a svg{width:17px; height:17px; flex:none; fill:none; stroke:currentColor;
 /* Подпись поверх меди: тёмный ink-3 на ней не читается */
 .mimic .lblm{font-size:9.5px; fill:#FFFFFF; opacity:.78; letter-spacing:.8px}
 .edunit{flex:1; min-width:0; font-size:12.5px; color:var(--ink-2)}
+.edseg{display:flex; margin-bottom:12px}
+.edseg button{flex:1}
+.edrow .edunit{flex:none}
 
 /* ============================================================
    РАБОЧИЙ ЭКРАН ГРАФИКОВ

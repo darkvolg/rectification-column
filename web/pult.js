@@ -1612,14 +1612,16 @@ function editorHtml(c){
     h += '<div class="edsec"><h4>Откуда температура</h4>' +
       '<p class="edp">Датчик T5 на входе или число, измеренное термометром из крана ' +
       'перед погоном. Хранится в плате, по нему она сама считает мощность по воде.</p>' +
-      '<div class="edrow"><select id="ed_vsrc" aria-label="Источник">' +
-        '<option' + (man ? '' : ' selected') + '>Датчик</option>' +
-        '<option' + (man ? ' selected' : '') + '>Вручную</option></select></div>' +
+      '<div class="seg edseg" role="group" aria-label="Откуда температура" id="ed_vsrc">' +
+        '<button type="button" data-v="Датчик" aria-pressed="' + !man + '">Датчик T5</button>' +
+        '<button type="button" data-v="Вручную" aria-pressed="' + man + '">Вручную</button></div>' +
+      '<div id="ed_vmanbox"' + (man ? '' : ' hidden') + '>' +
       '<div class="edrow"><input type="number" step="0.5" min="-5" max="40" id="ed_vman" ' +
         'placeholder="' + (N.vinMan === undefined ? '14' : N.vinMan.toFixed(1)) +
         '" aria-label="Вода на входе, °C">' +
+      '<span class="edunit">°C</span>' +
       '<button type="button" class="btn prim" id="ed_vwrite">Записать</button></div>' +
-      '<p class="edp small">Серым — число, которое сейчас в плате.</p></div>';
+      '<p class="edp small">Серым — число, которое сейчас в плате.</p></div></div>';
   } else if (loc && !(loc.onlyIfBlind && V[c.k] !== undefined)){
     h += '<div class="edsec"><h4>Ввод вручную</h4>' +
       '<p class="edp">' + esc(loc.h) + '</p>' +
@@ -1700,7 +1702,11 @@ function bindEditor(c){
   });
 
   const vs = $('#ed_vsrc', dlg);
-  if (vs) vs.onchange = () => setSelect('SET Voda Vhod Source', vs.value);
+  if (vs) vs.querySelectorAll('button').forEach(b => b.onclick = async () => {
+    vs.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    $('#ed_vmanbox', dlg).hidden = b.dataset.v !== 'Вручную';
+    await setSelect('SET Voda Vhod Source', b.dataset.v);
+  });
   const vw = $('#ed_vwrite', dlg);
   if (vw) vw.onclick = async () => {
     const v = parseFloat(String($('#ed_vman', dlg).value).replace(',', '.'));
