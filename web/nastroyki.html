@@ -177,6 +177,26 @@
   </div>
 
   <div class="card">
+    <h3>Вода на входе охлаждения</h3>
+    <p><b>Датчик</b> — пятый датчик T5 на входе воды (роль «Вода вход» в
+    таблице датчиков). <b>Вручную</b> — перед погоном измерь воду из крана
+    термометром и впиши число. По нему плата считает мощность по воде.</p>
+    <div class="fld">
+      <label for="vinsrc">Откуда брать</label>
+      <select id="vinsrc"><option>Датчик</option><option>Вручную</option></select>
+    </div>
+    <div class="fld">
+      <label for="vinman">Температура вручную, °C</label>
+      <input type="number" id="vinman" step="0.5" min="-5" max="40" placeholder="14">
+    </div>
+    <div class="btnrow">
+      <button class="btn" id="vinwrite">Записать в плату</button>
+    </div>
+    <p class="jhint">Выбор и число хранятся в плате и переживают перезагрузку.
+    В режиме «Вручную» датчик T5 не читается и обрывом не тревожит.</p>
+  </div>
+
+  <div class="card">
     <h3>Сирена на колонне</h3>
     <p>Зуммер на плате умеет один тон, поэтому выбирается ритм. Он один на
     любую тревогу: что случилось — видно на экране платы и здесь, в пульте.</p>
@@ -413,7 +433,17 @@ function rhythmView(){
   if (st && st.state && document.activeElement !== $('#rhythm')) $('#rhythm').value = st.state;
   const md = PULT.SEL['SET Mode'];
   if (md && md.state && document.activeElement !== $('#mode')) $('#mode').value = md.state;
+  const vs = PULT.SEL['SET Voda Vhod Source'];
+  if (vs && vs.state && document.activeElement !== $('#vinsrc')) $('#vinsrc').value = vs.state;
+  if (PULT.N.vinMan !== undefined) $('#vinman').placeholder = PULT.N.vinMan.toFixed(1);
 }
+$('#vinsrc').onchange = e => PULT.setSelect('SET Voda Vhod Source', e.target.value);
+$('#vinwrite').onclick = () => {
+  const v = parseFloat(String($('#vinman').value).replace(',', '.'));
+  if (!isFinite(v) || v < -5 || v > 40){ PULT.toast('Число от −5 до 40 °C'); return; }
+  PULT.setNumber('SET Voda Vhod Manual', v);
+};
+PULT.onUpdate(what => { if (what === 'num') rhythmView(); });
 $('#mode').onchange = e => PULT.setSelect('SET Mode', e.target.value);
 $('#rhythm').onchange = e => PULT.setSelect('SET Siren Rhythm', e.target.value);
 $('#sirtest').onclick = () => PULT.pressBtn('Siren Test', 'Слушай колонну');

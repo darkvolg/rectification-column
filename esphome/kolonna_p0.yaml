@@ -634,6 +634,12 @@ sensor:
     accuracy_decimals: 1
     update_interval: 10s
     lambda: |-
+      // «Вручную» (SET Voda Vhod Source = 1): датчика на входе нет,
+      // температуру воды из крана человек меряет термометром и вводит в
+      // SET Voda Vhod Manual. Плата считает по ней мощность по воде сама,
+      // без пульта. Датчик в этом режиме не читается вовсе.
+      if (id(sel_vin_src).active_index().value_or(0) == 1)
+        return id(vin_manual).state;
       // Роль привязана к АДРЕСУ датчика, а не к его месту на шине:
       // зачем так и чем это грозит иначе — в kolonna_slots.h.
       // Датчик пропал с шины — NAN, а не показания соседнего.
@@ -1113,6 +1119,17 @@ select:
     options: ["Колонна", "Перегон сырца"]
     initial_option: "Колонна"
 
+  # Вода на входе охлаждения (Гена 13.11): своим датчиком T5 или числом,
+  # измеренным термометром из крана. Помнится после перезагрузки.
+  - platform: template
+    name: "SET Voda Vhod Source"
+    id: sel_vin_src
+    optimistic: true
+    restore_value: true
+    entity_category: config
+    options: ["Датчик", "Вручную"]
+    initial_option: "Вручную"
+
 number:
   # ---------- Поправки датчиков по ролям ----------
   # Снимаются в стакане воды / во льду (0 °C) / в кипятке на плите.
@@ -1181,6 +1198,21 @@ number:
     min_value: -5
     max_value: 5
     step: 0.01
+    unit_of_measurement: "°C"
+    mode: box
+    entity_category: config
+
+  # Ручная температура воды на входе — работает, когда
+  # SET Voda Vhod Source = «Вручную».
+  - platform: template
+    name: "SET Voda Vhod Manual"
+    id: vin_manual
+    optimistic: true
+    restore_value: true
+    initial_value: 14
+    min_value: -5
+    max_value: 40
+    step: 0.5
     unit_of_measurement: "°C"
     mode: box
     entity_category: config
@@ -1604,7 +1636,9 @@ interval:
                               id(t_voda).state, id(t_voda_in).state};
           uint8_t m = 0;
           for (int k = 0; k < 5; k++) {
-            if (a[k] == 0) { seen &= ~(1 << k); cnt[k] = 0; continue; }  // роль = «нет»
+            if (a[k] == 0 || (k == 4 && id(sel_vin_src).active_index().value_or(0) == 1)) {
+              seen &= ~(1 << k); cnt[k] = 0; continue;                   // роль = «нет» / вход вручную
+            }
             if (!std::isnan(v[k])) { seen |= 1 << k; cnt[k] = 0; continue; }
             if (!(seen & (1 << k))) continue;                            // не подключён
             if (cnt[k] < 255) cnt[k]++;

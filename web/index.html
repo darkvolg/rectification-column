@@ -256,10 +256,13 @@ for (const id in CH) byKey[CH[id].k] = CH[id];
 const ONSVG = ['vodaIn','flow','carga','kub','pwr','voda','otbor','delta','vol'];
 
 /* Температура воды на входе.
-   Датчика T5 пока нет — тогда берём число из настроек и честно об этом
-   говорим: подписью на плашке и пометкой «оценка» у мощности по воде. */
+   Откуда она — решает плата: SET Voda Vhod Source «Датчик» (T5) или
+   «Вручную» (число SET Voda Vhod Manual, меряется термометром из крана).
+   Ручное число честно помечаем: подписью на плашке и «оценкой» у мощности
+   по воде. Старая прошивка без этого выбора — число из браузера, как раньше. */
 function inletTemp(){
-  if (V.vodaIn !== undefined) return {t:V.vodaIn, real:true};
+  const man = (PULT.SEL['SET Voda Vhod Source'] || {}).state === 'Вручную';
+  if (V.vodaIn !== undefined) return {t:V.vodaIn, real:!man};
   const m = parseFloat(localStorage.getItem('kol_t_in') || '14');
   return {t:isFinite(m) ? m : NaN, real:false};
 }
@@ -442,6 +445,7 @@ function paint(){
   const inl = inletTemp();
   if (!inl.real && isFinite(inl.t)){
     $('#v_vodaIn').textContent = inl.t.toFixed(1);
+    // ручное число — не датчик: красить его тревогой незачем
     $('#l_vodaIn').textContent = 'ВОДА ВХОД · ВРУЧНУЮ';
     document.getElementById('ch_vodaIn').dataset.s = '';
   } else if (inl.real){
@@ -449,7 +453,8 @@ function paint(){
   }
 
   // мощность по воде: с ESP32, а без датчика входа — своя оценка
-  let pwW = V.pwrW, pwEst = false;
+  // плата считает её и по ручной температуре входа — это тоже оценка
+  let pwW = V.pwrW, pwEst = !inl.real && pwW !== undefined;
   if (pwW === undefined && V.flow !== undefined && V.voda !== undefined && isFinite(inl.t)){
     const dt = V.voda - inl.t;
     if (dt > 0){ pwW = V.flow * dt * 69.77; pwEst = true; }
@@ -496,7 +501,7 @@ function paintStatus(pwEst, pwW){
   const T = ['kub','carga','otbor','voda'];
   const live = T.filter(k => V[k] !== undefined).length;
   setRow('st_sens', live === 4 ? 'on' : live ? 'bad' : '',
-         live + ' из 4' + (V.vodaIn !== undefined ? ' + T5' : ''));
+         live + ' из 4' + (inletTemp().real && V.vodaIn !== undefined ? ' + T5' : ''));
 
   const st = PULT.state;
   setRow('st_link', st === 'live' ? 'on' : st === 'idle' ? '' : 'bad',

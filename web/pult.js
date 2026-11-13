@@ -114,7 +114,8 @@ const NUM = {
   'number/SET Kub Max':   {k:'kubMax',   n:'Куб, конец тела',         u:'°C',    d:1, min:90,  max:100,  step:0.1},
   'number/SET Kub Arm':   {k:'kubArm',   n:'Куб горячий (взвод)',     u:'°C',    d:0, min:30,  max:80,   step:1},
   'number/SET Pwr Warn':  {k:'pwrWarn',  n:'Мощность, порог захлёба', u:'Вт',    d:0, min:800, max:2000, step:10},
-  'number/SET Trend Warn':{k:'trendWarn',n:'Скорость роста 2/3, внимание',   u:'°C/мин',d:3, min:0.002,max:0.1, step:0.001}
+  'number/SET Trend Warn':{k:'trendWarn',n:'Скорость роста 2/3, внимание',   u:'°C/мин',d:3, min:0.002,max:0.1, step:0.001},
+  'number/SET Voda Vhod Manual':{k:'vinMan',n:'Вода на входе, вручную',      u:'°C',    d:1, min:-5,  max:40,   step:0.5}
 };
 
 /* Состояния оборудования — не аварии, а «что сейчас включено».
@@ -1604,7 +1605,22 @@ function editorHtml(c){
     '</div>';
 
   const loc = LOCALOF[c.k];
-  if (loc && !(loc.onlyIfBlind && V[c.k] !== undefined)){
+  const vsrc = c.k === 'vodaIn' ? SEL['SET Voda Vhod Source'] : null;
+  if (vsrc){
+    // Новая прошивка: откуда брать вход воды, решает плата, число лежит в ней
+    const man = vsrc.state === 'Вручную';
+    h += '<div class="edsec"><h4>Откуда температура</h4>' +
+      '<p class="edp">Датчик T5 на входе или число, измеренное термометром из крана ' +
+      'перед погоном. Хранится в плате, по нему она сама считает мощность по воде.</p>' +
+      '<div class="edrow"><select id="ed_vsrc" aria-label="Источник">' +
+        '<option' + (man ? '' : ' selected') + '>Датчик</option>' +
+        '<option' + (man ? ' selected' : '') + '>Вручную</option></select></div>' +
+      '<div class="edrow"><input type="number" step="0.5" min="-5" max="40" id="ed_vman" ' +
+        'placeholder="' + (N.vinMan === undefined ? '14' : N.vinMan.toFixed(1)) +
+        '" aria-label="Вода на входе, °C">' +
+      '<button type="button" class="btn prim" id="ed_vwrite">Записать</button></div>' +
+      '<p class="edp small">Серым — число, которое сейчас в плате.</p></div>';
+  } else if (loc && !(loc.onlyIfBlind && V[c.k] !== undefined)){
     h += '<div class="edsec"><h4>Ввод вручную</h4>' +
       '<p class="edp">' + esc(loc.h) + '</p>' +
       '<div class="edrow"><input type="number" step="any" id="ed_loc" ' +
@@ -1682,6 +1698,17 @@ function bindEditor(c){
     }
     subs.forEach(f => f('local'));
   });
+
+  const vs = $('#ed_vsrc', dlg);
+  if (vs) vs.onchange = () => setSelect('SET Voda Vhod Source', vs.value);
+  const vw = $('#ed_vwrite', dlg);
+  if (vw) vw.onclick = async () => {
+    const v = parseFloat(String($('#ed_vman', dlg).value).replace(',', '.'));
+    if (!isFinite(v) || v < -5 || v > 40){ toast('Число от −5 до 40 °C'); return; }
+    vw.disabled = true;
+    await setNumber('SET Voda Vhod Manual', v);
+    setTimeout(() => { vw.disabled = false; }, 1200);
+  };
 
   const w = $('#ed_write', dlg);
   if (w) w.onclick = async () => {
