@@ -846,3 +846,24 @@ table.slots tr.hot td{ color:var(--warn); font-weight:700 }
 body.wide .bar,
 body.wide main,
 body.wide footer{ max-width:min(1700px, 100vw - 24px) }
+
+/* ---- Объёмная колонна на схеме (из Колонна_демо.html, 13.11.2026) ----
+   Оживает по тем же data-* на svg.mimic, что и старая: heat — нагрев,
+   пузыри и пар; flow — вода бежит по шлангам; otbor — капает в приёмник. */
+.mimic .k-plate1{font:700 26px "Segoe UI",sans-serif; fill:#FDE7CF; letter-spacing:3px}
+.mimic .k-plate2{font:500 17px "Segoe UI",sans-serif; fill:#FDE7CF}
+.mimic .k-heat{opacity:0; transition:opacity 1.5s}
+.mimic[data-heat="1"] .k-heat{opacity:1}
+.mimic .k-wflow{stroke:#fff; stroke-width:2.5; stroke-dasharray:8 12; stroke-linecap:round; opacity:0}
+.mimic[data-flow="1"] .k-wflow{opacity:.9; animation:kflow 1s linear infinite}
+.mimic .k-bub, .mimic .k-stm, .mimic .k-drp{opacity:0}
+.mimic[data-heat="1"] .k-bub{animation:kbub 1.8s ease-in infinite}
+.mimic[data-heat="1"] .k-stm{animation:kstm 3.2s linear infinite}
+.mimic[data-otbor="1"] .k-drp{animation:kdrp 1.1s ease-in infinite}
+@keyframes kflow{to{stroke-dashoffset:-40}}
+@keyframes kbub{0%{opacity:0;transform:translateY(0)}20%{opacity:.95}100%{opacity:0;transform:translateY(-34px)}}
+@keyframes kstm{0%{opacity:0;transform:translateY(0)}15%{opacity:.9}85%{opacity:.9}100%{opacity:0;transform:translateY(-270px)}}
+@keyframes kdrp{0%{opacity:0;transform:translateY(0)}15%{opacity:1}100%{opacity:1;transform:translateY(60px)}}
+@media (prefers-reduced-motion:reduce){
+  .mimic .k-wflow, .mimic .k-bub, .mimic .k-stm, .mimic .k-drp{animation:none !important}
+}
