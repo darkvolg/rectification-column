@@ -186,13 +186,82 @@ function xlDate(d, m, y, hh, mm, ss){
   return Date.UTC(y, m - 1, d, hh, mm, ss) / 86400000 + 25569;
 }
 
+/* Шапка как в журнале (Гена 13.11): сырьё и условия слева, расчёт
+   фракций формулами справа — поменял крепость в ячейке, пересчиталось.
+   Те же ячейки, что в выгрузке журнала: E4 объём … E10 % хвостов,
+   K4 АС … K7 хвосты. Пустое поле — пустая ячейка, впишешь в Excel. */
+const HEAD_ROWS = 11;                       // шапка занимает строки 1–11
+function headRows(h){
+  const S = XLSX.S, R = [];
+  const v = k => { const x = parseFloat(String((h || {})[k] || '').replace(',', '.'));
+                   return isFinite(x) ? x : ''; };
+  R[0] = [null, {v:'ЖУРНАЛ РЕКТИФИКАЦИИ', s:S.TITLE}];
+  if (!h) R[1] = [null, {v:'Шапки для этого погона нет — впиши сырьё в жёлтые ячейки', s:S.TEXT}];
+  const sec = t => [{v:t, s:S.SECTION}, {v:'', s:S.SECTION}, {v:'', s:S.SECTION},
+                    {v:'', s:S.SECTION}, {v:'', s:S.SECTION}];
+  R[2] = [null].concat(sec('СЫРЬЁ И УСЛОВИЯ'), [null], sec('РАСЧЁТ ФРАКЦИЙ (формулы от АС)'));
+  const L = [
+    ['Объём СС:',          v('vol'),    'мл',        S.INPUT],
+    ['Крепость СС:',       v('abv'),    '%',         S.INPUT],
+    ['Давление:',          v('press'),  'мм рт.ст.', S.INPUT],
+    ['t° кипения спирта:', '78.15+(E6-760)*0.037', '°C', S.CALC, true],
+    ['t° начала в кубе:',  v('tstart'), '°C',        S.INPUT],
+    ['% голов от АС:',     v('head'),   '%',         S.INPUT],
+    ['% хвостов от АС:',   v('tail'),   '%',         S.INPUT]
+  ];
+  const P = [
+    ['Абсолютный спирт (АС):', 'E4*E5/100',        'мл', S.NUM0],
+    ['Головы:',                'K4*E9/100',        'мл', S.NUM0],
+    ['Тело:',                  'K4-K5-K7',         'мл', S.NUM0],
+    ['Хвосты:',                'K4*E10/100',       'мл', S.NUM0],
+    ['Головохвосты итого:',    'K5+K7',            'мл', S.NUM0],
+    ['Доля тела от АС:',       'IF(K4>0,K6/K4,0)', '',   S.PCT],
+    ['Мощность ТЭН:',          null,               'Вт', S.INPUT]
+  ];
+  const blank = st => ({v:'', s:st});
+  for (let i = 0; i < 7; i++){
+    const l = L[i], q = P[i];
+    R[3 + i] = [null,
+      {v:l[0], s:S.LABEL}, blank(S.LABEL), blank(S.LABEL),
+      l[4] ? {v:l[1], t:'f', s:l[3]} : {v:l[1], s:l[3]},
+      {v:l[2], s:S.UNIT}, null,
+      {v:q[0], s:S.LABEL}, blank(S.LABEL), blank(S.LABEL),
+      q[1] === null ? {v:'', s:q[3]} : {v:q[1], t:'f', s:q[3]},
+      {v:q[2], s:S.UNIT}];
+  }
+  R.length = HEAD_ROWS;                      // 11-я строка пустая, отступ
+  return R;
+}
+const HEAD_MERGES = ['B1:L1', 'B2:L2', 'B3:F3', 'H3:L3'].concat(
+  [4,5,6,7,8,9,10].reduce((a, r) => a.concat(['B'+r+':D'+r, 'H'+r+':J'+r]), []));
+
+/* Откуда взять шапку погона: с карты (.hed рядом с файлом), иначе из
+   «Моих погонов» этого браузера по времени, иначе — если это текущий
+   погон — из открытого журнала. Нигде нет — пустая шапка для ввода. */
+async function headFor(name){
+  const h = await PULT.sdHead(name);
+  if (h) return h;
+  const d = PULT.sdRunDate(name);
+  if (d){
+    const t = Math.round(d.getTime() / 1000);
+    const rec = PULT.pogList().filter(r => r.head && r.start &&
+      t >= r.start - 3600 && t <= (r.end || r.start) + 600)[0];
+    if (rec) return rec.head;
+  }
+  if (INFO && name === INFO.current){
+    const J = PULT.jrnLoad();
+    if (J.head && J.head.vol) return J.head;
+  }
+  return null;
+}
+
 function boardSheet(text){
   const SPEC = boardCols();
   const lines = String(text).replace(/^﻿/, '').split('\n');
   const head = (lines[0] || '').replace(/\r$/, '').split(';');
   const rows = [];
 
-  // Строка 1 — заголовок платы как есть
+  // Строка шапки таблицы — заголовок платы как есть
   rows.push(head.map(h => ({v: h, s: XLSX.S.HEAD})));
 
   let n = 0;
@@ -222,19 +291,22 @@ function boardSheet(text){
   return {rows: rows, count: n, cols: SPEC.map(x => x.w), width: head.length};
 }
 
-function boardXlsx(name, text){
+function boardXlsx(name, text, hd){
   const sh = boardSheet(text);
   if (!sh.count) return 0;
-  const last = sh.rows.length;
+  // Шапка погона сверху, под ней таблица платы с 12-й строки
+  const rows = headRows(hd).concat(sh.rows);
+  const top = HEAD_ROWS + 1, last = HEAD_ROWS + sh.rows.length;
   XLSX.save(name.replace(/\.csv$/i, '') + '.xlsx', [{
-    name: 'Журнал платы',
+    name: 'Погон',
     cols: sh.cols,
-    // Закрепляем шапку И колонку времени: без времени слева девятнадцать
-    // столбцов цифр невозможно читать, уехав вправо
-    freeze: 'B2',
-    filter: 'A1:' + XLSX.col(sh.width) + last,
-    heights: {0: 30},
-    rows: sh.rows
+    merges: HEAD_MERGES,
+    // Закрепляем строку заголовков таблицы И колонку времени: без времени
+    // слева девятнадцать столбцов цифр невозможно читать, уехав вправо
+    freeze: 'B' + (top + 1),
+    filter: 'A' + top + ':' + XLSX.col(sh.width) + last,
+    heights: {0: 24, [HEAD_ROWS]: 30},
+    rows: rows
   }]);
   return sh.count;
 }
@@ -583,7 +655,7 @@ async function grab(btn, name, asXlsx){
     const text = await PULT.sdFileText(name, w.step);
     if (asXlsx){
       w.step('собираю книгу');
-      const n = boardXlsx(name, text);
+      const n = boardXlsx(name, text, await headFor(name));
       PULT.toast(n ? 'Excel готов, строк ' + n
                    : 'В файле нет строк с датой — сохраняю как есть');
       if (!n) saveBlob(name, text);
@@ -631,7 +703,7 @@ async function dlCurrent(btn, asXlsx){
     const where = got.card ? 'с карты' : 'из памяти платы';
     if (asXlsx){
       w.step('собираю книгу');
-      const n = boardXlsx(got.name, got.text);
+      const n = boardXlsx(got.name, got.text, await headFor(got.name));
       PULT.toast(n ? 'Excel готов ' + where + ', строк ' + n
                    : 'Плата ещё не записала ни одной строки со временем');
     } else {

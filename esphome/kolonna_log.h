@@ -281,6 +281,28 @@ inline std::string full_path(const char *name) {
   return p;
 }
 
+// Шапка погона (Гена 13.11): сырьё и условия из журнала пульта — объём,
+// крепость, давление, % голов/хвостов. Лежит рядом с журналом в файле
+// с тем же именем и расширением .hed (строки ключ=значение), чтобы Excel
+// с карты на любом компьютере собирался с шапкой. Пульт присылает её при
+// каждой правке; после перезагрузки — заново, когда открыт журнал.
+static std::string head_kv;
+
+inline std::string head_path() {
+  std::string p = full_path(fname);
+  size_t dot = p.rfind('.');
+  if (dot != std::string::npos) p.resize(dot);
+  return p + ".hed";
+}
+
+inline void head_write() {
+  if (!sd_ok || !fname[0] || head_kv.empty()) return;
+  FILE *f = fopen(head_path().c_str(), "w");
+  if (!f) { ESP_LOGW(TAG, "шапка не записалась"); return; }
+  fwrite(head_kv.data(), 1, head_kv.size(), f);
+  fclose(f);
+}
+
 // Файл создаётся, когда стало известно время: имя с датой — это половина
 // смысла архива. Пока времени нет, копим только в кольцо и ничего не теряем.
 // Возвращает true, если файл создан ПРЯМО СЕЙЧАС и уже вобрал в себя всё
@@ -319,6 +341,7 @@ inline bool sd_open_file(uint32_t ts) {
   fclose(f);
   ESP_LOGI(TAG, "журнал: %s, слито из памяти %u строк", fname,
            (unsigned) sd_rows);
+  head_write();   // шапка, присланная до появления файла
   return true;
 }
 
@@ -393,7 +416,7 @@ class LogHandler : public AsyncWebHandler {
     std::string u(req->url_to(b));
     // Удаление — только POST: GET по ссылке (превью в мессенджере,
     // предзагрузка браузера) не должен стирать погоны.
-    if (req->method() == HTTP_POST) return u == "/logs_del";
+    if (req->method() == HTTP_POST) return u == "/logs_del" || u == "/logs_head";
     if (req->method() != HTTP_GET) return false;
     return u == "/log.csv" || u == "/logs" || u == "/logs.json" ||
            u.rfind("/logs/", 0) == 0;
@@ -404,6 +427,7 @@ class LogHandler : public AsyncWebHandler {
     std::string u(req->url_to(b));
 
     if (u == "/logs_del")        { del(req); return; }
+    if (u == "/logs_head")       { head(req); return; }
     if (u == "/logs")            { list_html(req); return; }
     if (u == "/logs.json")       { list_json(req); return; }
     if (u.rfind("/logs/", 0) == 0) { file(req, u.substr(6)); return; }
@@ -553,8 +577,12 @@ class LogHandler : public AsyncWebHandler {
     bool kept = false;
     auto rm = [&](const std::string &nm) {
       if (fname[0] && nm == fname) { kept = true; return; }
-      if (unlink(full_path(nm.c_str()).c_str()) == 0) gone++;
+      std::string p = full_path(nm.c_str());
+      if (unlink(p.c_str()) == 0) gone++;
       else { failed++; ESP_LOGW(TAG, "unlink %s: errno %d", nm.c_str(), errno); }
+      // шапка уходит вместе с погоном; нет её — не беда
+      p.resize(p.size() - 4);
+      unlink((p + ".hed").c_str());
     };
     if (req->hasArg("all") && std::string(req->arg("all")) == "1") {
       // Сначала имена, потом удаление: стирать по ходу readdir нельзя.
@@ -576,6 +604,31 @@ class LogHandler : public AsyncWebHandler {
     std::string j = "{\"deleted\":" + std::to_string(gone) +
                     ",\"failed\":" + std::to_string(failed) +
                     ",\"kept_current\":" + (kept ? "true" : "false") + "}";
+    auto *resp = req->beginResponse(200, "application/json; charset=utf-8", j);
+    common(resp);
+    req->send(resp);
+  }
+
+  // Шапка погона от пульта: ?vol=&abv=&press=&tstart=&head=&tail=
+  // Берём только известные ключи и только знаки числа — это уходит в файл.
+  void head(AsyncWebServerRequest *req) {
+    static const char *const KEYS[] = {"vol", "abv", "press", "tstart", "head", "tail"};
+    std::string kv;
+    for (const char *k : KEYS) {
+      if (!req->hasArg(k)) continue;
+      std::string v = req->arg(k), ok;
+      for (char ch : v)
+        if ((ch >= '0' && ch <= '9') || ch == '.' || ch == ',' || ch == '-') ok += ch;
+      if (ok.empty() || ok.size() > 12) continue;
+      kv += k; kv += '='; kv += ok; kv += '\n';
+    }
+    head_kv = kv;
+    head_write();
+    std::string j = "{\"file\":\"";
+    j += fname;
+    j += "\",\"card\":";
+    j += sd_ok ? "true" : "false";
+    j += "}";
     auto *resp = req->beginResponse(200, "application/json; charset=utf-8", j);
     common(resp);
     req->send(resp);

@@ -948,6 +948,32 @@ async function sdInfo(){
   return r.json();
 }
 
+/* Шапка погона на карте: файл <имя погона>.hed, строки ключ=значение.
+   Отправка тихая (без всплывашек): журнал шлёт её при каждой правке. */
+const HEAD_KEYS = ['vol', 'abv', 'press', 'tstart', 'head', 'tail'];
+async function sdPutHead(h){
+  if (!ip || !h) return null;
+  const q = HEAD_KEYS.filter(k => h[k] !== undefined && h[k] !== '')
+    .map(k => k + '=' + encodeURIComponent(String(h[k]).replace(',', '.'))).join('&');
+  try {
+    const r = await fetch(sdUrl('/logs_head?' + q), {method:'POST', body:''});
+    return r.ok ? r.json() : null;
+  } catch(_){ return null; }
+}
+async function sdHead(name){
+  const hed = String(name).replace(/\.csv$/i, '') + '.hed';
+  try {
+    const r = await fetch(sdUrl('/logs/' + encodeURIComponent(hed)));
+    if (!r.ok) return null;
+    const h = {};
+    (await r.text()).split('\n').forEach(l => {
+      const m = /^(\w+)=(.+)$/.exec(l.trim());
+      if (m && HEAD_KEYS.indexOf(m[1]) >= 0) h[m[1]] = m[2];
+    });
+    return Object.keys(h).length ? h : null;
+  } catch(_){ return null; }
+}
+
 /* Стереть с карты один погон (name) или все (name не задан).
    Текущий файл плата не трогает сама — вернёт kept_current. */
 async function sdDel(name){
@@ -1914,7 +1940,7 @@ window.PULT = {
   jrnMergeRows, jrnSrcName, jrnBucket, jrnHHMM, jrnFmtVal, jrnHasData, JREAL,
   pogArchive, pogList, pogDel, pogRestore, pogSummary,
   haCfg, setHaCfg, haEntities, haPull, haPullHist, haConnect, haBucketize,
-  sdInfo, sdDel, sdPull, sdText, sdParse, sdPullHist, histMerge, jrnDownsample,
+  sdInfo, sdDel, sdHead, sdPutHead, sdPull, sdText, sdParse, sdPullHist, histMerge, jrnDownsample,
   sdFileText, sdRunDate, sdRunGuess, sdRunEnd, sdRunRows, sdRunToHist, sdRunToJournal,
   soundOn, setSound, testSound, stopBuzz, muteHere, askNotify, notifyState,
   get ip(){ return ip; },

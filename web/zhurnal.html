@@ -269,9 +269,20 @@ HEAD_F.forEach(f => {
   if (!el) return;
   el.addEventListener('input', () => {
     J.head[f] = el.value;
-    save(); calc(); liveHints(); autoInfo();
+    save(); calc(); liveHints(); autoInfo(); headToCard();
   });
 });
+
+/* Шапка уходит на карту платы, рядом с файлом погона: Excel с карты
+   на любом компьютере соберётся с сырьём и расчётом. Пауза 2 с —
+   чтобы не дёргать плату на каждую цифру. Плата перезагрузилась —
+   новый файл; шапку шлём ещё раз, как только есть связь. */
+let headT = 0, headSent = false;
+function headToCard(){
+  clearTimeout(headT);
+  headT = setTimeout(async () => { headSent = !!(await PULT.sdPutHead(J.head)); }, 2000);
+}
+PULT.onUpdate(() => { if (!headSent && PULT.state === 'live' && J.head.vol){ headSent = true; headToCard(); } });
 
 /* Живые показания прибора прямо у поля: давление меняется за погон
    на 2-3 мм, и бегать за ним на «Пульт» неудобно. Клик — подставить.
@@ -313,7 +324,7 @@ $('#j_grab').onclick = () => {
   if (V.press !== undefined){ J.head.press = V.press.toFixed(1); got.push('давление'); }
   if (V.kub !== undefined){ J.head.tstart = V.kub.toFixed(1); got.push('температуру куба'); }
   if (!got.length){ PULT.toast('Прибор молчит — нет связи'); return; }
-  fillHead(); save();
+  fillHead(); save(); headToCard();
   PULT.toast('Взял ' + got.join(' и '));
 };
 
