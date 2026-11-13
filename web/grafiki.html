@@ -44,6 +44,8 @@
       <button data-p="kub">Куб и мощность</button>
       <button data-p="cool">Охлаждение</button>
     </div>
+    <a class="btn prim" id="archbar" href="grafiki.html" hidden
+       title="Вернуться к живым графикам">Архив</a>
     <button class="btn" id="unzoom" hidden>Сбросить масштаб</button>
     <button class="btn" id="fill" title="Забрать пропущенное с платы и из Home Assistant">Дотянуть историю</button>
     <button class="btn" id="csv">История браузера</button>
@@ -76,7 +78,7 @@
   то время, что она была закрыта.
 </footer>
 
-<script src="pult.js?v=20261113a"></script>
+<script src="pult.js?v=20261113c"></script>
 <script>
 "use strict";
 const {slice, col, lineColor, V, CH} = PULT;
@@ -85,6 +87,19 @@ const byKey = {};
 for (const id in CH) byKey[CH[id].k] = CH[id];
 
 let winMin = 180;
+
+/* Архивный погон (Гена 13.11): grafiki.html?run=kol_….csv — показываем
+   ТОЛЬКО этот файл с карты, от начала до конца. Живую историю не трогаем:
+   раньше «В графики» вливало старый погон в 12-часовую историю, всё старше
+   12 часов выкидывалось, а остальное лежало за окном «3 часа». */
+let ARCH = null;                    // {name, H:{k:[[ms,v]…]}, t0, t1}
+function arange(k, from, to){
+  const a = ARCH.H[k];
+  if (!a || !a.length) return [];
+  let i = 0; while (i < a.length && a[i][0] < from) i++;
+  let j = i; while (j < a.length && a[j][0] <= to) j++;
+  return a.slice(Math.max(0, i - 1), Math.min(a.length, j + 1));
+}
 
 /* Порядок панелей — как смотришь во время погона: сначала верх колонны,
    потом куб, потом обвязка. */
@@ -305,13 +320,13 @@ function chart(){
      отрезок». Задан — стоим на выбранном куске и не убегаем за временем,
      иначе разглядеть его было бы нельзя: график перерисовывается каждые
      пять секунд. */
-  const t1 = ZOOM ? ZOOM[1] : Date.now();
-  const t0 = ZOOM ? ZOOM[0] : t1 - winMin * 60000;
+  const t1 = ZOOM ? ZOOM[1] : ARCH ? ARCH.t1 : Date.now();
+  const t0 = ZOOM ? ZOOM[0] : ARCH ? ARCH.t0 : t1 - winMin * 60000;
 
   // Ряд со своей статистикой: по ней и раскладываются полосы
   let any = false;
   const items = ser.map(k => {
-    const a = PULT.range(k, t0, t1);
+    const a = ARCH ? arange(k, t0, t1) : PULT.range(k, t0, t1);
     let lo = Infinity, hi = -Infinity, seedL = null, seedR = null, inside = false;
     a.forEach(pt => {
       if (pt[0] < t0){ seedL = pt; return; }        // затравка слева
@@ -700,7 +715,7 @@ document.getElementById('leg').addEventListener('click', e => {
   const HIST_MS = 12 * 3600e3;
   function clampWin(from, to){
     const span = to - from;
-    const hi = Date.now(), lo = hi - HIST_MS;
+    const hi = ARCH ? ARCH.t1 : Date.now(), lo = ARCH ? ARCH.t0 : hi - HIST_MS;
     if (span >= hi - lo) return [lo, hi];        // запросили шире всей истории
     if (to > hi)   { to = hi;   from = hi - span; }
     if (from < lo) { from = lo; to   = lo + span; }
@@ -800,7 +815,7 @@ document.getElementById('leg').addEventListener('click', e => {
     let b = at_t + (to - at_t) * k;
     const span = b - a;
     if (span < 30000){ const c = (a + b) / 2; a = c - 15000; b = c + 15000; }
-    if (span > 12 * 3600e3) { resetZoom(); return; }
+    if (span > (ARCH ? ARCH.t1 - ARCH.t0 : 12 * 3600e3)) { resetZoom(); return; }
     setZoom(a, b);
   }, {passive: false});
 
@@ -948,6 +963,38 @@ paintZoomState();
 
 setInterval(draw, 5000);
 draw();
+
+/* Режим архива: ?run=<файл на карте> */
+(async () => {
+  const name = new URLSearchParams(location.search).get('run');
+  if (!name) return;
+  const bar = document.getElementById('archbar');
+  bar.hidden = false;
+  bar.textContent = 'Гружу погон с карты…';
+  ['range', 'fill', 'csv', 'log'].forEach(id => { document.getElementById(id).hidden = true; });
+  try {
+    const got = await PULT.sdRunRows(name, null, s => { bar.textContent = 'Погон: ' + s; });
+    const H = {};
+    got.rows.forEach(r => {
+      for (const k in r){
+        if (k === 'ts' || !isFinite(r[k])) continue;
+        (H[k] = H[k] || []).push([r.ts * 1000, r[k]]);
+      }
+    });
+    if (!got.rows.length) throw new Error('в файле нет строк со временем');
+    ARCH = {name: name, H: H,
+            t0: got.rows[0].ts * 1000, t1: got.rows[got.rows.length - 1].ts * 1000};
+    if (ARCH.t1 - ARCH.t0 < 60000) ARCH.t1 = ARCH.t0 + 60000;
+    const f = ts => { const d = new Date(ts), p = n => String(n).padStart(2, '0');
+                      return p(d.getDate()) + '.' + p(d.getMonth() + 1) + ' ' +
+                             p(d.getHours()) + ':' + p(d.getMinutes()); };
+    bar.textContent = 'Архив ' + f(ARCH.t0) + ' – ' + f(ARCH.t1).slice(6) +
+                      ' · вернуться к живым ✕';
+    ZOOM = null; paintZoomState(); draw();
+  } catch(e){
+    bar.textContent = 'Не загрузить погон: ' + e.message + ' · к живым ✕';
+  }
+})();
 </script>
 </body>
 </html>

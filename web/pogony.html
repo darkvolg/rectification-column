@@ -91,7 +91,7 @@
   страдает: стереть архив с экрана нельзя, только вынув карту.
 </footer>
 
-<script src="pult.js?v=20261113a"></script>
+<script src="pult.js?v=20261113c"></script>
 <script src="xlsx.js?v=20260912e"></script>
 <script>
 "use strict";
@@ -601,7 +601,8 @@ function runRow(f){
   const bG = document.createElement('button');
   bG.className = 'btn';
   bG.textContent = 'В графики';
-  bG.onclick = () => toHist(bG, f.name);
+  bG.title = 'Открыть графики этого погона — от начала до конца';
+  bG.onclick = () => { location.href = 'grafiki.html?run=' + encodeURIComponent(f.name); };
   row.appendChild(bG);
 
   const bJ = document.createElement('button');
@@ -664,18 +665,6 @@ async function grab(btn, name, asXlsx){
       PULT.toast('Файл сохранён');
     }
   } catch(e){ PULT.toast('Не скачать: ' + e.message); }
-  w.done(); busy = false;
-}
-
-async function toHist(btn, name){
-  if (!guard()) return;
-  const w = work(btn);
-  try {
-    const r = await PULT.sdRunToHist(name, w.step);
-    PULT.toast(r.points
-      ? 'В графики добавлено ' + r.points + ' точек из ' + r.rows + ' строк'
-      : 'Новых точек нет — этот погон уже в истории');
-  } catch(e){ PULT.toast('Не вышло: ' + e.message); }
   w.done(); busy = false;
 }
 
