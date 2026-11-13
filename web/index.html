@@ -261,8 +261,11 @@ const ONSVG = ['vodaIn','flow','carga','kub','pwr','voda','otbor','delta','vol']
    Ручное число честно помечаем: подписью на плашке и «оценкой» у мощности
    по воде. Старая прошивка без этого выбора — число из браузера, как раньше. */
 function inletTemp(){
-  const man = (PULT.SEL['SET Voda Vhod Source'] || {}).state === 'Вручную';
-  if (V.vodaIn !== undefined) return {t:V.vodaIn, real:!man};
+  const src = (PULT.SEL['SET Voda Vhod Source'] || {}).state;
+  // Новая прошивка: решает плата. «Датчик» без датчика — честный прочерк,
+  // а не 14 из памяти браузера (так было, Гена поймал 13.11).
+  if (src) return {t:V.vodaIn !== undefined ? V.vodaIn : NaN, real:src !== 'Вручную'};
+  if (V.vodaIn !== undefined) return {t:V.vodaIn, real:true};
   const m = parseFloat(localStorage.getItem('kol_t_in') || '14');
   return {t:isFinite(m) ? m : NaN, real:false};
 }

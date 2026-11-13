@@ -948,6 +948,18 @@ async function sdInfo(){
   return r.json();
 }
 
+/* Стереть с карты один погон (name) или все (name не задан).
+   Текущий файл плата не трогает сама — вернёт kept_current. */
+async function sdDel(name){
+  const q = name ? 'name=' + encodeURIComponent(name) : 'all=1';
+  let r;
+  try { r = await fetch(sdUrl('/logs_del?' + q), {method:'POST', body:''}); }
+  catch(_){ throw new Error('контроллер не отвечает'); }
+  if (r.status === 404) throw new Error('плата не умеет удалять (старая прошивка?) или нет карты');
+  if (!r.ok) throw new Error('плата ответила ' + r.status);
+  return r.json();
+}
+
 /* Файл текущего погона с карты. Тянем целиком: 15 часов по 30 секунд —
    около 270 КБ, это два десятка кусков по локальной сети. */
 async function sdFileText(name, onStep){
@@ -1902,7 +1914,7 @@ window.PULT = {
   jrnMergeRows, jrnSrcName, jrnBucket, jrnHHMM, jrnFmtVal, jrnHasData, JREAL,
   pogArchive, pogList, pogDel, pogRestore, pogSummary,
   haCfg, setHaCfg, haEntities, haPull, haPullHist, haConnect, haBucketize,
-  sdInfo, sdPull, sdText, sdParse, sdPullHist, histMerge, jrnDownsample,
+  sdInfo, sdDel, sdPull, sdText, sdParse, sdPullHist, histMerge, jrnDownsample,
   sdFileText, sdRunDate, sdRunGuess, sdRunEnd, sdRunRows, sdRunToHist, sdRunToJournal,
   soundOn, setSound, testSound, stopBuzz, muteHere, askNotify, notifyState,
   get ip(){ return ip; },

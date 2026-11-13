@@ -389,9 +389,12 @@ inline void clear() {
 class LogHandler : public AsyncWebHandler {
  public:
   bool canHandle(AsyncWebServerRequest *req) const override {
-    if (req->method() != HTTP_GET) return false;
     char b[AsyncWebServerRequest::URL_BUF_SIZE];
     std::string u(req->url_to(b));
+    // Удаление — только POST: GET по ссылке (превью в мессенджере,
+    // предзагрузка браузера) не должен стирать погоны.
+    if (req->method() == HTTP_POST) return u == "/logs_del";
+    if (req->method() != HTTP_GET) return false;
     return u == "/log.csv" || u == "/logs" || u == "/logs.json" ||
            u.rfind("/logs/", 0) == 0;
   }
@@ -400,6 +403,7 @@ class LogHandler : public AsyncWebHandler {
     char b[AsyncWebServerRequest::URL_BUF_SIZE];
     std::string u(req->url_to(b));
 
+    if (u == "/logs_del")        { del(req); return; }
     if (u == "/logs")            { list_html(req); return; }
     if (u == "/logs.json")       { list_json(req); return; }
     if (u.rfind("/logs/", 0) == 0) { file(req, u.substr(6)); return; }
@@ -534,6 +538,47 @@ class LogHandler : public AsyncWebHandler {
       fn(nm, size);
     }
     closedir(d);
+  }
+
+  // Удаление погонов с карты (Гена 13.11): ?name=<файл> — один,
+  // ?all=1 — все .csv. Файл, который пишется сейчас, не трогаем никогда:
+  // иначе погон на ходу остался бы без начала. Форматирования нет и не
+  // надо: карту целиком проще отформатировать в компьютере.
+  void del(AsyncWebServerRequest *req) {
+    if (!sd_ok) {
+      req->send(404, "text/plain; charset=utf-8", "карта не установлена");
+      return;
+    }
+    int gone = 0, failed = 0;
+    bool kept = false;
+    auto rm = [&](const std::string &nm) {
+      if (fname[0] && nm == fname) { kept = true; return; }
+      if (unlink(full_path(nm.c_str()).c_str()) == 0) gone++;
+      else { failed++; ESP_LOGW(TAG, "unlink %s: errno %d", nm.c_str(), errno); }
+    };
+    if (req->hasArg("all") && std::string(req->arg("all")) == "1") {
+      // Сначала имена, потом удаление: стирать по ходу readdir нельзя.
+      std::vector<std::string> names;
+      each_csv([&](const char *nm, long) { names.emplace_back(nm); });
+      for (auto &nm : names) rm(nm);
+    } else {
+      std::string nm = req->hasArg("name") ? std::string(req->arg("name")) : "";
+      size_t l = nm.size();
+      if (l < 5 || nm.find('/') != std::string::npos ||
+          nm.find("..") != std::string::npos ||
+          strcasecmp(nm.c_str() + l - 4, ".csv") != 0) {
+        req->send(400, "text/plain; charset=utf-8", "плохое имя файла");
+        return;
+      }
+      rm(nm);
+    }
+    ESP_LOGI(TAG, "удалено с карты: %d, не вышло: %d", gone, failed);
+    std::string j = "{\"deleted\":" + std::to_string(gone) +
+                    ",\"failed\":" + std::to_string(failed) +
+                    ",\"kept_current\":" + (kept ? "true" : "false") + "}";
+    auto *resp = req->beginResponse(200, "application/json; charset=utf-8", j);
+    common(resp);
+    req->send(resp);
   }
 
   // Список погонов для пульта

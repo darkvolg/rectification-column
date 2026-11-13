@@ -74,6 +74,11 @@
       <div id="runs" class="runs"></div>
     </div>
     <p class="hint" id="runs_note"></p>
+    <div class="btnrow">
+      <button class="btn" id="sd_wipe">Очистить карту</button>
+    </div>
+    <p class="hint">Стирает с карты все погоны, кроме того, что пишется сейчас.
+    Вернуть нельзя — нужное сначала скачай в Excel.</p>
   </div>
 
 </main>
@@ -533,11 +538,39 @@ function runRow(f){
   bJ.onclick = () => toJrn(bJ, f.name);
   row.appendChild(bJ);
 
+  // Текущий файл плата всё равно не сотрёт — кнопку ему не даём
+  if (!(INFO && f.name === INFO.current)){
+    const bX = document.createElement('button');
+    bX.className = 'btn';
+    bX.textContent = 'Удалить';
+    bX.onclick = () => wipe(f.name, d ? when(d) : f.name);
+    row.appendChild(bX);
+  }
+
   el.appendChild(row);
   return el;
 }
 
 /* ---------- Действия ---------- */
+/* Удаление с карты: name — один погон, без name — все, кроме текущего.
+   Спрашиваем всегда: с карты не вернуть. */
+async function wipe(name, title){
+  const q = name
+    ? 'Удалить с карты погон «' + title + '»?\nВернуть будет нельзя.'
+    : 'Стереть с карты ВСЕ погоны, кроме текущего?\nВернуть будет нельзя.';
+  if (!confirm(q)) return;
+  if (!guard()) return;
+  try {
+    const r = await PULT.sdDel(name);
+    PULT.toast('Удалено: ' + r.deleted +
+               (r.failed ? ', не вышло: ' + r.failed : '') +
+               (r.kept_current ? '. Текущий оставлен' : ''));
+  } catch(e){ PULT.toast('Не удалилось: ' + e.message); }
+  busy = false;
+  load();
+}
+$('#sd_wipe').onclick = () => wipe(null);
+
 function guard(){
   if (busy){ PULT.toast('Подожди, идёт чтение с карты'); return false; }
   busy = true; return true;
