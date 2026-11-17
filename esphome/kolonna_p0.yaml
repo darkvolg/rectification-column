@@ -408,6 +408,22 @@ sensor:
       float i = id(pzem_current).state;
       return i * i * ${ten_resistance};
 
+  # Действующее напряжение НА ТЭНе = I·R. PZEM меряет сеть до регулятора
+  # (иначе сгорит), а человек привык гнать «по вольтам». Вольтметр
+  # регулятора врёт: 17.11.2026 «90» на нём = 137 В здесь (8,16 А, 1,1 кВт),
+  # «110» = 156 В. Эта цифра идёт в журнал в колонку «Напряжение».
+  - platform: template
+    name: "U TEN"
+    id: u_ten
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 0
+    update_interval: 5s
+    lambda: |-
+      if (isnan(id(pzem_current).state)) return {};
+      return id(pzem_current).state * ${ten_resistance};
+
   # ---------- Температуры ----------
   # АДРЕСА: при первом запуске в логах появятся строки вида
   #   [dallas_temp:0xx] Found sensor 0x1c0000031edd2a28
@@ -1588,7 +1604,7 @@ interval:
             id(power_calc).state,     // 6  мощность по току
             id(power_water).state,    // 7  мощность по воде
             id(pzem_current).state,   // 8  ток
-            id(pzem_voltage).state,   // 9  напряжение
+            id(u_ten).state,          // 9  напряжение на ТЭНе (I·R)
             id(water_flow).state,     // 10 проток
             id(water_total).state,    // 11 расход воды
             id(t_voda).state,         // 12 вода выход

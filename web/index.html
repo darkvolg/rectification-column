@@ -241,7 +241,7 @@
   сверить с ареометром на первом погоне.
 </footer>
 
-<script src="pult.js?v=20261113c"></script>
+<script src="pult.js?v=20261117a"></script>
 <script>
 "use strict";
 const {CH, AL, V, A, S, severity, col, slice, kubAbv} = PULT;
@@ -421,9 +421,11 @@ function paint(){
   });
   // Ток берём измеренный, а не P/U: при фазовой отсечке напряжение сети
   // и напряжение на ТЭНе — разные величины, деление даст чушь.
-  $('#v_va').textContent =
-    (V.volt === undefined ? '—' : V.volt.toFixed(0)) + ' В · ' +
-    (V.amp === undefined ? '—' : V.amp.toFixed(2)) + ' А';
+  // «На ТЭНе» = ток × R: то самое напряжение, на котором гонят. Сеть — для просадки.
+  $('#v_va').textContent = 'ТЭН ' +
+    (V.uten === undefined ? '—' : V.uten.toFixed(0)) + ' В · ' +
+    (V.amp === undefined ? '—' : V.amp.toFixed(2)) + ' А · сеть ' +
+    (V.volt === undefined ? '—' : V.volt.toFixed(0)) + ' В';
 
   // спиртуозность куба — расчёт, не датчик
   const abv = kubAbv(V.kub, V.press);

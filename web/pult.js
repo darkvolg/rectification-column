@@ -39,6 +39,7 @@ const CH = {
   'sensor/Power Water':  {k:'pwrW',  n:'Мощность',        i:'по воде',  u:'Вт',   d:0, ms:50, lo:0,   hi:2000, norm:[700,1300]},
   'sensor/Water Total':  {k:'wtot',  n:'Расход за партию',i:'',         u:'л',    d:1, ms:5, lo:0,   hi:1500, norm:[0,1500]},
   'sensor/Voltage':      {k:'volt',  n:'Сеть',            i:'',         u:'В',    d:1, ms:5, lo:180, hi:260,  norm:[205,240]},
+  'sensor/U TEN':        {k:'uten',  n:'На ТЭНе',         i:'ток × R',  u:'В',    d:0, ms:5, lo:0,   hi:240,  norm:[100,200]},
   'sensor/Current':      {k:'amp',   n:'Ток ТЭНа',        i:'',         u:'А',    d:2, ms:0.5, lo:0,   hi:20,   norm:[0,16]},
   'sensor/Pressure mmHg':{k:'press', n:'Давление',        i:'',         u:'мм',   d:1, ms:2, lo:720, hi:790,  norm:[730,780]},
   'sensor/T Boil Correction':{k:'tbc', n:'Поправка кипения', i:'по давлению', u:'°C', d:2, ms:0.05, lo:-1, hi:1, norm:[-0.5,0.5]},
@@ -85,7 +86,7 @@ const CLR = {
   press:'--s5', flow:'--s6',  pwr:'--s7',    kub:'--s8',
   wtot:'--s1',  rate:'--s2',  volt:'--s3',   trend:'--s4',
   vol:'--s5',   amp:'--s6',   pwrW:'--s7',   delta:'--s8',
-  tbc:'--s5',   box:'--s3'
+  tbc:'--s5',   box:'--s3',  uten:'--s3'
 };
 const DASHED = {wtot:1, rate:1, volt:1, trend:1, vol:1, amp:1, pwrW:1, delta:1, tbc:1};
 function dashOf(k){ return DASHED[k] ? [6, 4] : []; }
@@ -617,7 +618,8 @@ function jrnRow(){
     otbor: f(V.otbor, 2),
     carga: f(V.carga, 2),
     voda:  f(V.voda, 2),
-    volt:  f(V.volt, 0),
+    // В бланке «Напряжение» — то, на чём гонят, то есть на ТЭНе, а не сеть.
+    volt:  f(V.uten, 0),
     // Давление своё на каждую строку, а не одно на весь погон. Точка
     // кипения спирта плывёт на 0.037 °C на миллиметр, а за десять часов
     // погоды набегает и десять миллиметров — это 0.37 °C, то есть
@@ -920,7 +922,7 @@ const SD_COL = {kub: 1, otbor: 3, carga: 2, voda: 13, volt: 10, press: 15, rate:
    мощности. Номера — позиции в CSV, шапка описана в kolonna_log.h. */
 const SD_ALL = {
   kub: 1, carga: 2, otbor: 3, delta: 4, trend: 5,
-  pwr: 7, pwrW: 8, amp: 9, volt: 10, flow: 11, wtot: 12,
+  pwr: 7, pwrW: 8, amp: 9, uten: 10, flow: 11, wtot: 12,   // 10 с 17.11.2026 — на ТЭНе
   voda: 13, vodaIn: 14, press: 15, rate: 16, vol: 17
 };
 
